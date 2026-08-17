@@ -1,0 +1,24 @@
+{
+  "execution": {
+    "execution_id": "execution-greeting-blocked",
+    "case_id": "case-greeting-happy",
+    "status": "blocked",
+    "started_at": "2026-01-01T00:00:00Z",
+    "finished_at": "2026-01-01T00:00:01Z",
+    "output": null,
+    "observation_refs": [],
+    "error": {
+      "failure_id": "failure-environment",
+      "domain": "environment",
+      "code": "environment_failure",
+      "message": "The fake environment is unavailable.",
+      "case_id": "case-greeting-happy",
+      "evidence_refs": [],
+      "retryable": true,
+      "details": {}
+    },
+    "metadata": {"fixture": "blocked"}
+  },
+  "evidence": []
+}
+

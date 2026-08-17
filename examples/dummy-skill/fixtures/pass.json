@@ -1,0 +1,23 @@
+{
+  "execution": {
+    "execution_id": "execution-greeting-pass",
+    "case_id": "case-greeting-happy",
+    "status": "completed",
+    "started_at": "2026-01-01T00:00:00Z",
+    "finished_at": "2026-01-01T00:00:01Z",
+    "output": {"greeting": "Hello, Ada!"},
+    "observation_refs": ["evidence-final-state"],
+    "metadata": {"fixture": "pass"}
+  },
+  "evidence": [
+    {
+      "evidence_id": "evidence-final-state",
+      "kind": "final_state",
+      "source": "fake-execution",
+      "media_type": "application/json",
+      "data": {"greeting": "Hello, Ada!"},
+      "metadata": {}
+    }
+  ]
+}
+

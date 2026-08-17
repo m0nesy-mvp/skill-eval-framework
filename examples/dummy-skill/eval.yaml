@@ -1,0 +1,88 @@
+schema_version: "0.1"
+eval_id: dummy-greeting-eval
+eval_version: "0.1.0"
+contract_table:
+  table_id: dummy-greeting-contracts
+  version: "0.1.0"
+  target_skill:
+    skill_id: dummy-greeting
+    version: "1.0.0"
+    content_hash: sha256:dummy-greeting-v1
+  requirements:
+    - requirement_id: req-greeting
+      description: Return a normalized greeting for a provided name.
+      source_reference:
+        source_id: dummy-spec
+        path: examples/dummy-skill/spec.txt
+        locator: requirement:greeting
+        content_hash: sha256:dummy-spec-v1
+  contracts:
+    - contract_id: contract-greeting
+      requirement_ids: [req-greeting]
+      category: output
+      description: A valid name produces the expected greeting.
+      preconditions: [A non-empty name is provided.]
+      trigger: A greeting request contains a name.
+      expected_behavior: [The final state contains the normalized greeting.]
+      forbidden_behavior: []
+      criticality: critical
+      required_evidence:
+        - kind: final_state
+      source_references:
+        - source_id: dummy-spec
+          path: examples/dummy-skill/spec.txt
+          locator: requirement:greeting
+          content_hash: sha256:dummy-spec-v1
+test_cases:
+  - case_id: case-greeting-happy
+    contract_ids: [contract-greeting]
+    category: happy_path
+    description: Generate a greeting for Ada.
+    preconditions: []
+    input:
+      fixture: fixtures/pass.json
+      name: Ada
+    expected:
+      - expected_id: expected-greeting
+        contract_ids: [contract-greeting]
+        description: The greeting equals Hello, Ada!
+        grader_ids: [grader-greeting]
+    criticality: critical
+    environment_requirements: []
+graders:
+  - grader_id: grader-greeting
+    version: "1.0.0"
+    kind: deterministic
+    operation: field_equals
+    evidence_kind: final_state
+    config:
+      field: greeting
+      expected: Hello, Ada!
+rubrics: []
+gates:
+  - gate_id: gate-critical-cases
+    gate_type: hard
+    metric: critical_cases_pass
+    operator: eq
+    threshold: true
+    scope:
+      kind: run
+    description: Every critical case must pass.
+  - gate_id: gate-overall-score
+    gate_type: soft
+    metric: overall_score
+    operator: gte
+    threshold: 0.9
+    scope:
+      kind: run
+    description: Overall normalized score must be at least 0.9.
+coverage_policy:
+  minimum_cases_by_criticality:
+    critical: 1
+    high: 0
+    medium: 0
+    low: 0
+  required_categories_by_criticality:
+    critical: [happy_path]
+  forbidden_behaviors_require_negative_case: true
+
