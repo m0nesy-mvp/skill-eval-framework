@@ -1,9 +1,0 @@
-.venv/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.uv-cache/
-__pycache__/
-*.py[cod]
-.runs/
-dist/
