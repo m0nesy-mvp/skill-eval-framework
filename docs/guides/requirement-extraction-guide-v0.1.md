@@ -66,62 +66,82 @@ Requirement Extraction 必须产生：
 
 中间工作记录属于设计 Artifact。它们不会为冻结的 Requirement Schema 增加字段，也不会自动进入 Frozen Benchmark Definition。
 
-## 4. Reading Scope：理解规范意义上的完整 Skill
+## 4. Reading Scope：为 Pass 1 建立可靠整体理解
 
 ### 4.1 `SKILL.md` 是入口，但不一定是完整规范
 
-Requirement Extraction 面向规范意义上的完整 Skill。正常阅读流程是：
+Pass 1 从 Target Skill 的主入口规范开始，例如 `SKILL.md`。正常阅读流程是：
 
 ```text
-SKILL.md
-→ 识别规范性依赖
-→ 按需读取 references / schemas / scripts / templates / config
-→ 构建完整 Skill Understanding
+主入口规范
+→ 理解整体任务与正式行为
+→ 识别被引用或委托的必要资源
+→ 按需读取会影响 Skill Understanding 的资源
+→ 建立可靠的整体理解
 ```
 
-Agent 从 `SKILL.md` 开始，识别能力结构和被引用依赖；只有在理解规范性责任、必需执行路径、输出标准或已知不确定项所需时，才扩展阅读范围。
+Agent 应先理解 Skill 的整体任务和正式行为，再识别主规范引用或委托的必要资源。只有当资源会影响下列任一方面时，才继续读取：
 
-不得机械读取所有文件。普通 assets、生成文件、无关示例、测试、缓存和内部 helper 不会自动进入规范性阅读范围。
+- 正式行为；
+- 输出；
+- workflow；
+- validation；
+- authorization；
+- forbidden actions；
+- failure handling；
+- completion condition。
+
+不得机械读取整个目录。普通 assets、生成文件、无关示例、测试、缓存和内部 helper 不会自动进入阅读范围。一个实现文件仅仅存在，不代表它的实现细节属于正式规范。
 
 ### 4.2 规范性依赖判断
 
-符合以下任一条件时，应读取被引用资源：
+符合以下任一条件时，应读取被引用或委托的资源：
 
-- 规范性来源声明该资源定义必需行为或输出；
+- 主规范声明该资源定义必需行为或输出；
 - Skill 要求 Agent 遵循该资源；
 - Skill 要求结果符合该资源；
-- 理解某个能力分支或必需工作流离不开该资源；
+- 该资源影响 workflow、validation、authorization、forbidden actions、failure handling 或 completion condition；
+- 理解某个 capability / task branch 或必需工作流离不开该资源；
 - 该资源可能包含相互冲突的规范性指令；
 - 不读取它就无法可靠完成 Pass 1。
 
 读取一个资源，不代表其中所有内容都自动具有规范性。Agent 必须判断规范委托了什么责任，以及哪些内容与该委托有关。
 
-### 4.3 复杂 Skill 的覆盖方式
+### 4.3 Capability Map 与复杂 Skill 的覆盖方式
 
-对于复杂 Skill，Agent 应先识别：
+Capability Map 是 Pass 1 的阅读辅助产物，用于防止复杂 Skill 的整个能力区域在后续 Candidate Collection 中被遗漏。它：
 
-- 跨整个 Skill 生效的 Shared 行为；
-- 每一个能力分支；
-- 分支特有的依赖与约束；
-- Shared 输出与分支输出；
-- 明确不在范围内的能力。
+- 不是 Framework Core Object；
+- 不是 Schema；
+- 不是所有 Skill 都必须复杂生成的正式对象；
+- 不预定义任何 capability taxonomy。
 
-Pass 1 和 Pass 2 都必须覆盖 Shared 层以及每个 in-scope 能力分支。成功理解一个路径，不能证明已经理解整个 Skill。
+具体 capability 名称必须来自 Target Skill 本身，不得由 Framework 写死。对于复杂 Skill，Agent 应先识别：
+
+- shared / cross-cutting responsibilities；
+- 每一个主要 capability / task branch；
+- 分支特有的依赖、输入、输出与约束；
+- 明确不在范围内的能力或分支。
+
+简单 Skill 可以只记录一个主 capability 和少量 shared responsibilities。成功理解一个路径，不能证明已经理解整个复杂 Skill。
 
 ## 5. Normative Source 与 Implementation Fact
 
 ### 5.1 Normative Source
 
-Normative Source 能够产生 Requirement，例如：
+Normative Source 用于理解“Skill 被要求怎样工作”，例如：
 
-- `SKILL.md`；
+- 主规范，例如 `SKILL.md`；
 - 被 Skill 明确指定为正式标准的 reference；
 - 最终结果必须符合的 schema；
 - Skill 必须运行或通过的 validator；
 - 必须遵循的 checklist；
 - 必须使用的 template；
+- 具有正式约束作用的 config；
 - 用户明确要求；
 - 项目或接口正式要求。
+
+Pass 1 只识别这些来源、理解其委托范围并记录它们对 Skill Understanding 的影响，不在本阶段生成 Requirement、Requirement Candidate 或正式 ID。
 
 最终 `source` 仍使用已经冻结的枚举：
 
@@ -143,6 +163,8 @@ Implementation Fact 描述当前实现实际上怎样工作，例如：
 
 Implementation Fact 可以用于理解真实行为、发现规范与实现冲突、定位问题或识别可能缺失的规范，但不能仅因为代码当前这样实现，就升级成 Requirement。
 
+Implementation Fact 不得自动覆盖 Normative Source，也不得在 Pass 1 自动生成后续 Requirement。Pass 1 发现两者不一致时，只记录 mismatch 及其影响。
+
 ### 5.3 对资源的规范委托
 
 script、schema、validator、template、reference 或 config，只有在 Normative Source 明确委托的范围内才成为正式标准的一部分。例如：
@@ -158,10 +180,11 @@ Agent 必须把被委托资源读取到足以理解被委托责任的程度。�
 
 当 Normative Source 与 Implementation Fact 不一致时：
 
-- 保留规范陈述作为 Requirement 来源；
-- 将实现差异记录为冲突或 review note；
-- 不得静默把 Requirement 改写为当前实现行为；
-- 没有后续阶段的运行证据时，不得声称实现满足 Requirement。
+- 保留 Normative Source 的正式含义；
+- 将实现差异记录为 implementation mismatch；
+- 不得静默用当前实现覆盖规范；
+- 不得在 Pass 1 决定后续 Requirement；
+- 没有后续阶段的运行证据时，不得声称实现满足规范。
 
 ## 6. 四遍 Requirement Extraction 流程
 
@@ -169,30 +192,71 @@ Agent 必须把被委托资源读取到足以理解被委托责任的程度。�
 
 ### 6.1 Pass 1 — Understand
 
-**目标：**在提取正式 Requirement 前，理解完整的 in-scope Skill。
+**唯一目标：**在开始 Requirement Candidate Extraction 前，建立对 Target Skill 的可靠整体理解。
 
-执行步骤：
+Pass 1 回答：
 
-1. 把 `SKILL.md` 作为入口读取。
-2. 识别 Shared 行为和所有 in-scope 能力分支。
-3. 识别 Normative Source 与规范性依赖。
-4. 按需读取被委托或理解所必需的资源。
-5. 区分规范声明的责任与 Implementation Fact。
-6. 记录约束、排除项、未解析术语和来源冲突。
-7. 判断当前理解是否足以开始系统收集 Candidate。
+> 这个 Skill 是什么、能做什么、怎么工作、依赖什么、哪些地方还不清楚？
 
-Skill Summary 必须包含：
+Pass 1 不负责生成 Requirement、`RC-xxx`、`R001`、Contract、Test Case 或 Grader，也不负责打分。
 
-- **Skill Summary**：目的、输入、输出和已声明能力；
-- **Normal Execution Flow**：正常端到端路径及有意义的分支；
-- **Important Dependencies**：理解 Skill 所需的资源、工具、schema、validator、template、config、服务或环境依赖；
-- **Known Constraints**：顺序、授权、禁止行为、输出约束及其他正式限制；
-- **Uncertainties**：缺失来源、歧义、未解决冲突和不可访问资源；
-- **Decision**：`UNDERSTANDING_READY` 或 `UNDERSTANDING_BLOCKED`。
+#### Pass 1 应回答的问题
 
-只有当 Agent 能解释完整的 in-scope Skill，并足以进行系统 Candidate 扫描时，才能输出 `UNDERSTANDING_READY`。
+Pass 1 至少应回答：
 
-如果无法可靠理解 Skill，应输出 `UNDERSTANDING_BLOCKED`。例如：被委托的规范性资源缺失、关键能力分支无法访问，或未解决歧义会改变待提取责任。必须记录每个阻塞原因及其影响；不得静默停止，也不得假设缺失区域没有 Requirement。
+1. Skill 的核心目的是什么？
+2. 输入是什么？
+3. 输出或最终完成状态是什么？
+4. 正常成功执行的大致流程是什么？
+5. Skill 提供哪些主要能力或任务分支？
+6. 哪些规则是跨能力共享的？
+7. 它依赖哪些重要资源、工具、schema、validator 或 config？
+8. 哪些依赖具有规范性？
+9. 有哪些明显的 outcome constraints、workflow constraints、validation rules、authorization rules、forbidden actions、failure handling 和 completion conditions？
+10. 有哪些规范冲突、歧义、缺失信息或 implementation mismatch？
+
+#### 执行步骤
+
+1. 从 Target Skill 的主入口规范开始，例如 `SKILL.md`。
+2. 理解整体任务、正式行为、输入、输出和完成状态。
+3. 识别 shared responsibilities 和主要 capability / task branches。
+4. 识别 Normative Source、Implementation Fact 以及主规范引用或委托的必要资源。
+5. 按 Reading Scope 只读取会影响可靠理解的资源。
+6. 记录已理解的约束类别、排除项、冲突、歧义、缺失信息和 implementation mismatch。
+7. 判断当前信息是否足以进入 Requirement Candidate Collection。
+
+#### Pass 1 必需产物
+
+Pass 1 完成后必须产生：
+
+1. **Skill Summary**：简洁复述整个 Skill，包括核心目的、输入、输出或最终完成状态，以及主要能力边界。
+2. **Normal Execution Flow**：描述典型成功路径及理解整体行为所需的主要分支。
+3. **Capability Map**：列出 shared / cross-cutting responsibilities 与主要 capability / task branches；简单 Skill 可以非常简短，甚至只记录一个主 capability。
+4. **Important Dependencies**：对每项重要 dependency / resource，记录为什么需要读取、是否 normative，以及它影响哪部分理解。
+5. **Known Constraints**：只记录理解到的约束类别和内容，不在本阶段把它们正式转换为 Requirement。
+6. **Uncertainties / Conflicts**：记录 normative conflict、ambiguity、missing information 和 implementation mismatch，并说明其影响。
+7. **Understanding Status**：只能是 `UNDERSTANDING_READY` 或 `UNDERSTANDING_BLOCKED`。
+
+#### READY / BLOCKED
+
+`UNDERSTANDING_READY` 表示当前信息足以进入 Requirement Candidate Collection。READY 不要求 Skill 完全没有歧义；只要核心目的清楚、能力边界基本清楚、主要规范来源已识别，并且已知冲突已显式记录，即可 READY。
+
+`UNDERSTANDING_BLOCKED` 表示当前信息不足以可靠判断 Skill 的核心任务、规范来源、主要输入输出或关键能力边界。此时必须记录每个阻塞原因及其影响，不继续 Requirement Candidate Extraction，也不得假设缺失区域没有 Requirement。
+
+#### Pass 1 Completion Gate
+
+进入 Pass 2 前确认：
+
+- [ ] 能准确复述 Skill
+- [ ] 已识别输入和输出
+- [ ] 已识别主要正常流程
+- [ ] 已识别主要 capability / task branches
+- [ ] 已识别 shared responsibilities
+- [ ] 已区分 Normative Source / Implementation Fact
+- [ ] 已读取必要的委托资源
+- [ ] 已记录关键约束
+- [ ] 已记录冲突和不确定项
+- [ ] 状态为 `UNDERSTANDING_READY`
 
 ### 6.2 Pass 2 — Collect
 
