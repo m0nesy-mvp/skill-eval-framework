@@ -61,8 +61,10 @@ Requirement Extraction 必须产生：
 
 1. **Skill Summary**：Pass 1 的已审查理解结果；
 2. **Requirement Candidate Ledger**：从收集到规范化过程中的可审查工作记录；
-3. **Traceability Review**：集合级双向来源覆盖审查；
-4. **Final Requirement Set**：只包含已接受 Requirement，并使用冻结的 Requirement Schema。
+3. **Normalized Candidate Set**：Pass 3 完成来源、粒度、类型和 contractability 审查后的候选集合；
+4. **Candidate Disposition Matrix**：Pass 3 对每条原始 Candidate 去向的完整审计记录；
+5. **Traceability Review**：集合级双向来源覆盖审查；
+6. **Final Requirement Set**：只包含已接受 Requirement，并使用冻结的 Requirement Schema。
 
 中间工作记录属于设计 Artifact。它们不会为冻结的 Requirement Schema 增加字段，也不会自动进入 Frozen Benchmark Definition。
 
@@ -486,21 +488,107 @@ Pass 2 必须产生：
 
 ### 6.3 Pass 3 — Normalize
 
-**目标：**把 Candidate 集合整理为一致的拟议 Requirement Set。
+**目标：**把 Pass 2 的高召回 Requirement Candidate Ledger 整理为语义清晰、来源支持、粒度合理、重复受控、类型明确、冲突保留，并能够进入 Pass 4 Trace 的 Normalized Candidate Set。
 
-对每个 Candidate：
+Pass 3 回答：
 
-1. 执行 Split Test、Merge Test 和 Delete / Demote Test；
-2. 去重并协调重叠表述；
-3. 排除背景、示例和普通实现细节；
-4. 决定不确定 Candidate 的处置；
-5. 将接受的责任分类为 `outcome` 或 `workflow`；
-6. 当 Outcome 与 Workflow 是独立责任时拆分混合陈述；
-7. 将未解决的规范来源冲突标记为 `CONFLICT`；
-8. 确认该陈述后续能够被 Contract 化，且违反时存在独立、有意义的可观察失败；
-9. 在每次拆分或合并后保留来源追溯。
+> 我们找出来的 Candidate 应该如何组织成合理的 Requirement 候选？
 
-Normalize 可以产生 `keep`、`merge`、`remove`、`note`、`conflict / needs clarification` 等处置。只有已经解决的 `keep` 结果可以进入 Final Requirement Set。
+Pass 3 不负责检查整个规范是否已被完整覆盖，不分配正式 `R001` ID，不冻结 Final Requirement Set，也不进行 Contract 或 Grader 设计。Normative Source → Requirement 的 source-level completeness 属于 Pass 4 Trace。
+
+#### Pass 3 输入与进入条件
+
+Pass 3 只能在 Pass 2 状态为 `COLLECTION_READY` 时开始。输入至少包括：
+
+- Requirement Candidate Ledger；
+- Collection Coverage Matrix；
+- Normative Source Inventory；
+- Extraction Issue Ledger；
+- Pass 1 的 Skill Understanding artifacts。
+
+如果 Pass 2 为 `COLLECTION_BLOCKED`，不得开始 Normalize，也不得用局部 Candidate 集合替代完整输入。
+
+#### Normalize 基本原则
+
+Pass 2 采用 Recall first；Pass 3 转向 **Precision + Diagnostic Value**。Agent 不再因“可能有用”而无条件保留 Candidate，而要判断它是否值得成为独立、可诊断的 Requirement 候选。
+
+不得为了减少数量而人为合并。粒度必须由规范语义、适用 scope 和独立失败模式决定，不能由目标数量、缩减比例或版面长度决定。合法的 SPLIT 与 MERGE 可能相互抵消，Normalized Candidate 数量不是成功指标。
+
+#### Candidate Dispositions
+
+Pass 3 必须为每一条 Pass 2 Candidate 给出一个明确 disposition：
+
+```text
+KEEP
+KEEP_WITH_EDIT
+SPLIT
+MERGE
+REMOVE
+DEMOTE_TO_NOTE
+CONFLICT
+NEEDS_CLARIFICATION
+```
+
+| Disposition | 含义 |
+|---|---|
+| `KEEP` | 原 Candidate 的责任、粒度和 wording 可直接进入 Normalized Candidate Set |
+| `KEEP_WITH_EDIT` | 责任成立，但需收缩加强语义、澄清 wording、修正 scope 或去除实现偶然性 |
+| `SPLIT` | Candidate 包含多个可以独立失败且值得分别诊断的责任 |
+| `MERGE` | 多个 Candidate 表达同一责任或可观察意义上基本同真同假 |
+| `REMOVE` | 无规范支持、重复后无独立价值、仅为实现事实或不属于 Requirement 候选 |
+| `DEMOTE_TO_NOTE` | 对理解有帮助，但不是独立规范责任，应保留为审查说明 |
+| `CONFLICT` | 相关 true conflict 在 Normative Rule Resolution 后仍未解决 |
+| `NEEDS_CLARIFICATION` | 规范责任可能存在，但当前语义、scope、权威或失败含义仍不足以正常化 |
+
+每条原始 Candidate 都必须有去向。不得静默丢失、覆盖或仅从 Normalized Candidate Set 中省略 Candidate。
+
+#### Normalize 处理顺序
+
+对每条 Candidate 及其相关 Candidate 集合依次执行：
+
+1. Normative Support Check；
+2. Atomic Responsibility Test；
+3. Merge Test；
+4. Parent / Child Rule；
+5. Over-fragmentation Test；
+6. Statement Normalization；
+7. Outcome / Workflow Final Classification；
+8. Contractability Check；
+9. Conflict、Uncertainty 和 Implementation Mismatch 关联审查；
+10. Multi-source evidence consolidation；
+11. 在 Candidate Disposition Matrix 中记录处置，并生成或更新 Normalized Candidate。
+
+处理顺序是审查路径，不代表每一步都必须改变 Candidate。任何 SPLIT、MERGE、REMOVE 或 wording 修改都必须保留原 Candidate、来源证据和 extraction issue 的可追溯关系。
+
+#### Pass 3 必需输出
+
+Pass 3 必须产生：
+
+1. **Normalized Candidate Set**：使用临时 `NR-` ID，记录通过 Normalize 的候选责任及其来源、类型、派生关系和 issue 关联。
+2. **Candidate Disposition Matrix**：确保每条原始 `RC-` Candidate 都有 disposition、目标 Normalized Candidate 或无目标原因。
+3. **Normalization Status**：只能是 `NORMALIZATION_READY` 或 `NORMALIZATION_BLOCKED`。
+
+#### Pass 3 Completion Gate
+
+进入 Pass 4 前确认：
+
+- [ ] Pass 2 状态为 `COLLECTION_READY`
+- [ ] 每个 `RC-` Candidate 都有 disposition
+- [ ] 没有静默丢失 Candidate
+- [ ] 所有 Normalized Candidate 都有 Normative Source 支持
+- [ ] 无规范支持的加强语义已删除
+- [ ] duplicate Candidate 已处理
+- [ ] composite responsibility 已执行 Atomic Responsibility Test
+- [ ] parent / child 与 over-fragmentation 已检查
+- [ ] 每条 Normalized Candidate 的 `evaluation_type` 已最终确定为 `outcome` 或 `workflow`
+- [ ] 没有 `undetermined`
+- [ ] unresolved true conflict 保持 `CONFLICT`
+- [ ] unresolved semantic gap 标记为 `NEEDS_CLARIFICATION`
+- [ ] 每条 `NORMALIZED` Candidate 都具备继续 Contract 化的潜力
+- [ ] 已生成 Candidate Disposition Matrix
+- [ ] 未分配 `R001` 等正式 Requirement ID
+
+全部满足时输出 `NORMALIZATION_READY`。如果存在无法给出处置的 Candidate、无法完成类型终判、关键来源问题未被正确保留，或其他条件导致 Normalized Candidate Set 不可进入 Pass 4，则输出 `NORMALIZATION_BLOCKED`，并记录原因和影响。
 
 ### 6.4 Pass 4 — Trace
 
@@ -584,105 +672,232 @@ CONFLICT | UNCERTAIN | IMPLEMENTATION_MISMATCH
 
 `IMPLEMENTATION_MISMATCH` 本身不是 Requirement Candidate。只有存在独立 Normative Source 支持的责任才能进入 Candidate Ledger；当前实现事实只进入 issue 的 `related_sources` 和审查说明。
 
-## 8. 粒度规则
+## 8. Pass 3 Normalize Rules
 
-Requirement 粒度由可观察责任和诊断价值决定，不由句子长度、bullet 数量或期望的 Requirement 数量决定。
+### 8.1 Normative Support Check
 
-### 8.1 Split Test
+Normalize 首先确认 Candidate 是否有足够的 Normative Source 支持。至少检查：
 
-同时满足以下条件时，应拆分 A 与 B：
+- `candidate_statement` 是否忠实于自己的 `source_evidence`；
+- 是否加入来源没有要求的限定条件、质量属性、范围或完成条件；
+- 是否把 Implementation Fact 当成规范；
+- 是否把 example、recommendation、explanation 或背景当成硬要求；
+- 多个来源是否真的支持同一责任，而不是碰巧使用相似词语；
+- authority、delegation 和 normative scope 是否覆盖 Candidate 当前表达的责任。
 
-1. A 与 B 可以独立成功或失败；
-2. 分别失败会产生两个可区分且值得单独记录的评估结论。
+如果 Candidate 只有 Implementation Fact 支持，使用 `REMOVE`；如果该信息仍有助于理解或后续审查，使用 `DEMOTE_TO_NOTE`。Implementation mismatch 本身仍不得成为 Requirement 候选。
 
-例如：
+如果规范责任成立，但 Candidate wording 加入了没有来源支持的强化语义，使用 `KEEP_WITH_EDIT`，删除或收缩超出来源的部分。例如，来源只要求产生某个目标产物，Candidate 不得自行增加“非空”“通过某项校验”或其他没有独立规范依据的条件。
+
+### 8.2 Atomic Responsibility Test
+
+Atomicity 不由动词数量、句子长度、标点或 bullet 数量决定。对于 Candidate 中可能包含的责任 A 和 B，检查：
+
+1. A 是否可以满足而 B 不满足，或 B 可以满足而 A 不满足；
+2. 这两种失败是否产生可区分、值得独立记录的评估结论。
+
+两个条件都成立时使用 `SPLIT`。如果只是同一责任的自然组成动作，或拆开后不会增加诊断价值，不因文字结构机械拆分。
+
+抽象地说，“必须执行规定的验证，并且最终结果必须满足该验证要求”可能包含两个可独立失败的责任：执行验证属于 workflow，最终结果满足要求属于 outcome。是否拆分仍取决于实际 Normative Source 是否分别支持这两个责任。
+
+### 8.3 Merge Test
+
+多个 Candidate 满足以下任一情形时，考虑 `MERGE`：
+
+- 表达同一规范责任；
+- 只是不同来源对同一责任的重复支持；
+- 只是语义等价的改写；
+- 在可观察评估意义上基本同真同假，独立评分不会增加有价值的失败结论。
+
+判断核心是 diagnostic value，而不是措辞相似度。MERGE 不得隐藏不同 scope、不同 `evaluation_type`、独立失败模式、独立授权边界或具有单独意义的来源强调。
+
+合并后必须保存所有适用的 `source_evidence`、`related_issue_ids` 和原 Candidate 关系。Normalized Candidate 的 `derived_from_candidate_ids` 必须包含全部被合并 Candidate；Candidate Disposition Matrix 对每条原 Candidate 分别记录 `MERGE` 和同一个目标 `NR-` ID。
+
+### 8.4 Parent / Child Rule
+
+当一个 Candidate 表达整体约束，另一个 Candidate 只表达其中一个细节约束时，不得默认把每个普通组成部分都保留为独立 Requirement 候选。
+
+如果 child responsibility 只是 parent responsibility 的普通组成部分，且删除独立 child 不会失去新的失败模式或诊断价值，通常使用 `MERGE`、`REMOVE` 或 `DEMOTE_TO_NOTE`。
+
+只有当 child responsibility 满足至少一项时，才考虑独立保留：
+
+- 被 Normative Source 独立强调；
+- 失败具有独立的业务、安全、权限、数据完整性或其他实质意义；
+- 与 parent 可以独立成功或失败；
+- 需要形成独立评估结论才能保留有价值的诊断信息。
+
+正式 schema、checklist、template 或 validator 包含很多细项，不代表每个普通字段或步骤都必须成为独立 Candidate。是否独立保留仍由规范强调和失败意义决定。
+
+### 8.5 Over-fragmentation Test
+
+如果一个 Candidate 只是另一责任的低层实现动作、顺序中的细碎步骤或无独立意义的机械分片，并且删除它不会失去独立规范失败模式，则使用 `REMOVE` 或 `DEMOTE_TO_NOTE`。
+
+例如，如果正式责任是完整读取一个输入资源，就不应仅因执行过程涉及多个局部读取动作而机械生成多个 Requirement 候选，除非某个局部动作被规范独立强调并具有独立失败意义。
+
+不得仅因为 Candidate 难以测试就删除它。如果它确属 normative，但当前 wording、scope 或失败含义不足，应使用 `KEEP_WITH_EDIT` 或 `NEEDS_CLARIFICATION`。
+
+### 8.6 Statement Normalization
+
+每条 `normalized_statement` 应满足：
+
+- 只表达一个主要责任；
+- 语义明确且忠实于 Normative Source；
+- 不包含当前实现的偶然细节，除非该实现已在适用 scope 内被正式委托；
+- 不加入 Grader、Test Case、Metric、threshold、regex、checker 或具体 assertion；
+- 不使用无法定位所指对象的模糊代词；
+- 不使用“正确处理”“合理完成”“表现良好”等没有可审查含义的表述；
+- 保持足够稳定，使后续能够进行 Contract Design。
+
+如果 Normative Source 本身只提供无法进一步明确的模糊表达，不得由 Agent 自行发明精确含义。保留最忠实的语义，并使用 `NEEDS_CLARIFICATION`。
+
+### 8.7 Contractability Check
+
+Pass 3 不写 Contract，但每条状态为 `NORMALIZED` 的 Candidate 必须具备被 Contract 化的潜力。判断问题是：
+
+> 如果违反这条责任，能否描述一种具有独立意义的可观察失败？
+
+此处不要求编写 Grader assertion、正则表达式、数值阈值或可执行 checker。如果连失败含义都无法描述，说明 statement 仍太模糊、粒度不合理，或 Normative Source 信息不足，应继续 Normalize 或标记 `NEEDS_CLARIFICATION`。
+
+Contractability 不等于已经可自动测试，也不要求在 Pass 3 选择验证方法。
+
+### 8.8 Multi-source Normalization
+
+一个 Normalized Candidate 可以由多个 Normative Sources 支持。Normalize 时必须：
+
+- 合并完全重复的 source evidence entry；
+- 保留每个 `source_ref` 与自己的 `source_excerpt` 配对；
+- 保留需要的 authority / delegation context；
+- 不把多个来源压缩成无法追溯的单一字符串；
+- 确认每项 evidence 支持 Normalized statement 的适用部分。
+
+如果多个来源只是重复支持同一责任，应形成一个 Normalized Candidate，并通过 `derived_from_candidate_ids` 和完整 `source_evidence` 保留来源与 Candidate 历史。
+
+## 9. Outcome / Workflow Final Classification
+
+Pass 2 的 `tentative_evaluation_type` 在 Pass 3 必须重新判断。Normalized Candidate 的 `evaluation_type` 只能是：
 
 ```text
-执行规定的 validator
-vs
-产生通过该 validator 的结果
+outcome | workflow
 ```
 
-前者是 Workflow 责任，后者是 Outcome 责任。两者可以独立失败，因此必须拆成两条 Requirement。
-
-### 8.2 Merge Test
-
-同时满足以下条件时，优先合并 A 与 B：
-
-1. 它们在可观察层面始终一起成功或失败；
-2. 单独记录任一项都不会增加新的诊断信息。
-
-合并不得隐藏不同来源、能力边界、`evaluation_type` 或独立失败模式。如果合并会遮蔽其中任一信息，就应保留为独立 Candidate。
-
-### 8.3 Delete / Demote Test
-
-删除一个 Candidate 不会失去任何独立的可观察失败模式，并且它只是实现细节、示例、背景说明、其他 Requirement 中的细碎步骤或不增加规范性责任的重复表述时，应删除或降级为 note。
-
-不得仅因为一条 Candidate 难以测试就删除它。如果它确属 normative 且在范围内，应保留为待澄清项或留给后续 Contract Design。
-
-## 9. Outcome / Workflow 分类
-
-只保留：
-
-```text
-outcome
-workflow
-```
-
-不得新增 `constraint`、`mixed` 或第三种 Requirement 类别。
+`undetermined` 不能进入 Normalized Candidate Set 的 `NORMALIZED` 状态，也不得成为正式 Requirement 类型。不得新增 `constraint`、`mixed` 或任何第三种最终类别。
 
 ### 9.1 Outcome
 
-当责任主要根据最终输出或最终状态判断时，使用 `outcome`。例如：“最终输出不得包含敏感字段。”
+当责任主要通过最终输出或最终状态判断时，分类为 `outcome`。
 
 ### 9.2 Workflow
 
-当责任主要根据执行轨迹、动作、顺序、工具调用、授权、禁止行为或中间步骤判断时，使用 `workflow`。例如：“Agent 不得修改用户原文件。”
+当责任主要通过执行轨迹、动作、顺序、工具使用、授权、禁止行为或中间步骤判断时，分类为 `workflow`。
 
-禁止行为和约束不是第三类。禁止某个动作通常是 `workflow`；禁止最终结果具有某种属性通常是 `outcome`。
+禁止行为和约束不是第三类。禁止某个动作通常属于 `workflow`；禁止最终结果具有某种属性通常属于 `outcome`。
 
-### 9.3 混合陈述
+### 9.3 Outcome / Workflow Composite
 
-如果一句话同时包含 Outcome 与 Workflow 责任，应用 Split Test。当两者可以独立失败时，分别建立 Candidate，后续形成独立 Requirement。不得使用 `mixed`。
+如果一个 Candidate 同时包含 Outcome 与 Workflow，执行 Atomic Responsibility Test。两项责任能够独立失败且分别具有诊断价值时，使用 `SPLIT`，生成分别分类为 `outcome` 和 `workflow` 的 Normalized Candidate。不能使用 `mixed` 逃避粒度判断。
 
-## 10. 冲突处理
+如果两部分只是同一责任不可分离的表达，应根据主要判定对象选择一个类型，并在 normalization rationale 中解释，而不是机械拆分。
 
-当两个适用的 Normative Source 要求不兼容的责任时，构成规范冲突：
+## 10. Extraction Issue Handling in Pass 3
+
+### 10.1 Conflict Handling
+
+Pass 3 不得擅自解决 unresolved true conflict。如果 Extraction Issue Ledger 中的 `CONFLICT` 在再次执行 Normative Rule Resolution 后仍无法消解：
+
+- 相关 Candidate 使用 `CONFLICT` disposition；
+- 对应 Normalized Candidate 状态保持 `CONFLICT`；
+- 保留 `related_issue_ids`、双方来源和影响；
+- 不强制合并成一个正常 Candidate；
+- 不根据当前实现、便利性或时间戳选择一方。
+
+如果 Pass 3 确认原 issue 实际属于 compatible rules、scoped exception 或不同 scope，可以按正式 authority、delegation 和 scope 关系解除 conflict，但必须在 Extraction Issue Ledger 中记录 resolution rationale、更新 `resolution_status`，并在 normalization rationale 中说明对 Candidate 的影响。
+
+### 10.2 Uncertainty Handling
+
+对于 `UNCERTAIN` issue，Pass 3 应根据现有来源选择明确处置：
+
+- 现有 evidence 足够支持责任：正常化为 `KEEP` 或其他适用 disposition；
+- wording 可通过收缩或澄清恢复忠实性：`KEEP_WITH_EDIT`；
+- 只是有用说明而非规范责任：`DEMOTE_TO_NOTE`；
+- 没有 Normative Source 支持：`REMOVE`；
+- 仍缺少决定责任、scope、权威或失败含义的信息：`NEEDS_CLARIFICATION`。
+
+不得让模糊的 uncertainty 无解释地进入 Pass 4。每个相关 issue 的 resolution status、处置理由和 Candidate 影响都必须记录。
+
+### 10.3 Implementation Mismatch
+
+Implementation mismatch 本身仍不得成为 Requirement Candidate，也不得改变 Normative Source 的正式含义。Normalized Candidate 可以继续关联相关 `IMPLEMENTATION_MISMATCH` issue，以保留当前实现差异和后续审查上下文。
+
+如果 Candidate 只有 Implementation Fact 支持，使用 `REMOVE` 或 `DEMOTE_TO_NOTE`；如果 Candidate 有独立规范支持，则按规范正常化，并保留 mismatch issue 关联。Pass 3 不修复实现，也不根据 mismatch 改写规范责任。
+
+## 11. Pass 3 Output Artifacts
+
+### 11.1 Normalized Candidate Set
+
+Normalized Candidate Set 使用临时 ID：
 
 ```text
-Source A → 要求 X
-Source B → 要求 Y
-X 与 Y 无法同时满足
+NR-001
+NR-002
+...
 ```
 
-Agent 必须先执行 Normative Rule Resolution，排除 compatible rules、scoped exception 和仅因 scope 不同产生的表面差异。不得根据偏好、当前实现、便利性或文件时间戳自行选择一边。
+不得使用正式 `R001`、`R002`。每条 Normalized Candidate 至少记录：
 
-真正的规范冲突必须进入 Extraction Issue Ledger，并保留：
+| 字段 | 用途 |
+|---|---|
+| `normalized_id` | Pass 3 临时 ID，例如 `NR-001` |
+| `normalized_statement` | Normalize 后的单一主要责任陈述 |
+| `evaluation_type` | 只能是 `outcome` 或 `workflow` |
+| `capability_or_scope` | 适用的 shared area、capability、task branch 或其他 scope |
+| `source_evidence` | 成对保留引用与摘录的一个或多个 Normative Source evidence |
+| `derived_from_candidate_ids` | 产生该记录的全部原始 `RC-` Candidate IDs |
+| `related_issue_ids` | unresolved issue、已解决 issue 或 relevant mismatch 的关联 IDs |
+| `disposition_summary` | 该结果由 `KEEP`、`KEEP_WITH_EDIT`、`SPLIT`、`MERGE` 或其他何种处置形成 |
+| `normalization_rationale` | 来源支持、粒度、类型、wording 和 issue 处理理由 |
+| `status` | `NORMALIZED`、`CONFLICT` 或 `NEEDS_CLARIFICATION` |
 
-- 两个来源；
-- 不兼容的内容；
-- 受影响的能力或范围；
-- 对 Requirement Extraction 的影响；
-- 适用的 authority、delegation 或 exception 信息；
-- 相关 Candidate IDs，但不得依赖 Candidate 的单值 status 表达全部问题。
+`NORMALIZED` 表示该 Candidate 已通过 Pass 3 的来源、粒度、类型、statement 和 contractability 检查，可以进入 Pass 4。`CONFLICT` 和 `NEEDS_CLARIFICATION` 保留问题状态，不得伪装成可直接进入 Final Requirement Set 的正常 Candidate。
 
-未解决的规范冲突不能伪装成已确定 Requirement 进入 Final Requirement Set。必须由人工决定或适用的更高优先级规则解决。如果冲突阻塞对 Skill 的可靠理解，Pass 1 必须输出 `UNDERSTANDING_BLOCKED`。
+Normalized Candidate Set 不是 Final Requirement Set，不修改 Frozen Requirement Schema，也不证明 source-level completeness。
 
-实现差异不自动等于两个 Normative Source 之间的冲突。除非该实现资源已在适用范围内获得明确规范权威，否则应在 Extraction Issue Ledger 中记录 `IMPLEMENTATION_MISMATCH`，保存规范要求、实现事实、差异和影响；不得据此构造两个互相竞争的 Requirement Candidate。
+### 11.2 Candidate Disposition Matrix
 
-## 11. 不确定 Candidate
+Candidate Disposition Matrix 是 Pass 3 的必需审计产物，用于证明每一条原始 Candidate 都有明确去向。至少记录：
 
-Collect 阶段偏 recall。可能责任具有合理规范依据，但其含义、范围、权威或粒度不确定时，先保留 Candidate，在 Extraction Issue Ledger 中建立 `UNCERTAIN` issue，并通过 Candidate ID 关联不确定原因。
+| 字段 | 用途 |
+|---|---|
+| `candidate_id` | 原始 `RC-` ID |
+| `disposition` | `KEEP`、`KEEP_WITH_EDIT`、`SPLIT`、`MERGE`、`REMOVE`、`DEMOTE_TO_NOTE`、`CONFLICT` 或 `NEEDS_CLARIFICATION` |
+| `normalized_target_ids` | 零个、一个或多个目标 `NR-` IDs |
+| `rationale` | 处置原因，包括来源、粒度、重复、类型或 issue 判断 |
 
-产生 Final Requirement Set 前，每一个不确定 Candidate 必须得到以下处置之一：
+Disposition 与目标关系必须清楚：
 
-- `keep`；
-- `merge`；
-- `remove`；
-- `note`；
-- `conflict / needs clarification`。
+```text
+一个 RC → SPLIT → 多个 NR
+多个 RC → MERGE → 一个 NR
+一个 RC → REMOVE / DEMOTE_TO_NOTE → 无 NR，并记录原因
+一个 RC → KEEP / KEEP_WITH_EDIT → 一个 NR
+```
 
-不得通过直接分配正式 Requirement ID 来掩盖不确定性。只有来源成立且问题已解决的 Candidate 才能进入最终 Requirement。
+Matrix 不得省略被删除、降级、冲突或待澄清的 Candidate。`derived_from_candidate_ids` 与 Matrix 应能相互核对，但这种 Candidate-level disposition 审计不是 Pass 4 的 source-level completeness Trace。
+
+### 11.3 Pass 3 与 Pass 4 的边界
+
+Pass 3 主要处理：
+
+```text
+Candidate → Normalized Candidate
+```
+
+它可以读取 Candidate 已保存的 source evidence 核对语义，但不重新逐句扫描原始规范以证明没有遗漏。以下问题属于 Pass 4：
+
+```text
+Normative Source → Requirement completeness
+```
+
+Pass 3 不分配正式 Requirement ID，不冻结 Final Requirement Set，也不把 Candidate Disposition Matrix 当作 Traceability Review。
 
 ## 12. Final Requirement Set
 
@@ -696,7 +911,7 @@ Final Requirement Set 只使用已经冻结的 Requirement Schema，不增加字
 | `source_ref` | 否 | 存在稳定位置时记录简短、可追溯的来源位置 |
 | `evaluation_type` | 是 | `outcome` 或 `workflow` |
 
-原文摘录、status、notes、不确定项和冲突细节只保留在 Candidate Ledger 或 Traceability Review 中，不得加入冻结的 Requirement 对象。
+原文摘录、status、notes、不确定项、冲突细节和 normalization history 只保留在 Candidate Ledger、Extraction Issue Ledger、Normalized Candidate Set、Candidate Disposition Matrix 或 Traceability Review 中，不得加入冻结的 Requirement 对象。
 
 最终 Requirement 必须同时满足：
 
@@ -726,4 +941,4 @@ Final Requirement Set 只使用已经冻结的 Requirement Schema，不增加字
 - [ ] 是否有已识别的规范内容被遗漏且没有明确处置？
 - [ ] 最终 Requirement 是否都能回溯来源？
 
-只有 Skill Summary、Requirement Candidate Ledger、Traceability Review 和 Final Requirement Set 全部存在，并且 Checklist 没有未解释的失败时，Requirement Extraction 才完成。
+只有 Skill Summary、Requirement Candidate Ledger、Normalized Candidate Set、Candidate Disposition Matrix、Traceability Review 和 Final Requirement Set 全部存在，并且 Checklist 没有未解释的失败时，Requirement Extraction 才完成。
