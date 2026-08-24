@@ -63,7 +63,7 @@ Requirement Extraction 必须产生：
 2. **Requirement Candidate Ledger**：从收集到规范化过程中的可审查工作记录；
 3. **Normalized Candidate Set**：Pass 3 完成来源、粒度、类型和 contractability 审查后的候选集合；
 4. **Candidate Disposition Matrix**：Pass 3 对每条原始 Candidate 去向的完整审计记录；
-5. **Traceability Review**：Pass 4 的 Normative Trace Inventory、Forward / Backward Trace Matrices、Trace Issues、Trace Review 和 Trace Status；
+5. **Traceability Review**：Pass 4 的 Trace Run Metadata、Source Trace Inventory、Forward / Backward Trace Matrices、Trace Issues、Trace Review、Finalization Eligibility Summary 和 Trace Status；
 6. **Final Requirement Set**：只包含已接受 Requirement，并使用冻结的 Requirement Schema。
 
 中间工作记录属于设计 Artifact。它们不会为冻结的 Requirement Schema 增加字段，也不会自动进入 Frozen Benchmark Definition。
@@ -658,14 +658,16 @@ Pass 4 至少使用：
 - `source_evidence`；
 - 存在时的 `statement_clauses` 和 clause-to-evidence mapping。
 
+Pass 4 还必须为本次审计建立 Trace Run Metadata，把上述输入绑定到同一个确定的 source snapshot。Metadata 至少记录 run identifier、target identifier、source snapshot identity、可用的 revision / hash / immutable identifier、snapshot timestamp，以及本次使用的 Guide version / revision。Source system 不必是 Git repository；只要能够明确“本轮审计针对哪个确定版本”即可。
+
 Pass 4 审查两个方向：
 
 ```text
-Normative Trace Item → Normalized Candidate / Issue / Exclusion
-Normalized Candidate / clause → Normative Trace Item / Source Evidence
+Source Trace Item → Normalized Candidate / Issue / Exclusion
+Normalized Candidate / clause → Source Trace Item / Source Evidence
 ```
 
-详细规则见“Pass 4 Traceability Audit”。Pass 4 必须产生 Normative Trace Inventory、Forward Trace Matrix、Backward Trace Matrix、Trace Issues、Trace Review 和 Trace Status。状态只能是：
+详细规则见“Pass 4 Traceability Audit”。Pass 4 必须产生 Trace Run Metadata、Source Trace Inventory、Forward Trace Matrix、Backward Trace Matrix、Trace Issues、Trace Review、Finalization Eligibility Summary 和 Trace Status。状态只能是：
 
 ```text
 TRACE_READY
@@ -680,15 +682,18 @@ TRACE_BLOCKED
 结束 Pass 4 前确认：
 
 - [ ] Pass 3 状态为 `NORMALIZATION_READY`
-- [ ] Normative Trace Inventory 已建立
+- [ ] Trace Run Metadata 已把全部 Trace artifacts 绑定到同一个 source snapshot
+- [ ] Source Trace Inventory 已建立
 - [ ] 所有 Trace Items 都有且只有一个 Forward Trace 主结果
 - [ ] 没有 Trace Item 被静默遗漏
 - [ ] 所有 Normalized Candidates 都完成 Backward Trace
 - [ ] 需要 clause-level trace 的 Candidate 已逐 clause 审计
-- [ ] 每个 `EXCLUDED` Trace Item 都有明确理由
+- [ ] 每个 `EXCLUDED` Trace Item 都有 source evidence、exclusion category、rationale、authority / delegation assessment 和 reviewer-visible note
 - [ ] unresolved `CONFLICT` / `NEEDS_CLARIFICATION` 有完整 Issue linkage
 - [ ] `TRACE_GAP` 已显式报告
 - [ ] `PARTIALLY_SUPPORTED` / `UNSUPPORTED` 已显式报告
+- [ ] Finalization Eligibility Summary 已逐项覆盖全部 Normalized Candidates
+- [ ] 本轮 Trace artifacts 未因输入或 source snapshot 变化而 stale
 - [ ] Pass 4 没有新建、删除、拆分、合并或改写 Candidate / Normalized Candidate
 - [ ] Pass 4 没有自行解决 conflict 或改变 scope / `evaluation_type`
 - [ ] 未分配 `R001` 等正式 Requirement ID
@@ -1041,9 +1046,30 @@ Pass 2 Coverage ≠ Pass 4 Trace
 
 Coverage Matrix 完整不能替代 source responsibility-level trace；Trace 完整也不重新证明 Pass 2 的区域扫描过程。
 
-### 12.2 Normative Trace Item
+#### Trace Run Metadata 与 Source Snapshot
 
-Pass 4 使用 **Normative Trace Item** 作为 source-level audit unit，并使用临时 ID：
+Pass 4 开始前必须建立最小的 Trace Run Metadata，把本次审计绑定到一个明确的 source snapshot。至少记录：
+
+| 字段 | 用途 |
+|---|---|
+| `trace_run_id` | 本次 Trace 的 run identifier 或等价审计标识 |
+| `target_identifier` | 被审计 Target 的稳定标识 |
+| `source_snapshot_id` | 本轮全部 Normative Sources 的统一 snapshot identity |
+| `source_revision / source_versions` | Source system 提供时记录 commit、revision、version 或其他稳定 revision；多来源时保持来源与版本对应 |
+| `source_hashes / immutable_resource_ids` | 适用且容易获得时，按来源记录 hash、immutable resource identifier 或 snapshot manifest identity |
+| `snapshot_timestamp` | Trace 开始所针对 snapshot 的捕获或确认时间 |
+| `guide_version / guide_revision` | 本轮采用的 Requirement Extraction Guide 版本或 revision |
+| `run_validity` | 当前 run 为有效、`stale` 或 `invalidated`，并在非有效时记录原因 |
+
+Source snapshot identity 不依赖 Git。如果存在稳定 revision，优先记录 revision；如果没有，可以使用 hash、immutable resource identifier、受控导出物或 captured snapshot identity。不能因为 source system 没有 Git history 就省略版本边界。
+
+同一次 Trace run 的 Source Trace Inventory、Forward Trace Matrix、Backward Trace Matrix 和 Finalization Eligibility Summary 必须针对同一个 source snapshot。如果 Trace 期间 Normative Source 发生变化，不得把旧 Matrix 与新 source 混用；应将 run 标记为 `stale` 或 `invalidated`，并重新建立受影响的 Trace artifacts。
+
+Trace Run Metadata 属于 Requirement Extraction audit metadata，不是 Framework Core Object，也不会修改 Frozen Requirement Schema。
+
+### 12.2 Source Trace Item
+
+Pass 4 使用 **Source Trace Item** 作为 source-level audit unit，并使用临时 ID：
 
 ```text
 TI-001
@@ -1051,11 +1077,13 @@ TI-002
 ...
 ```
 
-一个 Normative Trace Item 表示：
+一个 Source Trace Item 表示：
 
-> Normative Source 中一项需要确认是否已被 Requirement Extraction 正确处理的规范性责任。
+> 从已识别 Normative Sources 或 delegated resources 中抽取、需要得到明确 trace disposition 的 source-level audit item。
 
-Normative Trace Item 是 Pass 4 的临时审计结构，不是 Framework Core Object、Frozen Requirement、Contract、Test Case 或 Grader，也不会进入 Frozen Requirement Schema。
+Source Trace Item 可以在审查后确认为 normative responsibility，也可以确认为不应进入 Requirement Set 的 non-requirement source item。前者进入 `MAPPED`、`ISSUE` 或 `TRACE_GAP`；后者只有满足严格 exclusion audit 时才能进入 `EXCLUDED`。因此 `EXCLUDED` 不再与“Normative Trace Item”这一名称产生概念冲突。
+
+Source Trace Item 是 Pass 4 的临时审计结构，不是 Framework Core Object、Frozen Requirement、Contract、Test Case 或 Grader，也不会进入 Frozen Requirement Schema。
 
 #### Trace Item Granularity
 
@@ -1066,16 +1094,44 @@ Trace Item 不得机械按每一行、每一句、每个 bullet 或每个普通�
 - 仅因文本形式不同，不得拆分或合并 Trace Item；
 - Trace Item 粒度用于发现 source-side omission，不用于在 Pass 4 重新执行 Normalize。
 
-如果某段内容因为靠近规范规则、来源权威不明确或前序处置需要复核而进入 Trace Inventory，但审查后确认它只是 example、explanation、background、non-normative recommendation 或 Implementation Fact，可以将该 Trace Item 标记为 `EXCLUDED`。这用于留下显式审计结论，不得把非规范内容反向升级为 Requirement。
+如果一个 Trace Item 内可以清楚识别出多个具有独立 normative meaning 的部分，并且其中一部分已映射、另一部分未映射，说明该 Trace Item 的 source audit granularity 太粗。Pass 4 可以只对 Source Trace Inventory 的 audit unit 重新划分，并重新执行受影响的 Forward Trace，前提是：
 
-### 12.3 Normative Trace Inventory
+- 不修改 Requirement Candidate；
+- 不修改、拆分、合并或改写 Normalized Candidate；
+- 不执行 Normalize；
+- 不改变 Requirement 粒度；
+- 重新划分只用于准确表达 source-side coverage。
 
-Pass 4 首先建立 Normative Trace Inventory。每个 Trace Item 至少记录：
+如果 source responsibility 本身不可合理拆分，而现有 NR 只覆盖其中一部分，则该 Trace Item 必须记录为 `TRACE_GAP`，并在 rationale 中分别记录 `covered_portion` 和 `uncovered_portion`。不得因为存在部分映射就标记为 `MAPPED`。
+
+#### Trace Item Identity 与 Rerun Reconciliation
+
+`TI-` ID 是某一次 Source Trace Inventory 内的审计 identity，不是永久业务 ID。不得假设不同 Trace run 中编号相同的 Trace Item 一定表达同一责任。
+
+当 source snapshot 和 responsibility meaning 均未变化时，实现可以尽量保留稳定的 `TI-` identity，方便 diff 和 review。如果 source 修改造成责任新增、删除、拆分、合并、scope 改变或 normative meaning 改变，则 rerun 必须进行 reconciliation，并至少允许记录：
+
+```text
+unchanged
+added
+removed
+superseded
+split
+merged
+changed
+```
+
+旧 Trace Item 被替代时，应通过 `previous_trace_item_ids`、`supersedes` 或等价字段保留审计关系，并解释变化原因。Removed item 可以保留在 reconciliation record 中，不要求继续作为当前 Inventory 的 active item。
+
+这些 relation 只用于解释“本次 Trace Item 为什么与上一次不同”，不是 Framework Core Object，也不要求建立复杂版本图。
+
+### 12.3 Source Trace Inventory
+
+Pass 4 首先建立 Source Trace Inventory。每个 Trace Item 至少记录：
 
 | 字段 | 用途 |
 |---|---|
 | `trace_item_id` | 临时 ID，例如 `TI-001` |
-| `normative_meaning` | 该 source-level responsibility 的规范含义，不复制无关长段原文 |
+| `source_meaning` | 该 source-level audit item 的含义；确认为 normative 时记录完整 `normative_meaning`，不复制无关长段原文 |
 | `source_evidence` | 一个或多个保持引用与摘录配对的来源证据项 |
 | `source_evidence[].source` | 该 evidence 的 `skill`、`user`、`project`、`interface` 或 `other` 来源分类 |
 | `source_evidence[].source_ref` | 该 evidence 自己的稳定来源位置 |
@@ -1083,6 +1139,8 @@ Pass 4 首先建立 Normative Trace Inventory。每个 Trace Item 至少记录�
 | `source_evidence[].authority / delegation reference` | 需要时记录该 evidence 的权威或委托依据 |
 | `normative_scope` | 该责任约束的整体范围、局部范围、条件、阶段、输出或其他适用边界 |
 | `related_issue_ids` | 与该责任相关的零个或多个 Extraction Issue IDs |
+| `reconciliation_status` | Rerun 时记录 `unchanged`、`added`、`removed`、`superseded`、`split`、`merged` 或 `changed`；首次 run 可为空 |
+| `previous_trace_item_ids / supersedes` | Rerun 中存在替代、拆分、合并或变化关系时记录旧 TI identity |
 | `status / notes` | Inventory 工作状态、排除上下文、authority 说明或其他审计信息 |
 
 单来源 Trace Item 仍必须记录 `source`、`source_ref` 和 `source_excerpt`；多来源 Trace Item 通过 `source_evidence` 列表重复这组字段。每个 entry 至少保留自己的：
@@ -1096,33 +1154,59 @@ authority / delegation reference（需要时）
 
 如果一个规范责任由多个来源共同表达，允许一个 Trace Item 保存多来源 evidence，但不得把多个 `source_ref` 和多个 `source_excerpt` 拆成无法对应的列表。重复来源可以合并 evidence entry，不得丢失实际 authority、delegation 或 scope 差异。
 
-Normative Trace Inventory 必须基于已识别的 Normative Sources 做 source responsibility-level 审查；不能只把 Normalized Candidate 的 statements 反向复制成 Trace Items，否则无法独立发现 source-side omission。
+Source Trace Inventory 必须基于已识别的 Normative Sources 和 delegated resources 做 source responsibility-level 审查；不能只把 Normalized Candidate 的 statements 反向复制成 Trace Items，否则无法独立发现 source-side omission。
 
 ### 12.4 Forward Trace
 
 Forward Trace 执行：
 
 ```text
-Normative Trace Item
+Source Trace Item
 → Normalized Candidate / Issue / Exclusion / Gap
 ```
 
 核心问题是：
 
-> 每一个 Normative Trace Item 最终去了哪里？
+> 每一个 Source Trace Item 最终去了哪里？
 
 每个 Trace Item 必须恰好有一个主 `trace_result`：
 
 | Trace result | 含义 |
 |---|---|
-| `MAPPED` | Trace Item 被一个或多个 Normalized Candidates 覆盖 |
+| `MAPPED` | Trace Item 的全部 normative meaning 被一个或多个 Normalized Candidates 完整覆盖 |
 | `ISSUE` | Trace Item 对应 traceable but unresolved 的 `CONFLICT` 或 `NEEDS_CLARIFICATION`，并正确关联问题状态 Candidate / Extraction Issue |
 | `EXCLUDED` | 审查确认该内容不是应进入 Requirement Set 的独立规范责任，并记录合法排除原因 |
 | `TRACE_GAP` | 该 Trace Item 确实是规范责任，但没有 Normalized Candidate、Issue 或合法 exclusion 可以解释 |
 
 一个 `MAPPED` Trace Item 可以指向一个或多个 `NR-` IDs；一个 `ISSUE` Trace Item 可以指向问题状态 `NR-`、Extraction Issue，或同时指向两者。Traceable 不等于 resolved。
 
-`EXCLUDED` 的常见合法原因包括 example、explanatory content、non-normative recommendation、implementation-only fact、background context 或已经通过可审查关系被其他责任完整吸收而没有独立规范意义的内容。不得用 `EXCLUDED` 掩盖真正的 normative omission。
+`MAPPED` 必须表示 Trace Item 的完整 normative meaning 已经被解释。如果只有部分语义得到覆盖，应先按 Trace Item Granularity 规则判断能否重新划分 source audit unit；无法合理拆分时，必须记录 `TRACE_GAP`，并明确 covered 与 uncovered portions，不增加模糊的 partial-mapped 状态。
+
+#### `EXCLUDED` Audit Boundary
+
+`EXCLUDED` 只用于审查后确认不应成为 Requirement 的 source item。每个 `EXCLUDED` item 至少记录：
+
+- source evidence；
+- `exclusion_category`；
+- `exclusion_rationale`；
+- authority / delegation assessment；
+- reviewer-visible note。
+
+`exclusion_category` 使用简单、通用的类别：
+
+```text
+example
+explanatory_context
+implementation_fact
+non_normative_recommendation
+architecture_context
+duplicate_source_expression
+other
+```
+
+使用 `other` 时必须解释具体原因。`duplicate_source_expression` 只有在另一个可审查的 Trace Item 已完整保留相同 normative meaning 和 source relation 时才成立，不能只因为文字相近就排除。
+
+不得因为某项责任难以 Normalize、没有现成 NR、测试困难或执行者认为不重要，就把真正的 normative responsibility 标为 `EXCLUDED`。如果无法确认一个 source item 是否具有规范性，不能 `EXCLUDED`；应关联 `UNCERTAIN` / `NEEDS_CLARIFICATION`，或回退 Pass 1 检查 authority、delegation 和 scope。
 
 发现 `TRACE_GAP` 时，不得在 Pass 4 现场创建新的 Candidate 或 Normalized Candidate。
 
@@ -1136,7 +1220,12 @@ Forward Trace Matrix 至少记录：
 | `trace_result` | `MAPPED`、`ISSUE`、`EXCLUDED` 或 `TRACE_GAP` |
 | `normalized_candidate_ids` | 相关的零个、一个或多个 `NR-` IDs |
 | `related_issue_ids` | 相关的零个或多个 Extraction Issue IDs |
-| `exclusion_reason` | `EXCLUDED` 时必填，其他情况可为空 |
+| `covered_portion` | `TRACE_GAP` 且存在部分覆盖时，记录已覆盖语义；其他情况可为空 |
+| `uncovered_portion` | `TRACE_GAP` 且存在部分覆盖时，记录未覆盖语义；其他情况可为空 |
+| `exclusion_category` | `EXCLUDED` 时必填，其他情况可为空 |
+| `exclusion_rationale` | `EXCLUDED` 时必填，其他情况可为空 |
+| `authority / delegation_assessment` | `EXCLUDED` 时记录为何 source authority 或 delegation 不使该 item 成为规范责任 |
+| `reviewer_visible_note` | `EXCLUDED` 时提供便于复核的简短说明 |
 | `rationale` | 映射、问题、排除或 gap 的审计理由 |
 
 Matrix 不得静默跳过 Trace Item。一个 Trace Item 只能有一个主 `trace_result`；其他关联通过 Candidate IDs、Issue IDs 和 rationale 表达。
@@ -1147,7 +1236,7 @@ Backward Trace 执行：
 
 ```text
 Normalized Candidate / clause
-→ Normative Trace Item / Source Evidence
+→ Source Trace Item / Source Evidence
 ```
 
 它不只检查“是否至少有一个 source”，而是检查：
@@ -1167,7 +1256,7 @@ Normalized Candidate / clause
 
 #### Clause-level Backward Trace
 
-如果 Normalized Candidate 已有 `statement_clauses` 和 `supporting_evidence_ids`，Pass 4 必须使用它们进行 clause-level audit，并把 evidence 对应到 Normative Trace Items。
+如果 Normalized Candidate 已有 `statement_clauses` 和 `supporting_evidence_ids`，Pass 4 必须使用它们进行 clause-level audit，并把 evidence 对应到 Source Trace Items。
 
 如果简单 Candidate 的整个 statement 被单一 Trace Item / evidence 完整支持，可以使用 Candidate-level row，不强制拆 clause。
 
@@ -1259,16 +1348,32 @@ Pass 4 不得：
 
 如果 Normalized Candidate Set 本身不稳定或 Pass 3 的必需 artifact 不完整，Pass 4 输出 `TRACE_BLOCKED` 并回退 Pass 3，不得继续拼接 Trace 结果。
 
+#### Trace Run Staleness
+
+Pass 4 artifacts 不是永久有效的。如果以下任何输入发生实质变化，相关 Trace artifacts 必须视为 `stale`，不能沿用旧结论：
+
+- Normative Source snapshot；
+- Normative Source authority 或 delegation；
+- Normalized Candidate Set；
+- Candidate statement 或 statement clauses；
+- related unresolved issues。
+
+Staleness 至少影响相关的 Source Trace Inventory、Forward Trace Matrix、Backward Trace Matrix 和 Finalization Eligibility Summary。Agent 必须重新执行受影响的 Trace；不得在修改 NR 后沿用旧 `SUPPORTED`，也不得把不同 snapshot 的局部结果拼接成同一次 Trace run。
+
+如果变化只影响可明确隔离的一部分，允许重建受影响部分，但必须更新 Trace Run Metadata、记录 invalidation scope，并重新检查 aggregate counts、Trace Status 和 overall finalization readiness。无法可靠隔离影响时，整个 Trace run 视为 stale。
+
 ### 12.8 Pass 4 必需输出
 
 Pass 4 至少产生：
 
-1. **Normative Trace Inventory**：`TI-` source responsibility audit units；
-2. **Forward Trace Matrix**：Trace Item → NR / Issue / Exclusion / Gap；
-3. **Backward Trace Matrix**：NR / clause → Trace Item / source support；
-4. **Trace Issues**：汇总 `TRACE_GAP`、`PARTIALLY_SUPPORTED`、`UNSUPPORTED`、unresolved `CONFLICT` 和 unresolved `NEEDS_CLARIFICATION`；
-5. **Trace Review**：数量审计、trace completion、finalization readiness 和已知限制；
-6. **Trace Status**：`TRACE_READY`、`TRACE_READY_WITH_UNRESOLVED_ISSUES` 或 `TRACE_BLOCKED`。
+1. **Trace Run Metadata**：run、target、source snapshot 与 Guide revision 的最小审计身份；
+2. **Source Trace Inventory**：`TI-` source-level audit units 及适用的 rerun reconciliation；
+3. **Forward Trace Matrix**：Trace Item → NR / Issue / Exclusion / Gap；
+4. **Backward Trace Matrix**：NR / clause → Trace Item / source support；
+5. **Trace Issues**：汇总 `TRACE_GAP`、`PARTIALLY_SUPPORTED`、`UNSUPPORTED`、unresolved `CONFLICT` 和 unresolved `NEEDS_CLARIFICATION`；
+6. **Trace Review**：数量审计、trace completion、finalization readiness 和已知限制；
+7. **Finalization Eligibility Summary**：逐项记录 Normalized Candidate 的晋升资格，并给出整体 readiness；
+8. **Trace Status**：`TRACE_READY`、`TRACE_READY_WITH_UNRESOLVED_ISSUES` 或 `TRACE_BLOCKED`。
 
 Trace Review 至少记录：
 
@@ -1318,7 +1423,7 @@ Trace Review 至少记录：
 - `PARTIALLY_SUPPORTED`；
 - `UNSUPPORTED`；
 - source authority / delegation / scope 无法可靠判断；
-- Normative Trace Inventory 无法完成；
+- Source Trace Inventory 无法完成；
 - Normalized Candidate Set 或 Pass 3 audit artifacts 不稳定、不完整或相互矛盾。
 
 `TRACE_BLOCKED` 必须记录阻塞项、影响和应回退的 Pass。不得把局部 trace 完整解释为整个 Pass 4 完成。
@@ -1335,9 +1440,48 @@ status = NORMALIZED
 
 状态为 `CONFLICT` 或 `NEEDS_CLARIFICATION` 的 Candidate 不得直接晋升。它们必须保留在 Extraction Issues 和 Trace artifacts 中，等待 authoritative resolution；不得丢失，也不得伪装成普通 Requirement。
 
+#### Finalization Eligibility Summary
+
+Pass 4 必须产生结构化 Finalization Eligibility Summary。它不是 Final Requirement Set，不分配 `R-` ID，也不修改 Frozen Requirement Schema。
+
+Summary 至少逐个覆盖全部 Normalized Candidates：
+
+| 字段 | 用途 |
+|---|---|
+| `normalized_id` | 被审查的 `NR-` ID |
+| `normalization_status` | 当前 `NORMALIZED`、`CONFLICT` 或 `NEEDS_CLARIFICATION` 状态 |
+| `backward_trace_status` | `SUPPORTED`、`PARTIALLY_SUPPORTED`、`UNSUPPORTED` 或 `ISSUE_BOUND` |
+| `unresolved_issue_ids` | 相关的 unresolved blocking issue IDs；没有时为空 |
+| `eligible_for_finalization` | 只能是 `true` 或 `false` |
+| `ineligibility_reason` | `false` 时记录具体原因；`true` 时可为空 |
+
+资格规则保持：
+
+```text
+normalization_status = NORMALIZED
++ backward_trace_status = SUPPORTED
++ 没有 unresolved blocking issue
+→ eligible_for_finalization = true
+```
+
+`CONFLICT`、`NEEDS_CLARIFICATION`、`PARTIALLY_SUPPORTED` 和 `UNSUPPORTED` 均必须得到 `eligible_for_finalization = false`。如果整个 Trace 状态为 `TRACE_BLOCKED`，允许某些 NR individually eligible，但 `overall_finalization_ready` 必须为 `false`。
+
+Summary 还必须记录：
+
+- `individually_eligible_count`；
+- `individually_ineligible_count`；
+- `trace_gap_count`；
+- `unresolved_conflict_count`；
+- `unresolved_clarification_count`；
+- `overall_finalization_ready`。
+
+Individual eligibility 不能抵消 source-side gap，也不能把局部可晋升解释成整个 Final Requirement Set 已经 ready。
+
+`overall_finalization_ready` 只有在 Trace Status 允许 finalization、没有 source-side gap 或 unresolved blocking issue，并且所有计划晋升的 Normalized Candidates 均 individually eligible 时才能为 `true`。
+
 Final Requirement ID assignment 和 freeze 可以作为 Requirement Extraction 的收尾步骤，但本 Guide 的 Pass 4 不展开新的复杂 Pass，也不设计 Contract、Test Case、Grader 或后续 Benchmark objects。
 
-Pass 4 的 Trace Item、Forward Matrix、Backward Matrix、Trace Issues、Trace Review 和 Trace Status 都是 Requirement Extraction working / audit structures，不是新的 Core Objects，也不会为 Frozen Final Requirement Schema 增加字段。
+Pass 4 的 Trace Run Metadata、Trace Item、rerun reconciliation、Forward Matrix、Backward Matrix、Trace Issues、Trace Review、Finalization Eligibility Summary 和 Trace Status 都是 Requirement Extraction working / audit structures，不是新的 Core Objects，也不会为 Frozen Final Requirement Schema 增加字段。
 
 ## 13. Final Requirement Set
 
