@@ -516,7 +516,7 @@ Pass 2 采用 Recall first；Pass 3 转向 **Precision + Diagnostic Value**。Ag
 
 #### Candidate Dispositions
 
-Pass 3 必须为每一条 Pass 2 Candidate 给出一个明确 disposition：
+Pass 3 必须为每一条 Pass 2 Candidate 给出一个明确的 `primary_disposition`：
 
 ```text
 KEEP
@@ -529,7 +529,7 @@ CONFLICT
 NEEDS_CLARIFICATION
 ```
 
-| Disposition | 含义 |
+| Primary disposition | 含义 |
 |---|---|
 | `KEEP` | 原 Candidate 的责任、粒度和 wording 可直接进入 Normalized Candidate Set |
 | `KEEP_WITH_EDIT` | 责任成立，但需收缩加强语义、澄清 wording、修正 scope 或去除实现偶然性 |
@@ -541,6 +541,39 @@ NEEDS_CLARIFICATION
 | `NEEDS_CLARIFICATION` | 规范责任可能存在，但当前语义、scope、权威或失败含义仍不足以正常化 |
 
 每条原始 Candidate 都必须有去向。不得静默丢失、覆盖或仅从 Normalized Candidate Set 中省略 Candidate。
+
+一个 Candidate 在 Normalize 中可能同时发生多个变化，因此 disposition record 不得假设一个枚举值能够表达全部处理过程：
+
+- `primary_disposition` 表示该 Candidate 最主要的最终处置，仍使用上表 vocabulary；
+- `secondary_transformations` 是可选列表，记录同时发生的其他结构变化或审计事实；只有单一动作时可以为空。
+
+`secondary_transformations` 可以记录 `edited`、`merged_with`、`split_into`、`evidence_consolidated`、`child_demoted`、`scope_narrowed`、`reclassified` 等简短动作及其目标或关联 ID。该列表是 Candidate-level audit information，不是 Framework Core Object，也不修改 Final Requirement Schema。具体序列化格式本 Guide 不冻结，但每项 transformation 必须能够从 rationale、目标 IDs 和来源关系中得到解释。
+
+#### Disposition Precedence
+
+当多个 disposition 同时适用时，先判断 unresolved semantic state：
+
+1. 存在 unresolved true conflict 时，`primary_disposition` 为 `CONFLICT`；
+2. 不存在 unresolved true conflict，但仍有无法消除的 semantic gap 时，`primary_disposition` 为 `NEEDS_CLARIFICATION`。
+
+在这两种情况下，同时发生的 `SPLIT`、`MERGE`、`KEEP_WITH_EDIT`、`DEMOTE_TO_NOTE` 或其他结构变化记录到 `secondary_transformations` 和 rationale，不得用结构动作掩盖 unresolved state。如果 true conflict 与 semantic gap 同时存在，`CONFLICT` 优先，semantic gap 仍通过 issue 关联和 rationale 保留。
+
+如果不存在 unresolved issue，再根据实际结构处置选择 `SPLIT`、`MERGE`、`KEEP_WITH_EDIT`、`KEEP`、`REMOVE` 或 `DEMOTE_TO_NOTE` 作为 `primary_disposition`。Precedence 只解决主处置的表达顺序，不是数值评分体系，也不改变各项 disposition 的适用条件。
+
+#### `REMOVE` 与 `DEMOTE_TO_NOTE`
+
+`REMOVE` 表示 Candidate 不应继续存在于 Requirement Extraction 结果中。典型原因包括：
+
+- 没有 Normative Source 支持；
+- 完全是 Implementation Fact 或错误推断；
+- 与保留 Candidate 完全重复，且没有额外审查价值；
+- 是没有独立意义的过度碎片。
+
+`REMOVE` 不产生 Normalized Candidate，也不要求把内容作为正式 note 保留；Candidate Disposition Matrix 仍必须记录删除原因。
+
+`DEMOTE_TO_NOTE` 表示内容不应成为 Requirement，但对理解、审查、风险判断或后续设计仍有价值，例如 informative background、implementation caveat、non-normative recommendation、useful design context、current-state limitation 或 contextual explanation。
+
+`DEMOTE_TO_NOTE` 不产生 Normalized Candidate，但内容及其来源应进入 normalization notes 或其他 audit notes。不得仅因为内容“看起来有用”就让它继续作为 Requirement 候选；是否降级取决于它没有独立规范责任、但仍具有明确审查价值。
 
 #### Normalize 处理顺序
 
@@ -556,7 +589,7 @@ NEEDS_CLARIFICATION
 8. Contractability Check；
 9. Conflict、Uncertainty 和 Implementation Mismatch 关联审查；
 10. Multi-source evidence consolidation；
-11. 在 Candidate Disposition Matrix 中记录处置，并生成或更新 Normalized Candidate。
+11. 在 Candidate Disposition Matrix 中记录 `primary_disposition`、适用的 `secondary_transformations` 和目标关系，并生成或更新 Normalized Candidate。
 
 处理顺序是审查路径，不代表每一步都必须改变 Candidate。任何 SPLIT、MERGE、REMOVE 或 wording 修改都必须保留原 Candidate、来源证据和 extraction issue 的可追溯关系。
 
@@ -565,7 +598,7 @@ NEEDS_CLARIFICATION
 Pass 3 必须产生：
 
 1. **Normalized Candidate Set**：使用临时 `NR-` ID，记录通过 Normalize 的候选责任及其来源、类型、派生关系和 issue 关联。
-2. **Candidate Disposition Matrix**：确保每条原始 `RC-` Candidate 都有 disposition、目标 Normalized Candidate 或无目标原因。
+2. **Candidate Disposition Matrix**：确保每条原始 `RC-` Candidate 都有 `primary_disposition`、适用的 `secondary_transformations`、目标 Normalized Candidate 或无目标原因。
 3. **Normalization Status**：只能是 `NORMALIZATION_READY` 或 `NORMALIZATION_BLOCKED`。
 
 #### Pass 3 Completion Gate
@@ -573,9 +606,11 @@ Pass 3 必须产生：
 进入 Pass 4 前确认：
 
 - [ ] Pass 2 状态为 `COLLECTION_READY`
-- [ ] 每个 `RC-` Candidate 都有 disposition
+- [ ] 每个 `RC-` Candidate 都有 `primary_disposition`
+- [ ] 同时发生的额外结构变化已记录到 `secondary_transformations` 或明确为空
 - [ ] 没有静默丢失 Candidate
 - [ ] 所有 Normalized Candidate 都有 Normative Source 支持
+- [ ] 需要 clause-to-evidence mapping 的 multi-source Candidate 已完成映射
 - [ ] 无规范支持的加强语义已删除
 - [ ] duplicate Candidate 已处理
 - [ ] composite responsibility 已执行 Atomic Responsibility Test
@@ -691,12 +726,22 @@ Normalize 首先确认 Candidate 是否有足够的 Normative Source 支持。�
 
 ### 8.2 Atomic Responsibility Test
 
-Atomicity 不由动词数量、句子长度、标点或 bullet 数量决定。对于 Candidate 中可能包含的责任 A 和 B，检查：
+Atomicity 不由动词数量、句子长度、标点或 bullet 数量决定。对于 Candidate 中可能包含的责任 A 和 B，先检查：
 
 1. A 是否可以满足而 B 不满足，或 B 可以满足而 A 不满足；
 2. 这两种失败是否产生可区分、值得独立记录的评估结论。
 
-两个条件都成立时使用 `SPLIT`。如果只是同一责任的自然组成动作，或拆开后不会增加诊断价值，不因文字结构机械拆分。
+技术上能够独立成功或失败，只是 SPLIT 的必要信号，不是充分条件。继续执行 Diagnostic Value Review：
+
+1. 两种失败是否指向不同的 failure cause 或 failure class？
+2. 两种失败是否通常需要不同的 remediation 或 correction？
+3. 分开记录是否会改变后续诊断、风险判断或修复决策？
+
+只有独立失败并且分开记录能够保留实际 diagnostic value 时，才使用 `SPLIT`。如果 A 与 B 理论上可以分别失败，但根因相同、修复方式相同，且分开记录不会改变任何后续决策，通常不应只因技术可分而拆分。
+
+Artifact package、metadata block、正式结构中的普通字段以及 checklist micro-items 不因各组成项可以单独缺失就自动拆分。除非某个组成项被规范独立强调，或其失败具有不同 failure class、remediation、风险或决策影响，否则应把它保留在能够表达完整责任的合理粒度中。
+
+如果只是同一责任的自然组成动作，或拆开后不会增加诊断价值，不因文字结构机械拆分，也不建立数值评分或 diagnostic threshold。
 
 抽象地说，“必须执行规定的验证，并且最终结果必须满足该验证要求”可能包含两个可独立失败的责任：执行验证属于 workflow，最终结果满足要求属于 outcome。是否拆分仍取决于实际 Normative Source 是否分别支持这两个责任。
 
@@ -711,7 +756,7 @@ Atomicity 不由动词数量、句子长度、标点或 bullet 数量决定。�
 
 判断核心是 diagnostic value，而不是措辞相似度。MERGE 不得隐藏不同 scope、不同 `evaluation_type`、独立失败模式、独立授权边界或具有单独意义的来源强调。
 
-合并后必须保存所有适用的 `source_evidence`、`related_issue_ids` 和原 Candidate 关系。Normalized Candidate 的 `derived_from_candidate_ids` 必须包含全部被合并 Candidate；Candidate Disposition Matrix 对每条原 Candidate 分别记录 `MERGE` 和同一个目标 `NR-` ID。
+合并后必须保存所有适用的 `source_evidence`、`related_issue_ids` 和原 Candidate 关系。Normalized Candidate 的 `derived_from_candidate_ids` 必须包含全部被合并 Candidate。不存在 unresolved semantic state 时，Candidate Disposition Matrix 对每条原 Candidate 记录 `MERGE` 作为 `primary_disposition` 并指向同一个目标 `NR-` ID；存在 unresolved state 时，按 Disposition Precedence 记录主处置，并把 merge 写入 `secondary_transformations`。
 
 ### 8.4 Parent / Child Rule
 
@@ -756,7 +801,9 @@ Pass 3 不写 Contract，但每条状态为 `NORMALIZED` 的 Candidate 必须具
 
 > 如果违反这条责任，能否描述一种具有独立意义的可观察失败？
 
-此处不要求编写 Grader assertion、正则表达式、数值阈值或可执行 checker。如果连失败含义都无法描述，说明 statement 仍太模糊、粒度不合理，或 Normative Source 信息不足，应继续 Normalize 或标记 `NEEDS_CLARIFICATION`。
+Pass 3 只要求能够描述“违反这条责任时会出现什么类型的可观察失败”。此处不要求定义 threshold、metric、regex、checker、reference answer、grading algorithm 或其他 Contract / Grader 细节。能够描述 failure class，不等于已经完成 Contract 设计。
+
+如果连失败类型都无法描述，说明 statement 仍太模糊、粒度不合理，或 Normative Source 信息不足，应继续 Normalize 或标记 `NEEDS_CLARIFICATION`。
 
 Contractability 不等于已经可自动测试，也不要求在 Pass 3 选择验证方法。
 
@@ -765,12 +812,32 @@ Contractability 不等于已经可自动测试，也不要求在 Pass 3 选择�
 一个 Normalized Candidate 可以由多个 Normative Sources 支持。Normalize 时必须：
 
 - 合并完全重复的 source evidence entry；
+- 为每个需要被引用的 evidence entry 分配 Candidate-local `evidence_id`；
 - 保留每个 `source_ref` 与自己的 `source_excerpt` 配对；
 - 保留需要的 authority / delegation context；
 - 不把多个来源压缩成无法追溯的单一字符串；
 - 确认每项 evidence 支持 Normalized statement 的适用部分。
 
 如果多个来源只是重复支持同一责任，应形成一个 Normalized Candidate，并通过 `derived_from_candidate_ids` 和完整 `source_evidence` 保留来源与 Candidate 历史。
+
+如果一个 `normalized_statement` 包含多个具有实际规范语义的 clause，并且没有同一个 source evidence 完整支持这些 clause，必须建立 clause-to-evidence mapping。概念结构为：
+
+```text
+statement_clauses:
+  - clause_id
+  - clause_text
+  - supporting_evidence_ids
+
+source_evidence:
+  - evidence_id
+  - source
+  - source_ref
+  - source_excerpt
+```
+
+`supporting_evidence_ids` 必须指向同一 Normalized Candidate 中实际存在的 evidence entries，并足以支持对应 clause。需要时，evidence entry 继续保留 authority / delegation reference。
+
+如果一个来源已经完整支持整个 statement，不强制建立 `statement_clauses`。不得按连词、标点或普通语法片段机械拆 clause；只有具有实际规范语义、且其来源支持不同的部分才需要映射。Clause-to-evidence mapping 是 Pass 3 audit information，不是 Framework Core Object，也不修改 Final Requirement Schema。
 
 ## 9. Outcome / Workflow Final Classification
 
@@ -804,7 +871,7 @@ outcome | workflow
 
 Pass 3 不得擅自解决 unresolved true conflict。如果 Extraction Issue Ledger 中的 `CONFLICT` 在再次执行 Normative Rule Resolution 后仍无法消解：
 
-- 相关 Candidate 使用 `CONFLICT` disposition；
+- 相关 Candidate 使用 `CONFLICT` 作为 `primary_disposition`；
 - 对应 Normalized Candidate 状态保持 `CONFLICT`；
 - 保留 `related_issue_ids`、双方来源和影响；
 - 不强制合并成一个正常 Candidate；
@@ -850,10 +917,11 @@ NR-002
 | `normalized_statement` | Normalize 后的单一主要责任陈述 |
 | `evaluation_type` | 只能是 `outcome` 或 `workflow` |
 | `capability_or_scope` | 适用的 shared area、capability、task branch 或其他 scope |
-| `source_evidence` | 成对保留引用与摘录的一个或多个 Normative Source evidence |
+| `source_evidence` | 成对保留 `evidence_id`、引用与摘录的一个或多个 Normative Source evidence |
+| `statement_clauses` | 仅在多个实际语义 clause 由不同 evidence 支持时记录 clause-to-evidence mapping；其他情况可省略 |
 | `derived_from_candidate_ids` | 产生该记录的全部原始 `RC-` Candidate IDs |
 | `related_issue_ids` | unresolved issue、已解决 issue 或 relevant mismatch 的关联 IDs |
-| `disposition_summary` | 该结果由 `KEEP`、`KEEP_WITH_EDIT`、`SPLIT`、`MERGE` 或其他何种处置形成 |
+| `disposition_summary` | 汇总产生该结果的 `primary_disposition` 与适用的 `secondary_transformations` |
 | `normalization_rationale` | 来源支持、粒度、类型、wording 和 issue 处理理由 |
 | `status` | `NORMALIZED`、`CONFLICT` 或 `NEEDS_CLARIFICATION` |
 
@@ -868,20 +936,22 @@ Candidate Disposition Matrix 是 Pass 3 的必需审计产物，用于证明每�
 | 字段 | 用途 |
 |---|---|
 | `candidate_id` | 原始 `RC-` ID |
-| `disposition` | `KEEP`、`KEEP_WITH_EDIT`、`SPLIT`、`MERGE`、`REMOVE`、`DEMOTE_TO_NOTE`、`CONFLICT` 或 `NEEDS_CLARIFICATION` |
+| `primary_disposition` | 最主要的最终处置：`KEEP`、`KEEP_WITH_EDIT`、`SPLIT`、`MERGE`、`REMOVE`、`DEMOTE_TO_NOTE`、`CONFLICT` 或 `NEEDS_CLARIFICATION` |
+| `secondary_transformations` | 可选列表；记录同时发生的 edit、merge、split、evidence consolidation、child demotion、scope narrowing、reclassification 等额外变化；无额外变化时为空 |
 | `normalized_target_ids` | 零个、一个或多个目标 `NR-` IDs |
 | `rationale` | 处置原因，包括来源、粒度、重复、类型或 issue 判断 |
 
-Disposition 与目标关系必须清楚：
+Primary disposition、secondary transformations 与目标关系必须清楚：
 
 ```text
-一个 RC → SPLIT → 多个 NR
-多个 RC → MERGE → 一个 NR
-一个 RC → REMOVE / DEMOTE_TO_NOTE → 无 NR，并记录原因
-一个 RC → KEEP / KEEP_WITH_EDIT → 一个 NR
+一个 RC → primary SPLIT → 多个 NR
+多个 RC → primary MERGE → 一个 NR
+一个 RC → primary REMOVE / DEMOTE_TO_NOTE → 无 NR，并记录原因
+一个 RC → primary KEEP / KEEP_WITH_EDIT → 一个 NR
+一个 unresolved RC → primary CONFLICT / NEEDS_CLARIFICATION → 零个或多个问题状态 NR，并在 secondary transformations 中记录同时发生的结构变化
 ```
 
-Matrix 不得省略被删除、降级、冲突或待澄清的 Candidate。`derived_from_candidate_ids` 与 Matrix 应能相互核对，但这种 Candidate-level disposition 审计不是 Pass 4 的 source-level completeness Trace。
+`primary_disposition` 只能有一个；`secondary_transformations` 可以有零个或多个，但不得用它们替代主处置或隐藏 unresolved semantic state。Matrix 不得省略被删除、降级、冲突或待澄清的 Candidate。`derived_from_candidate_ids` 与 Matrix 应能相互核对，但这种 Candidate-level disposition 审计不是 Pass 4 的 source-level completeness Trace。
 
 ### 11.3 Pass 3 与 Pass 4 的边界
 
