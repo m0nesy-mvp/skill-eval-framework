@@ -64,7 +64,8 @@ Requirement Extraction 必须产生：
 3. **Normalized Candidate Set**：Pass 3 完成来源、粒度、类型和 contractability 审查后的候选集合；
 4. **Candidate Disposition Matrix**：Pass 3 对每条原始 Candidate 去向的完整审计记录；
 5. **Traceability Review**：Pass 4 的 Trace Run Metadata、Source Trace Inventory、Forward / Backward Trace Matrices、Trace Issues、Trace Review、Finalization Eligibility Summary 和 Trace Status；
-6. **Final Requirement Set**：只包含已接受 Requirement，并使用冻结的 Requirement Schema。
+6. **Finalization Mapping**：保留 eligible Normalized Candidate 到 Frozen Requirement 的确定性投影与审计关系；
+7. **Final Requirement Set**：只包含已接受 Requirement，并使用冻结的 Requirement Schema。
 
 中间工作记录属于设计 Artifact。它们不会为冻结的 Requirement Schema 增加字段，也不会自动进入 Frozen Benchmark Definition。
 
@@ -1479,13 +1480,208 @@ Individual eligibility 不能抵消 source-side gap，也不能把局部可晋�
 
 `overall_finalization_ready` 只有在 Trace Status 允许 finalization、没有 source-side gap 或 unresolved blocking issue，并且所有计划晋升的 Normalized Candidates 均 individually eligible 时才能为 `true`。
 
-Final Requirement ID assignment 和 freeze 可以作为 Requirement Extraction 的收尾步骤，但本 Guide 的 Pass 4 不展开新的复杂 Pass，也不设计 Contract、Test Case、Grader 或后续 Benchmark objects。
+Final Requirement ID assignment 和 freeze 是 Requirement Extraction 的确定性收尾步骤，不是新的 Pass。具体规则见“Final Requirement Finalization”；Pass 4 本身不执行 projection、ID assignment，也不设计 Contract、Test Case、Grader 或后续 Benchmark objects。
 
 Pass 4 的 Trace Run Metadata、Trace Item、rerun reconciliation、Forward Matrix、Backward Matrix、Trace Issues、Trace Review、Finalization Eligibility Summary 和 Trace Status 都是 Requirement Extraction working / audit structures，不是新的 Core Objects，也不会为 Frozen Final Requirement Schema 增加字段。
 
-## 13. Final Requirement Set
+## 13. Final Requirement Finalization
 
-Final Requirement Set 只使用已经冻结的 Requirement Schema，不增加字段：
+### 13.1 定位与边界
+
+Final Requirement Finalization 不是 Pass 5，也不负责发现、收集、Normalize、Trace 或修复 Requirement。它只执行：
+
+```text
+eligible Normalized Candidate
+→ Frozen Requirement
+```
+
+Finalization 是确定性收尾步骤，不进行新的语义设计。发现需要重新理解、补充 Candidate、修改 statement、重新分类、补全 trace 或解决 extraction issue 时，必须回到对应 Pass；不得在 Finalization 中现场修复。
+
+### 13.2 Preconditions
+
+只有 Pass 4 已完成且其 Trace artifacts 当前有效时，才考虑 Finalization：
+
+| Trace Status | Finalization behavior |
+|---|---|
+| `TRACE_READY` | 允许进入完整 Requirement Finalization |
+| `TRACE_READY_WITH_UNRESOLVED_ISSUES` | 可以保留 individually eligible、已经 resolved 的 Candidate 及其 projection audit，但 unresolved `CONFLICT` / `NEEDS_CLARIFICATION` 不得晋升；整体 Requirement Set / Benchmark Definition 不得宣称 fully frozen，直到 blocking issues 被解决并重新 Trace |
+| `TRACE_BLOCKED` | 禁止执行 Requirement Finalization；可以保留 Finalization Eligibility Summary，但不得把局部 eligible NR 冻结成完整 Requirement Set，也不得宣称 finalization complete |
+
+`TRACE_READY_WITH_UNRESOLVED_ISSUES` 下形成的 eligible projection 只能作为可审查的 partial progress 保留；只要 blocking unresolved issue 仍存在，整体 Finalization Status 必须是 `FINALIZATION_BLOCKED`，不得产出 authoritative、complete Frozen Requirement Set。
+
+### 13.3 Candidate Eligibility
+
+一个 Normalized Candidate 只有同时满足以下全部条件才可晋升：
+
+```text
+normalization_status = NORMALIZED
++ backward_trace_status = SUPPORTED
++ eligible_for_finalization = true
++ 没有 unresolved blocking issue
++ Trace artifacts 当前不 stale
++ 当前 normalized_statement / candidate version
+   与 Trace 所绑定的 statement / version 一致
+```
+
+以下 Candidate 或结果不得晋升：
+
+- `CONFLICT`；
+- `NEEDS_CLARIFICATION`；
+- `PARTIALLY_SUPPORTED`；
+- `UNSUPPORTED`；
+- 依赖 stale Trace result 的 Candidate；
+- 与 Trace 所审查 statement / version 不一致的 Candidate；
+- 受 `TRACE_GAP` 影响、仍属于不完整 extraction result 的 Candidate Set。
+
+Finalization 必须使用 Pass 4 的 Finalization Eligibility Summary，不得在本步骤重新解释 eligibility。
+
+### 13.4 Projection to Frozen Requirement Schema
+
+Frozen Requirement Schema 保持不变：
+
+```text
+requirement_id
+statement
+source
+source_ref
+evaluation_type
+```
+
+NR 到 Requirement 的 projection 规则如下：
+
+| Requirement field | Projection rule |
+|---|---|
+| `requirement_id` | 按 Requirement ID Assignment 规则确定性分配 |
+| `statement` | 直接使用最终、已获 Trace support 的 `normalized_statement`；不得在 Finalization 中 rewrite |
+| `evaluation_type` | 直接使用 Normalized Candidate 的最终 `outcome` 或 `workflow`；不得在 Finalization 中重新分类 |
+| `source` | 从 authoritative normative provenance 中选择 Frozen Schema 允许的 `skill`、`user`、`project`、`interface` 或 `other`；不得根据 implementation location 猜测 |
+| `source_ref` | 按 Primary Provenance Projection 规则选择能够确定定位该 Requirement authoritative meaning 的 primary reference |
+
+如果 `statement` 需要修改或 `evaluation_type` 需要重新分类，回退 Pass 3，并在修改后重新执行 Pass 4。Finalization 不得通过 projection 隐式改变 Requirement 语义。
+
+#### Primary Provenance Projection
+
+Normalized Candidate 可以具有 multi-source 或 clause-level evidence，但 Frozen Requirement Schema 仍只保留单一 `source` 和 `source_ref`。Projection 按以下顺序执行：
+
+1. 从已通过 Backward Trace 的 supporting evidence 中识别 authoritative normative provenance，不考虑仅为 Implementation Fact 的位置。
+2. 如果一个 authoritative evidence entry 能完整支持整个 Requirement statement，使用该 evidence 的 source classification 和 stable reference 作为 primary `source` / `source_ref`。
+3. 如果 provenance 是 primary rule + explicit delegated resource，选择能够最直接定位 Requirement authoritative meaning 的 primary reference，并在 Finalization Mapping 中保留 authority / delegation chain。不得仅因某个位置更方便访问而选择它。
+4. 如果不同、不可删除的 clauses 必须依赖多个独立 Normative Sources 才能获得完整支持，选择其中具有明确 authority、delegation 或最直接规范定位依据的 evidence 作为 primary `source` / `source_ref`；所有 supporting evidence IDs 和 clause-level provenance 必须继续保留在 Finalization Mapping 与 Extraction audit artifacts 中。
+5. Frozen Requirement 的单一 `source_ref` 不是完整 provenance graph。完整的 multi-source、clause-level、authority 和 delegation provenance 由 Extraction audit artifacts 负责保存。
+6. 如果无法依据 authority、delegation、scope 和 directness 确定合理的 primary `source` / `source_ref`，该 Candidate 的 Finalization 必须 `BLOCKED`，不得任意选择。
+
+当 authoritative source system 本身没有稳定可写入的 reference 时，`source_ref` 可以按 Frozen Schema 保持为空，但 Finalization Mapping 必须记录可审查的 evidence identity、缺少 stable ref 的原因和 primary provenance 决策。无法唯一确定 primary provenance 不属于“没有 stable ref”，仍然必须阻塞。
+
+### 13.5 Finalization Mapping
+
+Finalization 必须保留 Finalization Mapping，至少记录：
+
+| 字段 | 用途 |
+|---|---|
+| `normalized_id` | 来源 `NR-` ID |
+| `requirement_id` | 成功晋升后的 `R-` ID；未晋升时为空 |
+| `normalized_statement` | Trace 所支持的最终 normalized statement |
+| `requirement_statement` | 实际投影的 Frozen Requirement statement |
+| `evaluation_type` | 从 Normalized Candidate 直接投影的 `outcome` 或 `workflow` |
+| `source` | 投影后的 Frozen source classification |
+| `source_ref` | 投影后的 primary source reference |
+| `supporting_source_evidence_ids` | 完整 supporting evidence identity 列表，包括 multi-source / clause-level provenance |
+| `related_issue_ids` | 相关 Extraction Issue IDs |
+| `ordering_basis` | 本次 Requirement ID 使用的稳定排序依据 |
+| `finalization_status` | `FINALIZED`、`NOT_ELIGIBLE` 或 `BLOCKED` |
+| `rationale` | Eligibility、projection、primary provenance、阻塞或未晋升原因 |
+
+Mapping 应覆盖本次 Finalization 考虑的全部 Normalized Candidates。`FINALIZED` row 必须恰好关联一个 Requirement；`NOT_ELIGIBLE` 或 `BLOCKED` row 不得分配 `requirement_id`。
+
+Finalization Mapping 保留 `NR → R` 关系和完整 provenance，但不是 Framework Core Object，也不会修改 Frozen Requirement Schema。
+
+### 13.6 Requirement ID Assignment
+
+正式 Requirement ID 使用：
+
+```text
+R001
+R002
+R003
+...
+```
+
+ID 必须在当前 benchmark 内唯一、确定、可审计，不得依赖随机 LLM 输出顺序。分配顺序为：
+
+1. 使用已经稳定并记录在 Normalized Candidate Set 中的 normalized ordering；
+2. 如果多个 Candidate 的 ordering 无法区分，使用已经保存的 extraction ordering；
+3. 仍需 deterministic secondary ordering 时，使用稳定的 `normalized_id` 顺序。
+
+不得按照 importance、score、criticality 或 statement alphabetical order 任意重排语义顺序。Finalization Mapping 必须记录使用的 ordering basis。
+
+Requirement Set 尚未 frozen 时，ID 可以在完整 re-finalization 中重新生成。一旦某个 benchmark version 已 frozen，其 Requirement IDs 不得因无关 rerun 被静默重编号。Source 或 Requirement 发生实质变化时，应通过新的 benchmark version 或既有 lifecycle 处理；本 Guide 不建立复杂 ID registry。
+
+### 13.7 Final Requirement Validation
+
+Finalization 完成前至少确认：
+
+- [ ] 所有 `requirement_id` 唯一
+- [ ] 所有 `requirement_id` 符合 `R001`、`R002`、… 的正式格式
+- [ ] 所有 `statement` 非空，并与已 Trace-supported 的 `normalized_statement` 一致
+- [ ] `evaluation_type` 只能是 `outcome` 或 `workflow`
+- [ ] `source` 只能是 Frozen Schema 允许的枚举值
+- [ ] `source_ref` 满足 Primary Provenance Projection；无 stable ref 时有完整 audit rationale
+- [ ] 每个 Requirement 都能回到一个 eligible NR
+- [ ] 每个 eligible 且已 finalized 的 NR 恰好映射到一个 Requirement
+- [ ] 没有 `CONFLICT` Candidate 被晋升
+- [ ] 没有 `NEEDS_CLARIFICATION` Candidate 被晋升
+- [ ] 没有 `PARTIALLY_SUPPORTED` / `UNSUPPORTED` Candidate 被晋升
+- [ ] 没有 stale Trace result 被使用
+- [ ] Finalization Mapping 完整且与 Frozen Requirement Set 一致
+
+任一检查失败都必须阻塞 Finalization；不得使用 quality score、通过比例或人工补分覆盖 validation failure。
+
+### 13.8 Finalization Status
+
+Finalization Status 只能是：
+
+```text
+FINALIZATION_READY
+FINALIZATION_BLOCKED
+```
+
+`FINALIZATION_READY` 表示所有应该进入本次 Frozen Requirement Set 的 eligible Candidates 均已完成 projection、ID assignment 和 validation，没有 blocking unresolved issue，并且完整 Requirement Set 可以正式冻结。
+
+`FINALIZATION_BLOCKED` 表示 Finalization 不能完成，例如：
+
+- Trace Status 不允许完整 finalization；
+- primary `source` / `source_ref` 无法可靠决定；
+- eligibility 与 Trace artifacts 不一致；
+- 使用了 stale artifacts；
+- ID 或 projection validation failure；
+- 存在 unresolved blocking issue。
+
+Finalization Status 不是 quality score，也不表示实现已经满足 Requirement。
+
+### 13.9 Staleness 与 Rollback
+
+Finalization 不直接修复前序问题：
+
+| 发现 | 回退位置 |
+|---|---|
+| Statement 或 `evaluation_type` 需要改变 | Pass 3 — Normalize，然后重新 Trace |
+| Source trace 不完整 | Pass 4，或按 Pass 4 rollback rule 回到正确前序 Pass |
+| Source authority / delegation / scope 有问题 | Pass 1 — Understand |
+| 存在 missing normative responsibility | Pass 2 — Collect |
+
+如果 NR、Trace artifacts、related issues 或 source provenance 在 Finalization 后发生实质变化，相关 Finalization Mapping 和 Frozen Requirement Set 必须视为 stale，并重新验证或重新 Finalization。不得沿用旧 eligibility、旧 projection 或旧 Requirement ID mapping 来掩盖变化。
+
+### 13.10 Frozen Requirement 与 Contract Boundary
+
+只有 `FINALIZATION_READY` 时，才能产生正式 Frozen Requirement Set，并把它作为后续 Contract Design 的 authoritative Requirement input。
+
+Contract Design 只消费 Frozen Requirements，不直接把 RC、NR 或 TI 当作 authoritative requirement definition。RC、NR、TI、Trace Matrix 和 Finalization Mapping 可以作为 audit context，但不能替代正式 Requirement。
+
+本节不开始 Contract Design，也不定义 Test Case、Grader、Metric 或任何后续评价对象。
+
+## 14. Final Requirement Set
+
+只有 Finalization Status 为 `FINALIZATION_READY` 时，才能产生 authoritative Final Requirement Set。Final Requirement Set 只使用已经冻结的 Requirement Schema，不增加字段：
 
 | 字段 | 必填 | 规则 |
 |---|---:|---|
@@ -1508,7 +1704,7 @@ Final Requirement Set 只使用已经冻结的 Requirement Schema，不增加字
 - 分类为 `outcome` 或 `workflow`；
 - 后续能够进入 Contract Design，且没有嵌入 Grader assertion。
 
-## 14. Decision Checklist
+## 15. Decision Checklist
 
 完成 Requirement Extraction 前逐项检查：
 
@@ -1525,4 +1721,4 @@ Final Requirement Set 只使用已经冻结的 Requirement Schema，不增加字
 - [ ] 是否有已识别的规范内容被遗漏且没有明确处置？
 - [ ] 最终 Requirement 是否都能回溯来源？
 
-只有 Skill Summary、Requirement Candidate Ledger、Normalized Candidate Set、Candidate Disposition Matrix、完整的 Pass 4 Traceability Review 和 Final Requirement Set 全部存在，并且 Checklist 没有未解释的失败时，Requirement Extraction 才完成。
+只有 Skill Summary、Requirement Candidate Ledger、Normalized Candidate Set、Candidate Disposition Matrix、完整的 Pass 4 Traceability Review、Finalization Mapping 和 Final Requirement Set 全部存在，Finalization Status 为 `FINALIZATION_READY`，并且 Checklist 没有未解释的失败时，Requirement Extraction 才完成。
