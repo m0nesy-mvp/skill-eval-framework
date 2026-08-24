@@ -107,7 +107,26 @@ Agent 应先理解 Skill 的整体任务和正式行为，再识别主规范引�
 
 读取一个资源，不代表其中所有内容都自动具有规范性。Agent 必须判断规范委托了什么责任，以及哪些内容与该委托有关。
 
-### 4.3 Capability Map 与复杂 Skill 的覆盖方式
+### 4.3 Normative Source Inventory
+
+Normative Source Inventory 是 Pass 1 的明确中间产物，用于在 Requirement Candidate Collection 前回答：哪些资源为什么具有规范性，以及其规范范围是什么。
+
+它不是 Framework Core Object，不是 Schema，也不会修改最终 Requirement Schema。每个 source entry 至少记录：
+
+| 字段 | 用途 |
+|---|---|
+| `resource` | 文件、章节、用户要求、项目要求、接口或其他来源 |
+| `source_type` | `skill`、`user`、`project`、`interface` 或 `other` |
+| `authority_basis` | 为什么该资源可以约束 Target Skill |
+| `delegation_basis` | 如果权威来自其他规范的引用或委托，记录该关系 |
+| `normative_scope` | 该资源约束整体 Skill、某 capability、某输出、某 workflow、某 schema / validation 或其他范围 |
+| `read_reason` | 为什么必须读取该资源才能形成可靠理解 |
+| `access_status` | 已读取、不可访问、缺失或其他影响理解的状态 |
+| `notes` | 局部规范性、实现信息、歧义或其他审查上下文 |
+
+读取过一个文件，不等于整个文件都是 Normative Source。同一文件可以在一个明确范围内具有规范性，同时在其他部分只包含 Implementation Fact、current-state information、背景或示例。Inventory 必须按适用部分和 `normative_scope` 记录，不能把文件级访问自动升级为文件级权威。
+
+### 4.4 Capability Map 与复杂 Skill 的覆盖方式
 
 Capability Map 是 Pass 1 的阅读辅助产物，用于防止复杂 Skill 的整个能力区域在后续 Candidate Collection 中被遗漏。它：
 
@@ -176,7 +195,20 @@ script、schema、validator、template、reference 或 config，只有在 Normat
 
 Agent 必须把被委托资源读取到足以理解被委托责任的程度。同一资源中的无关实现细节不会自动变成 Requirement。
 
-### 5.4 规范与实现不一致
+### 5.4 Normative Rule Resolution
+
+当两个规范规则看起来存在差异时，不得直接按文件类型、文件名或固定层级决定权威。Agent 应按以下顺序判断它们属于 compatible、scoped exception、ambiguity 还是真正的 conflict：
+
+1. 检查是否存在明确的 authority 或 delegation 声明。
+2. 检查两个规则是否作用于同一个 scope、对象、条件和阶段。
+3. 如果规则可以同时满足，将其记录为 compatible。
+4. 如果 general rule 明确允许或随后定义了一个限定范围的 exception，将该规则记录为 scoped exception，不自动记为 `CONFLICT`。
+5. 如果两个适用的规范规则作用于同一 scope、要求互不兼容，并且没有明确 authority、delegation 或 exception 关系可以解决，记录 `CONFLICT`。
+6. 如果现有信息不足以判断是 scoped exception、ambiguity 还是真正冲突，建立 `UNCERTAIN` extraction issue，不得静默选边。
+
+Agent 不得仅因为当前实现如此、某条规则更方便、某个文件更新时间更新，或主观认为某种安排更合理，就自行提升规范权威。Guide 不建立类似“主规范永远高于 reference”或“schema 永远高于 prose”的固定文件优先级；权威必须来自实际声明、委托关系和适用范围。
+
+### 5.5 规范与实现不一致
 
 当 Normative Source 与 Implementation Fact 不一致时：
 
@@ -221,9 +253,11 @@ Pass 1 至少应回答：
 2. 理解整体任务、正式行为、输入、输出和完成状态。
 3. 识别 shared responsibilities 和主要 capability / task branches。
 4. 识别 Normative Source、Implementation Fact 以及主规范引用或委托的必要资源。
-5. 按 Reading Scope 只读取会影响可靠理解的资源。
-6. 记录已理解的约束类别、排除项、冲突、歧义、缺失信息和 implementation mismatch。
-7. 判断当前信息是否足以进入 Requirement Candidate Collection。
+5. 建立 Normative Source Inventory，记录每项来源的权威、委托关系、规范范围、读取理由和访问状态。
+6. 按 Reading Scope 只读取会影响可靠理解的资源。
+7. 按 Normative Rule Resolution 判断 compatible、scoped exception、ambiguity 和 conflict。
+8. 记录已理解的约束类别、排除项、冲突、歧义、缺失信息和 implementation mismatch。
+9. 判断当前信息是否足以进入 Requirement Candidate Collection。
 
 #### Pass 1 必需产物
 
@@ -232,10 +266,11 @@ Pass 1 完成后必须产生：
 1. **Skill Summary**：简洁复述整个 Skill，包括核心目的、输入、输出或最终完成状态，以及主要能力边界。
 2. **Normal Execution Flow**：描述典型成功路径及理解整体行为所需的主要分支。
 3. **Capability Map**：列出 shared / cross-cutting responsibilities 与主要 capability / task branches；简单 Skill 可以非常简短，甚至只记录一个主 capability。
-4. **Important Dependencies**：对每项重要 dependency / resource，记录为什么需要读取、是否 normative，以及它影响哪部分理解。
-5. **Known Constraints**：只记录理解到的约束类别和内容，不在本阶段把它们正式转换为 Requirement。
-6. **Uncertainties / Conflicts**：记录 normative conflict、ambiguity、missing information 和 implementation mismatch，并说明其影响。
-7. **Understanding Status**：只能是 `UNDERSTANDING_READY` 或 `UNDERSTANDING_BLOCKED`。
+4. **Normative Source Inventory**：记录规范来源的 authority、delegation、normative scope、读取理由和访问状态，并允许一个资源只有部分内容具有规范性。
+5. **Important Dependencies**：对每项重要 dependency / resource，记录为什么需要读取、是否 normative，以及它影响哪部分理解。
+6. **Known Constraints**：只记录理解到的约束类别和内容，不在本阶段把它们正式转换为 Requirement。
+7. **Uncertainties / Conflicts**：记录 normative conflict、ambiguity、missing information 和 implementation mismatch，并说明其影响。
+8. **Understanding Status**：只能是 `UNDERSTANDING_READY` 或 `UNDERSTANDING_BLOCKED`。
 
 #### READY / BLOCKED
 
@@ -253,7 +288,9 @@ Pass 1 完成后必须产生：
 - [ ] 已识别主要 capability / task branches
 - [ ] 已识别 shared responsibilities
 - [ ] 已区分 Normative Source / Implementation Fact
+- [ ] Normative Source Inventory 已记录 authority、delegation、scope 和 access status
 - [ ] 已读取必要的委托资源
+- [ ] 已区分 compatible、scoped exception、ambiguity 和 true conflict
 - [ ] 已记录关键约束
 - [ ] 已记录冲突和不确定项
 - [ ] 状态为 `UNDERSTANDING_READY`
@@ -271,6 +308,7 @@ Pass 2 使用 Pass 1 的全部产物：
 - Skill Summary；
 - Normal Execution Flow；
 - Capability Map；
+- Normative Source Inventory；
 - Important Dependencies；
 - Known Constraints；
 - Uncertainties / Conflicts；
@@ -300,9 +338,17 @@ Pass 2 不预设具体 capability taxonomy。Agent 必须依据 Pass 1 动态识
 - retry / recovery；
 - failure handling；
 - stop conditions；
-- completion conditions。
+- completion conditions；
+- orchestration / state handoff；
+- ownership / cleanup boundary。
 
 这些只是防止遗漏的扫描维度，不是 Requirement 类型，也不要求每个区域在每个维度下都产生 Candidate。最终 `evaluation_type` 仍只有 `outcome` 或 `workflow`。
+
+`orchestration / state handoff` 用于检查一个 capability 的结果是否必须交给下一个 capability、required state transition、status file / state object、chaining prerequisite，以及 success / failure branch handoff。
+
+`ownership / cleanup boundary` 用于检查 artifact 的创建者或归属、允许修改或删除的文件、必须保留的内容、cleanup scope、destructive action boundary，以及 ownership 无法确认时的处理。
+
+这两个维度不会产生新的 `evaluation_type`。相关责任最终仍只能归入 `outcome` 或 `workflow`。
 
 #### Candidate 纳入边界
 
@@ -355,34 +401,66 @@ Pass 2 可以把 `tentative_evaluation_type` 暂定为：
 - `outcome`：主要依据最终输出或最终状态判断；
 - `workflow`：主要依据执行轨迹、动作、顺序、工具调用、授权或禁止行为判断。
 
-这只是暂定分类。无法可靠暂定时可以记录为未决定并说明原因；Pass 3 必须允许重新分类。
+Pass 2 的 `tentative_evaluation_type` 只能是：
+
+```text
+outcome | workflow | undetermined
+```
+
+`undetermined` 表示当前 Collection 证据不足以可靠暂定为 `outcome` 或 `workflow`。它只允许存在于 Pass 2；Pass 3 必须重新判断，正式 Requirement 不允许使用 `undetermined`。
 
 #### 冲突、不确定项与实现差异
 
-如果两个适用的 Normative Source 互相冲突，不得选边。将相关记录标记为 `CONFLICT`，并保留 Source A、Source B、各自要求、不兼容内容以及对后续 Extraction 的影响。
+Pass 2 不把所有问题塞进 Requirement Candidate 的单值 `status`。`CONFLICT`、`UNCERTAIN` 和 `IMPLEMENTATION_MISMATCH` 必须记录到独立的 Extraction Issue Ledger，并通过 Candidate IDs 与相关 Candidate 建立多对多关联。
 
-如果是 Normative Source 与 Implementation Fact 不一致，应记录 `IMPLEMENTATION_MISMATCH`，保留规范要求、当前实现事实、差异和影响。不得把同一项 mismatch 伪装成两个互相竞争的 Requirement Candidate。
+如果两个适用的 Normative Source 在执行 Normative Rule Resolution 后仍构成 true conflict，不得选边。建立 `CONFLICT` issue，保留双方来源、各自要求、不兼容内容以及对后续 Extraction 的影响。
 
-如果规范意义、范围或权威暂时不清楚，将 Candidate 标记为 `UNCERTAIN`，并记录不确定原因和需要澄清的内容。
+如果是 Normative Source 与 Implementation Fact 不一致，应建立 `IMPLEMENTATION_MISMATCH` issue，保留规范要求、当前实现事实、差异和影响。Implementation mismatch 本身不是 Requirement Candidate，不得把同一项 mismatch 伪装成两个互相竞争的 Candidate。
 
-#### Pass 2 Coverage Check
+如果规范意义、范围或权威暂时不清楚，建立 `UNCERTAIN` issue，记录不确定原因和需要澄清的内容。相关 Candidate 保留在 Candidate Ledger，并通过 issue 关联，而不是依赖单值 status 同时表达所有问题。
 
-Pass 2 结束前执行轻量 Collection Coverage Check：
+#### Pass 2 → Pass 1 回退规则
 
-1. Capability Map 中每一个 in-scope capability / task branch 都已扫描；
-2. shared / cross-cutting responsibilities 已扫描；
-3. 每个区域都检查过全部通用规范维度；
-4. 没有整个 capability / task branch 无故遗漏。
+Pass 2 不是不可回退的线性流程。Collect 过程中发现新的理解缺口时，按其影响处理：
 
-该检查只证明 Collection 的区域和扫描维度已覆盖，不判断 Candidate 是否应保留、如何规范化，也不是 Pass 4 Traceability Review。
+- 如果只是某条规范语义暂不确定、某个非核心责任缺少信息，或某个 Candidate 的边界不清，记录 `UNCERTAIN` issue，并继续扫描其他可理解区域。
+- 如果新信息会推翻或显著改变 Skill 核心目的、capability boundary、主要 input / output、关键 Normative Source authority，或整个区域的理解，停止受影响区域的 Collection，回到 Pass 1 更新 Skill Understanding、Capability Map 和 Normative Source Inventory。
+- 如果回到 Pass 1 后能够补足理解，再从受影响区域继续 Collect；不得假装此前 Candidate 未受影响。
+- 如果无法补足，输出 `COLLECTION_BLOCKED`，记录阻塞区域、原因和影响。
+
+不得为了维持线性流程而禁止回退，也不得仅因局部非核心不确定项就把整个 Collection 自动判为 blocked。
+
+#### Pass 2 Coverage Matrix
+
+Pass 2 结束前必须建立轻量的二维 Collection Coverage Matrix：
+
+```text
+Capability / Scope × Generic Collection Dimension
+```
+
+每个 cell 至少使用以下状态之一：
+
+| Cell status | 含义 | 必需记录 |
+|---|---|---|
+| `scanned` | 已执行检查的过程标记，可与更具体的结果状态一起使用 | 可记录简短说明 |
+| `candidate_found` | 已发现一个或多个 Candidate | Candidate IDs |
+| `none_found` | 已检查，未发现规范性责任 | 原因 |
+| `not_applicable` | 该维度不适用于此 scope | 原因 |
+| `blocked` | 该 cell 因来源、访问或理解问题无法完成扫描 | 阻塞原因和影响 |
+
+Coverage Matrix 必须覆盖 Capability Map 中每一个 in-scope capability / task branch、shared / cross-cutting responsibilities，以及所有 Generic Collection Dimensions。不得以某个区域 Candidate 数量较少为理由省略整行，也不得用自然语言总结代替未填 cell。
+
+完成 Coverage Check 时，每个未被标记为 `blocked` 的 cell 都必须能够回答“发现了 Candidate、没有发现责任，还是该维度不适用”；不能只保留 `scanned` 而不记录检查结果。
+
+该 Matrix 只检查 Collection completeness 的区域级覆盖，不判断 Candidate 是否应保留、如何规范化，也不建立 Normative Source 与最终 Requirement 的双向追溯，因此不是 Pass 4 Traceability Review。
 
 #### Pass 2 必需输出
 
 Pass 2 必须产生：
 
-1. **Requirement Candidate Ledger**：记录全部 Candidate、来源、状态和审查上下文；它是必需中间产物，不是 Frozen Requirement Schema。
-2. **Collection Coverage**：至少记录已扫描的 capabilities / task branches、shared areas、Candidate 数量以及是否存在明显空白。
-3. **Conflicts / Uncertainties**：汇总所有 `CONFLICT`、`UNCERTAIN` 和 `IMPLEMENTATION_MISMATCH` 记录。
+1. **Requirement Candidate Ledger**：记录全部 Candidate、多来源证据、相关 extraction issues 和审查上下文；它是必需中间产物，不是 Frozen Requirement Schema。
+2. **Extraction Issue Ledger**：独立记录 `CONFLICT`、`UNCERTAIN` 和 `IMPLEMENTATION_MISMATCH`，并关联相关 Candidate 与来源。
+3. **Collection Coverage Matrix**：记录每个 capability / scope 与每个通用扫描维度的 cell 状态、Candidate IDs 或原因。
 4. **Collection Status**：只能是 `COLLECTION_READY` 或 `COLLECTION_BLOCKED`。
 
 `COLLECTION_READY` 表示 Pass 1 为 `UNDERSTANDING_READY`，所有 in-scope 区域已完成扫描，且已知冲突、不确定项和实现差异均被显式记录。它不表示 Candidate 已规范化或已成为 Requirement。
@@ -397,11 +475,13 @@ Pass 2 必须产生：
 - [ ] 所有 in-scope capability / task branches 已扫描
 - [ ] shared / cross-cutting responsibilities 已扫描
 - [ ] 每个 Candidate 都有 Normative Source
-- [ ] 来源上下文足以供人工审查
+- [ ] 每个 Candidate 的多来源证据均逐项配对且足以供人工审查
 - [ ] 冲突未被擅自解决
+- [ ] 所有 `CONFLICT`、`UNCERTAIN` 和 `IMPLEMENTATION_MISMATCH` 已进入 Extraction Issue Ledger
 - [ ] Implementation Fact 未被自动升级为 Candidate 或 Requirement
 - [ ] 未分配 `R001` 等正式 Requirement ID
-- [ ] Collection Coverage 与 Conflicts / Uncertainties 已完成
+- [ ] Coverage Matrix 的所有 in-scope cells 均有状态、Candidate IDs 或原因
+- [ ] 新发现的核心理解缺口已按规则回退 Pass 1 或明确阻塞
 - [ ] 状态为 `COLLECTION_READY`
 
 ### 6.3 Pass 3 — Normalize
@@ -442,7 +522,9 @@ Requirement → Normative Source
 
 只有完成 Normalize 和 Traceability Review 后，才分配 `R001` 形式的正式 ID，并形成 Final Requirement Set。
 
-## 7. Requirement Candidate Ledger
+## 7. Pass 2 Working Ledgers
+
+### 7.1 Requirement Candidate Ledger
 
 Candidate Ledger 是 Pass 2 必需、可审查的中间产物。它是 Extraction 工作记录，不是 Frozen Requirement Schema，也不会为冻结的 Requirement 对象增加字段。
 
@@ -453,16 +535,54 @@ Candidate Ledger 是 Pass 2 必需、可审查的中间产物。它是 Extractio
 | `candidate_id` | Pass 2 使用的临时 ID，例如 `RC-001`；不得使用 `R001` 等正式 ID |
 | `candidate_statement` | 当前可能责任的陈述 |
 | `capability / scope` | shared area、capability / task branch 或其他适用范围 |
-| `tentative_evaluation_type` | 暂定的 `outcome` 或 `workflow`；Pass 2 可以未决定 |
-| `source` | 规范来源类别，例如 `skill`、`user`、`project`、`interface` 或 `other` |
-| `source_ref` | 可追溯的规范来源位置 |
-| `source_excerpt` | 人工审查所需的最小原文上下文 |
-| `status` | Pass 2 使用 `CANDIDATE`、`UNCERTAIN` 或 `CONFLICT`；后续阶段可按其规则更新 |
-| `notes` | 不确定原因、冲突关系、初步粒度说明或其他审查上下文 |
+| `tentative_evaluation_type` | `outcome`、`workflow` 或仅限 Pass 2 的 `undetermined` |
+| `source_evidence` | 一个或多个相互配对的规范来源证据项 |
+| `related_issue_ids` | 与 Candidate 相关的零个或多个 Extraction Issue ID |
+| `status` | Candidate 的工作状态；Pass 2 通常为 `CANDIDATE`，不再承担所有 issue 分类 |
+| `notes` | 初步粒度、边界或其他审查上下文 |
 
-Candidate Ledger 可以为一条 Candidate 保留多个规范来源，尤其是来源共同支持同一责任或彼此冲突时。这样做不会修改最终 Requirement Schema。
+一个 Candidate 可以由多个 Normative Source 支持。`source_evidence` 在概念上是列表，每个 evidence entry 至少包含：
+
+| 字段 | 用途 |
+|---|---|
+| `source` | `skill`、`user`、`project`、`interface` 或 `other` |
+| `source_ref` | 该项证据自己的可追溯来源位置 |
+| `source_excerpt` | 与该 `source_ref` 成对的最小审查上下文 |
+| `authority / delegation reference` | 需要时指向 Normative Source Inventory 中的权威或委托依据 |
+
+每一段 `source_ref` 必须与自己的 `source_excerpt` 成对保存，不能把多个来源位置和多个摘录分别堆进两个无对应关系的列表。具体序列化格式本轮不冻结，但这种配对关系是必需的。
+
+多来源 Candidate、`source_evidence` 和 `related_issue_ids` 只完善 Candidate / Extraction audit information，不修改冻结的 Final Requirement Schema。最终 Requirement 仍只使用既有的 `source` 和可选 `source_ref` 字段。
 
 拆分 Candidate 时，每个结果都必须保留适用的来源追溯。合并 Candidate 时，合并记录必须保留足以支持合并陈述的全部来源。
+
+### 7.2 Extraction Issue Ledger
+
+Extraction Issue Ledger 是 Pass 2 的独立中间产物，用于记录 Candidate Collection 中发现的问题。它不是 Framework Core Object，不是 Requirement Schema，也不自动产生 Requirement。
+
+至少记录以下 issue type：
+
+```text
+CONFLICT | UNCERTAIN | IMPLEMENTATION_MISMATCH
+```
+
+每条 issue 至少包含：
+
+| 字段 | 用途 |
+|---|---|
+| `issue_id` | 临时稳定 ID，例如 `EI-001` |
+| `issue_type` | `CONFLICT`、`UNCERTAIN` 或 `IMPLEMENTATION_MISMATCH` |
+| `scope` | 受影响的 shared area、capability、输出、workflow 或其他范围 |
+| `related_candidate_ids` | 零个或多个相关 Candidate；Implementation mismatch 可以没有 Candidate |
+| `related_sources` | 与问题相关且保持各自引用关系的规范来源或实现事实 |
+| `description` | 问题本身，不替代 Candidate Statement |
+| `impact` | 对理解、Collection、后续阶段或可执行性的影响 |
+| `resolution_status` | 未解决、已澄清、已按正式规则解决或其他明确状态 |
+| `notes` | 需要的补充审查上下文 |
+
+同一个 Candidate 可以关联多个 issue，同一个 issue 也可以影响多个 Candidate。Candidate Ledger 与 Issue Ledger 通过 IDs 关联，不依赖一个 Candidate `status` 同时表达冲突、不确定性和实现差异。
+
+`IMPLEMENTATION_MISMATCH` 本身不是 Requirement Candidate。只有存在独立 Normative Source 支持的责任才能进入 Candidate Ledger；当前实现事实只进入 issue 的 `related_sources` 和审查说明。
 
 ## 8. 粒度规则
 
@@ -535,23 +655,24 @@ Source B → 要求 Y
 X 与 Y 无法同时满足
 ```
 
-Agent 不得根据偏好、当前实现或便利性自行选择一边。
+Agent 必须先执行 Normative Rule Resolution，排除 compatible rules、scoped exception 和仅因 scope 不同产生的表面差异。不得根据偏好、当前实现、便利性或文件时间戳自行选择一边。
 
-Candidate Ledger 必须把受影响 Candidate 标记为 `CONFLICT`，并保留：
+真正的规范冲突必须进入 Extraction Issue Ledger，并保留：
 
 - 两个来源；
 - 不兼容的内容；
 - 受影响的能力或范围；
 - 对 Requirement Extraction 的影响；
-- 已知的来源优先级规则，但不得自行发明规则。
+- 适用的 authority、delegation 或 exception 信息；
+- 相关 Candidate IDs，但不得依赖 Candidate 的单值 status 表达全部问题。
 
 未解决的规范冲突不能伪装成已确定 Requirement 进入 Final Requirement Set。必须由人工决定或适用的更高优先级规则解决。如果冲突阻塞对 Skill 的可靠理解，Pass 1 必须输出 `UNDERSTANDING_BLOCKED`。
 
-实现差异不自动等于两个 Normative Source 之间的冲突。除非该实现资源已被明确委托规范权威，否则应标记为 `IMPLEMENTATION_MISMATCH`，记录规范要求、实现事实、差异和影响；不得据此构造两个互相竞争的 Requirement Candidate。
+实现差异不自动等于两个 Normative Source 之间的冲突。除非该实现资源已在适用范围内获得明确规范权威，否则应在 Extraction Issue Ledger 中记录 `IMPLEMENTATION_MISMATCH`，保存规范要求、实现事实、差异和影响；不得据此构造两个互相竞争的 Requirement Candidate。
 
 ## 11. 不确定 Candidate
 
-Collect 阶段偏 recall。可能责任具有合理规范依据，但其含义、范围、权威或粒度不确定时，先保留 Candidate，将其标记为 `UNCERTAIN`，并记录不确定原因。
+Collect 阶段偏 recall。可能责任具有合理规范依据，但其含义、范围、权威或粒度不确定时，先保留 Candidate，在 Extraction Issue Ledger 中建立 `UNCERTAIN` issue，并通过 Candidate ID 关联不确定原因。
 
 产生 Final Requirement Set 前，每一个不确定 Candidate 必须得到以下处置之一：
 
