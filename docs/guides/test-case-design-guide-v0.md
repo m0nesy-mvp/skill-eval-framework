@@ -196,6 +196,25 @@ TEST_CASES_BLOCKED for validation subset
 
 Test Case Method Validation Subset 不是 Core Object，也不是 production lifecycle state。
 
+### 4.4 Out-of-Subset Responsibility Exposure Review
+
+Method Validation Subset 中的自然任务可能同时触发当前 validation scope 之外的 known normative responsibilities。每个 subset Case 都必须检查：
+
+- task、fixture、initial state 或 interaction 是否明显可能触发未进入当前 Requirement validation subset 的责任；
+- 是否明显可能触发未进入当前 Contract validation subset 的责任；
+- 这些 out-of-subset responsibilities 是否会改变 Case 的自然执行、granularity、exercise 或解释；
+- Case 是否因此不能被当作完整 production-valid Test Case。
+
+如果存在明显 exposure，只允许：
+
+1. 将 Case 约束到不触发该 responsibility；
+2. 如果该 responsibility 已 individually eligible 且 Contract 已 validated，将它明确纳入 validation scope；
+3. 保留 Case，但在 Test Case Design Audit 中标记 isolation limitation，并限制结论只覆盖当前 subset。
+
+不得静默忽略 exposure、把 subset Case 当作 production Case，或用 subset 绕过 benchmark-wide blocker。
+
+Out-of-Subset Responsibility Exposure Review 是 method-validation working artifact，不是 Core Object，也不修改 production Test Case Definition。
+
 ---
 
 ## 5. Contract ↔ Test Case Mapping
@@ -244,6 +263,17 @@ Exercise Check 是 Test Case Design 的核心 gate。每个 Case → Contract ma
 7. Case 的 Expected Assertion 是否准确指向 Contract-level semantic expectation？
 8. 多 Contract Case 中，每个 Contract 是否都能独立说明如何被 exercised？
 
+包含 `interaction_steps` 的 Case 还必须回答：
+
+1. Initial task 是否真实产生 interaction opportunity？
+2. Subject 是否必须主动做出目标行为，才能触发 evaluator response？
+3. Response 是否只在对应 semantic trigger 满足后提供？
+4. Response 是否会提前帮助 violating Subject 或替它完成责任？
+5. Compliant path 是否能够在 interaction 后完整继续？
+6. Violating path 是否仍然现实可行？
+7. Subject 不触发 interaction 时，Case 是否仍有明确 semantic interpretation？
+8. Interaction policy 是否只定义 definition-time continuation，而没有写成 trigger matcher、Grader algorithm 或 Runtime engine？
+
 Exercise 成立至少需要：
 
 - trigger / applicability condition 实际存在；
@@ -260,6 +290,8 @@ Exercise Check = BLOCKED
 ```
 
 该 Case 不得计入 Contract coverage。
+
+如果 Case 需要 evaluator continuation，但 compliant path 无法被完整定义或继续，则 Discriminative Power 不得标为 sufficient，对应 mapping 也不得计入 coverage。
 
 ---
 
@@ -383,14 +415,19 @@ Test Case 必须具有足够 discriminative power：合理 compliant Subject 与
 
 至少检查：
 
-1. Case 是否真正暴露目标 responsibility？
-2. 是否存在 trivial pass，即不履行责任也能轻易得到同样表面结果？
-3. compliant 与 violating paths 是否都可能发生？
-4. Case 是否只能观察一个与目标 Contract 无关的结果？
-5. Prompt 是否过度提示正确步骤或答案？
-6. Initial state 是否使 violation 不可能发生？
-7. Scenario 是否足够明确，使失败能够归因，而不是 Case ambiguity？
-8. 多 Contract Case 是否仍能区分各自表现？
+1. Target Contract trigger 是否被真实构造？
+2. Compliant behavior 是否可行？
+3. Violating behavior 是否可行？
+4. Subject 是否保留 meaningful agency？
+5. Evaluator setup 是否没有提前决定结果？
+6. Evaluator 是否没有替 Subject 完成目标责任？
+7. Prompt 是否没有 coaching hidden required behavior？
+8. Task 是否不存在 material ambiguity？
+9. Conditional interaction 是否能在需要时完整继续？
+10. Workflow responsibility 是否没有只从 final Outcome 推定？
+11. 是否不存在 trivial pass，即不履行责任也能轻易得到同样表面结果？
+12. 是否没有把 permanent `NOT_EXERCISED` path 计作 coverage？
+13. 多 Contract Case 是否仍能区分各自表现？
 
 示例：
 
@@ -436,11 +473,124 @@ Prompt 也不能过度模糊。若 scope、目标或必要上下文缺失，多�
 
 Under-specification 不能由 Grader 更严格地猜测预期来修复；应在 Test Case Design 内修正 task definition。
 
+### 11.3 Initial Task 与 Multi-turn Interaction
+
+`task` 是 Subject 收到的 initial user / task input。后续可能发生的 evaluator-provided user turns 由 `interaction_steps` 定义：
+
+```text
+InteractionStep:
+- trigger
+- response
+```
+
+`interaction_steps` 是 definition-time evaluator interaction policy。它只解决以下已被真实 validation 证明存在的模式：
+
+```text
+Initial user request
+→ Subject 应主动执行某个 interaction action
+→ 对应 trigger 满足
+→ Evaluator 提供下一轮 user response
+→ Subject 可以继续
+```
+
+`trigger` 是 human-readable semantic condition，说明 evaluator 何时应提供下一次 user interaction。它不是 regex、trace event index、checker、judge condition 或 executable matcher。
+
+`response` 是 trigger 满足后，由 evaluator 作为下一轮 Subject-visible user interaction 提供的内容。
+
+规则：
+
+- response 只能在对应 trigger 满足后进入 Episode interaction；
+- trigger 不发生时，response 不得自动注入；
+- interaction policy 不记录 Subject 实际说了什么；
+- interaction policy 不记录 trigger 实际是否发生；
+- interaction policy 不保存 actual transcript、PASS / FAIL 或 Runtime status；
+- 如何在 Runtime 判断 trigger、注入 response 或记录 turn 属于未来 Execution / Evidence / Grader Design，本指南不定义。
+
+### 11.4 Compliant 与 Violating Path Preservation
+
+Interaction policy 必须同时保留：
+
+```text
+Compliant path:
+Subject 执行 required interaction
+→ trigger 满足
+→ evaluator 提供 response
+→ Subject 继续
+
+Violating path:
+Subject 跳过 required interaction
+→ trigger 不满足
+→ evaluator 不提供 response
+→ setup 不替 Subject 完成责任
+```
+
+禁止以下 workaround：
+
+- 把 future user confirmation 预置到 `initial_state`；
+- 把 future user turn 当作 Fixture；
+- 把完整未来对话脚本塞进 initial `task`；
+- 在 Subject 未产生 trigger 时自动注入 response；
+- 用 evaluator setup 替 Subject 完成 authorization、consent 或其他 Workflow responsibility。
+
+### 11.5 Static / Single-turn Cases
+
+不是所有 Test Case 都需要 interaction。静态或 single-turn Case 必须显式使用：
+
+```text
+interaction_steps: []
+```
+
+空列表表示 Case 没有 definition-time evaluator continuation policy，不表示 Runtime 已经产生零个 turns。
+
 ---
 
 ## 12. Fixture、Initial State 与 Environment Prerequisite
 
-### 12.1 Fixture
+### 12.1 Subject Visibility Semantics
+
+各字段默认可见性如下：
+
+| 字段 | 默认语义 |
+|---|---|
+| `task` | Subject-visible initial user / task input |
+| `interaction_steps[].response` | 只有对应 trigger 满足后才成为 Subject-visible user interaction |
+| `interaction_steps[].trigger` | Evaluator-side definition condition；不作为 prompt 文本展示 |
+| `preconditions` | Evaluator-side environment-readiness metadata；默认不直接写入 Subject prompt |
+| `fixtures` | Evaluator-side prepared resource definitions；description 本身不自动成为 user message |
+| `initial_state` | Evaluator-side scenario-state definition；description 本身不自动成为 prompt text |
+
+`not directly prompt-visible` 不表示 Subject 无法观察环境事实。Fixture provisioned resource 或 initial world state 可以通过 Subject 正常可用的 Skill、tool 或 environment interface 被观察。
+
+如果 Case 的 semantic validity 依赖 Subject 是否知道某个 setup fact，Case author 必须在 Design Audit 中明确该事实应：
+
+- 通过 `task` 告知；
+- 通过 triggered interaction response 告知；
+- 通过正常 environment observation 获得；
+- 或故意保持未知。
+
+不得依赖 reviewer 对 visibility 的不同默认理解。该 Hidden Setup Dependency Rule 属于 Audit 与 Semantic Review，不要求增加 Schema 字段。
+
+### 12.2 Canonical Placement Rule
+
+同一个完整事实不得复制到 preconditions、fixtures 与 initial state 三处。优先按以下问题归位：
+
+```text
+Readiness
+→ precondition
+→ What must be true for this Case to be validly executable?
+
+Prepared resource identity / content
+→ fixture
+→ What prepared resources are provisioned for this Case?
+
+Scenario-start world condition
+→ initial state
+→ What is the relevant world state when the Episode begins?
+```
+
+必要时可以使用简短交叉引用，但不得复制完整描述，也不得用 placement 选择改变 Subject visibility。
+
+### 12.3 Fixture
 
 Fixture 是 Test Case 开始前，为构造 evaluation scenario 准备的输入资源或状态材料，例如：
 
@@ -455,7 +605,7 @@ Fixture 是 Test Case 开始前，为构造 evaluation scenario 准备的输入�
 
 简单 Fixture 是 Test Case Definition 的组成内容。Fixture 不在 v0 中成为新的 Core Object。复杂、可复用或需要独立版本管理的 Fixture 是否成为定义资源，必须由真实设计需求证明，本指南不提前创建对象。
 
-### 12.2 Environment prerequisite
+### 12.4 Environment prerequisite
 
 Precondition 描述：
 
@@ -463,7 +613,7 @@ Precondition 描述：
 
 例如可用服务、必要权限、稳定网络条件或可访问资源。它用于判断 Case 是否可执行，不是 Subject 的 Contract responsibility。
 
-### 12.3 Initial state
+### 12.5 Initial state
 
 Initial state 描述 evaluator 为了构造场景而建立的起始状态，包括数据、配置、已有对象、部分授权或 competing choices。
 
@@ -477,11 +627,12 @@ Evaluator setup 不得替 Subject 完成 Workflow Requirement。
 
 判断步骤：
 
-1. 识别 Contract 要求 Subject 自己执行的 action、check、authorization 或 validation；
+1. 识别 Contract 要求 Subject 自己执行的 action、check、authorization、consent、validation、ordering、tool / resource selection、recovery 或 cleanup；
 2. 检查 precondition / fixture 是否已经完成该责任；
-3. 如果 setup 只是保证环境可用，Subject 仍必须履行责任，则合法；
-4. 如果 setup 使 Subject 无需再履行责任，Case 不能覆盖该 Workflow Contract；
-5. 如果无法分离 environment readiness 与 Subject responsibility，记录 Case Design Issue。
+3. 检查 initial state 或 interaction policy 是否提前提供了 Subject 本应主动取得的 condition 或 response；
+4. 如果 setup 只是保证环境可用，Subject 仍必须履行责任，则合法；
+5. 如果 setup 使 Subject 无需再履行责任，Case 不能覆盖该 Workflow Contract；
+6. 如果无法分离 environment readiness 与 Subject responsibility，记录 Case Design Issue。
 
 示例：
 
@@ -497,6 +648,8 @@ Evaluator 已替 Subject 完成并确认资源检查，因此 Subject 无需再�
 ```
 
 合法 precondition 保证 Case 可运行；它不取消 Subject 的检查责任。
+
+如果 Contract 要求 Subject 主动取得 future user confirmation，该 confirmation 不得进入 `initial_state`。它只能作为 `interaction_steps[].response`，并且只有在 Subject 行为满足对应 semantic trigger 后才提供。
 
 ---
 
@@ -533,6 +686,30 @@ ExpectedAssertion:
 - `expectation` 必须是 human-readable Contract-level semantics；
 - expectation 不得重写 Contract success / failure criteria；
 - expectation 必须与 Case exercise rationale 一致。
+
+Conditional Contract 的 `expectation` 至少必须同时表达：
+
+1. 本 Case 构造的 trigger / applicability context；
+2. Trigger 生效后 Subject 必须履行的 Contract-level semantic responsibility。
+
+推荐抽象形式：
+
+```text
+When the scenario trigger occurs,
+the Subject must satisfy <contract responsibility>;
+absence of the trigger is not PASS evidence.
+```
+
+禁止只写：
+
+```text
+Cxxx should be exercised.
+Contract should pass.
+```
+
+这类句子没有说明具体 responsibility，也容易把 ID linkage 或 PASS intent 误当 semantic expectation。
+
+同一 Test Case 内，同一 `contract_id` 仍最多一项 Expected Assertion。如果一条 expectation 被迫表达多个真正独立的 verification commitments，应先回滚检查 Contract atomicity，而不是增加重复 assertions。
 
 ### 14.3 禁止内容
 
@@ -865,6 +1042,9 @@ v0 引入一个轻量、非 Core、非 authoritative 的 Test Case Design Audit�
 | `exercise_rationale` | 每个 Contract 的 trigger、agency 与 exercise 证明 |
 | `discriminative_power_rationale` | 为什么 compliant / violating behavior 可区分 |
 | `fixture_precondition_notes` | setup 未替代 Subject responsibility 的说明 |
+| `interaction_rationale` | 如果存在 interaction，说明 trigger、response timing 与 compliant / violating paths；否则可简记 none |
+| `hidden_setup_dependency` | 影响 Case semantics 的 setup fact 应如何被 Subject 获知或保持未知 |
+| `subset_exposure_note` | 仅 Method Validation Subset 使用；记录 out-of-subset responsibilities 或 isolation limitation |
 | `overlap_redundancy_decision` | 与相似 Cases 的保留、合并或删除理由 |
 | `design_notes` | downstream concerns、成本、权限或暂未覆盖风险 |
 
@@ -890,10 +1070,21 @@ TestCase:
 - preconditions: list[str]
 - fixtures: list[str]
 - initial_state: list[str]
+- interaction_steps: list[InteractionStep]
 - expected_assertions: list[ExpectedAssertion]
 ```
 
-### 26.2 ExpectedAssertion
+### 26.2 InteractionStep
+
+```text
+InteractionStep:
+- trigger
+- response
+```
+
+`InteractionStep` 是 TestCase nested definition structure，不是 Core Object。它定义 conditional evaluator / user continuation policy，不是 actual conversation turn、Episode event 或 executable callback。
+
+### 26.3 ExpectedAssertion
 
 ```text
 ExpectedAssertion:
@@ -903,7 +1094,7 @@ ExpectedAssertion:
 
 这是 Schema Proposal，不修改当前 Frozen Benchmark / Requirement / Contract Schema，也不在本轮规定 YAML、JSON、Pydantic、目录或 Runtime serialization。
 
-### 26.3 字段判断
+### 26.4 字段判断
 
 | 候选字段 | v0 决定 | 理由 |
 |---|---|---|
@@ -915,6 +1106,7 @@ ExpectedAssertion:
 | `preconditions` | 进入 Schema，必填列表 | 明确环境可执行条件；允许显式空列表 |
 | `fixtures` | 进入 Schema，必填列表 | 声明 Case 需要的 simple input resources；允许显式空列表；不创建 Fixture Core Object |
 | `initial_state` | 进入 Schema，必填列表 | 描述 evaluator 建立的 scenario state；允许显式空列表 |
+| `interaction_steps` | 进入 Schema，必填列表 | 表达真实 validation 已证明需要的 conditional evaluator continuation；空列表表示 static / single-turn Case |
 | `expected_assertions` | 进入 Schema，至少一项 | 保存 Contract-specific semantic evaluation target，并承担 authoritative Contract reference |
 | `targeted_failure_modes` | 留在 Coverage Mapping / Audit | 是 risk coverage rationale，不是执行 scenario 的最小 authority |
 | `case_type` | 不进入 | positive / negative / edge 可重叠；冻结单一 enum 会制造机械配额和错误分类 |
@@ -923,7 +1115,7 @@ ExpectedAssertion:
 | Grader references | 不进入本轮 Proposal | Grader Specification 尚未设计，不提前占位 |
 | actual result fields | 禁止进入 | 属于 Episode / Evidence / Result |
 
-### 26.4 ID 规则
+### 26.5 ID 规则
 
 推荐形式：
 
@@ -950,7 +1142,7 @@ TC003
 
 ### 27.1 task
 
-非空 string，表达 Subject 实际收到或必须执行的 natural task。它应包含足够 scope 与交互上下文，但不泄漏 hidden evaluation logic。
+非空 string，表达 Subject 实际收到的 initial natural user / task input。它应包含足够 scope 与初始上下文，但不泄漏 hidden evaluation logic，也不预写 future interaction transcript。
 
 ### 27.2 preconditions
 
@@ -966,7 +1158,18 @@ TC003
 
 必填 `list[str]`，允许空列表。每项描述 Case 开始时 evaluator 构造的 relevant state。它必须与 preconditions 区分：precondition 是环境必须成立的条件，initial state 是 scenario 具体起点。
 
-### 27.5 expected_assertions
+### 27.5 interaction_steps
+
+必填 `list[InteractionStep]`，允许空列表。
+
+每个 `InteractionStep` 必须包含：
+
+- 非空 `trigger`：human-readable semantic condition，说明何时提供 continuation；
+- 非空 `response`：trigger 满足后作为下一轮 Subject-visible user interaction 提供的内容。
+
+List order 表达多个 definition-time continuation policies 的声明顺序，不定义 Runtime scheduler、branching graph、retry、timeout 或 trigger-matching algorithm。需要 arbitrary branching、tool callback 或 state machine 的未来 Case 必须另行提供真实 validation evidence；v0 不提前设计。
+
+### 27.6 expected_assertions
 
 必填且至少一项。每个 Contract 最多出现一次。它表达 Case-level semantic expectation，不是 Grader implementation。
 
@@ -986,12 +1189,15 @@ Target Contract set 由 expected assertions 派生；任何 assertion reference 
 - `preconditions` 是无完全重复、条目非空的字符串列表；
 - `fixtures` 是无完全重复、条目非空的字符串列表；
 - `initial_state` 是无完全重复、条目非空的字符串列表；
+- `interaction_steps` 是列表，允许为空；
+- 每个 InteractionStep 包含非空 `trigger` 与 `response`；
+- InteractionStep 不包含 actual Subject turn、trigger result、PASS / FAIL、Evidence 或 Runtime event fields；
 - `expected_assertions` 至少一项；
 - 每项 ExpectedAssertion 包含非空 `contract_id` 与 `expectation`；
 - 同一个 Test Case 中 ExpectedAssertion `contract_id` 不重复；
 - 不存在 actual response、trace、Artifact、Evidence 或 Result 字段。
 
-空 `preconditions`、`fixtures` 或 `initial_state` 列表是合法的显式声明，不等于字段缺失。
+空 `preconditions`、`fixtures`、`initial_state` 或 `interaction_steps` 列表是合法的显式声明，不等于字段缺失。空 `interaction_steps` 明确表示 static / single-turn Case。
 
 ### 28.2 B. Cross-object Validation
 
@@ -1021,7 +1227,12 @@ Cross-object validator 可以证明 references 与 mapping 一致，不能证明
 - granularity 是否兼顾 diagnosis 与 coverage efficiency；
 - discriminative power 是否足够；
 - fixture / precondition 是否替 Subject 完成 Workflow responsibility；
+- setup-field visibility 与 hidden setup dependency 是否明确；
+- precondition / fixture / initial state 是否遵守 canonical placement，且没有复制同一完整事实；
 - conditional trigger 是否真实构造；
+- interaction trigger 是否 semantic，response 是否只在 trigger 后提供；
+- interaction 是否保留完整 compliant path 与现实 violating path；
+- future response 是否没有被预置到 task、fixture 或 initial state；
 - 是否存在 trivial pass；
 - 多 Contract mappings 是否仍可解释；
 - Expected Assertions 是否 semantic 且忠实；
@@ -1029,6 +1240,8 @@ Cross-object validator 可以证明 references 与 mapping 一致，不能证明
 - 是否与其他 Cases 重复；
 - critical Contract risk review 是否充分；
 - Case independence 与 repeatability 是否合理。
+
+Method Validation Subset 还必须执行 Out-of-Subset Responsibility Exposure Review，并确认 Case 没有被误报为完整 production-valid Test Case。
 
 Semantic Review 需要 Agent / Human judgment，不能伪装成 Schema validation。
 
@@ -1094,12 +1307,14 @@ Downstream concern 不自动使 Test Case failure；只有它证明 scenario 本
 
 - 为 Contracts 构造 natural task situations；
 - 选择必要 initial state、fixtures 和 preconditions；
+- 如果 Case 需要 conditional evaluator continuation，设计最小 interaction steps；
 - 使用 Working Case Drafts 比较 alternate scenarios；
 - 标记 positive / negative / edge design intent。
 
 ### Step 4 — Run Exercise Check
 
 - 对每个 Case → Contract mapping 检查 trigger、agency、non-substitution 和 non-determinism；
+- 对 interaction Case 检查 response timing、compliant continuation 与 violating path；
 - 只会 NOT_EXERCISED 的 mapping 不算 coverage。
 
 ### Step 5 — Review Granularity and Discrimination
@@ -1113,6 +1328,7 @@ Downstream concern 不自动使 Test Case failure；只有它证明 scenario 本
 
 - 分配正式 `TCxxx`；
 - 写 task、preconditions、fixtures、initial state；
+- 写必填 `interaction_steps`；静态 Case 使用显式空列表；
 - 为每个 target Contract 写一项 semantic Expected Assertion；
 - 不写 Evidence / Grader implementation。
 
@@ -1120,6 +1336,7 @@ Downstream concern 不自动使 Test Case failure；只有它证明 scenario 本
 
 - 每个 Contract 建立 Coverage row；
 - 记录 targeted failure modes 与 exercise rationale；
+- Method Validation Subset 记录 out-of-subset responsibility exposure；
 - 对 critical Contract 执行加强 review；
 - 保留 redundancy 与 uncovered risk decisions。
 
@@ -1252,15 +1469,15 @@ Downstream Grader Design Concern
 - 它可以作为后续 Evidence / Grader Design 输入；
 - 两字段结构足够，不需要 assertion ID 或 implementation fields。
 
-这是 Proposal；真实 validation 需要确认不同 Outcome / Workflow / conditional Cases 都能用 `contract_id + expectation` 清楚表达。
+真实 validation 已确认不同 Outcome / Workflow / conditional Cases 能用 `contract_id + expectation` 清楚表达。Conditional expectation 需要同时写 trigger context 与 required responsibility，但不需要增加字段或允许同一 Contract 重复 assertions。
 
 ### 34.2 Fixture representation
 
-v0 使用 `fixtures: list[str]` 表达 simple fixture description / reference，不创建 Fixture Core Object。只有真实设计证明复杂 reusable fixture 需要 stable identity、version、ownership 和 multi-Case reference 时，才考虑独立定义资源。
+v0 使用 `fixtures: list[str]` 表达 simple prepared resource description / reference，不创建 Fixture Core Object。真实 validation 证明 static Case 可以继续使用该形式；future user response 不属于 Fixture，必须使用 `interaction_steps`。只有未来真实设计证明复杂 reusable fixture 需要 stable identity、version、ownership 和 multi-Case reference 时，才考虑独立定义资源。
 
 ### 34.3 No top-level contract_ids
 
-Contract relation只保存在 `expected_assertions[].contract_id`，避免 top-level `contract_ids` 与 assertions 漂移。真实 validation 需要检查这种派生关系是否足够支持 coverage、authoring 和 downstream consumption。
+Contract relation 只保存在 `expected_assertions[].contract_id`，避免 top-level `contract_ids` 与 assertions 漂移。真实 validation 已确认该派生关系足够支持当前 multi-Contract authoring 与 Coverage Mapping，没有理由增加 top-level `contract_ids`。
 
 ### 34.4 No case_type enum
 
@@ -1269,6 +1486,18 @@ Positive / negative / edge 是可重叠的 Design classifications，不进入 Fr
 ### 34.5 No runtime status fields
 
 BLOCKED Episode、NOT_EXERCISED、actual PASS / FAIL、retry 和 execution state 都属于 Runtime / Result，不进入 TestCase Schema。
+
+### 34.6 InteractionStep
+
+真实 validation 证明 static schema 无法正确表达“Subject 先触发 interaction，Evaluator 再提供下一轮 user response”的 Case。v0 因此增加最小 nested structure：
+
+```text
+InteractionStep:
+- trigger
+- response
+```
+
+它只定义 conditional continuation policy，不成为 Interaction Core Object，不保存 actual transcript，也不引入 workflow graph、branching DSL、state machine、callback、retry policy、timing engine 或 Runtime trigger matcher。
 
 ---
 
@@ -1292,10 +1521,10 @@ BLOCKED Episode、NOT_EXERCISED、actual PASS / FAIL、retry 和 execution state
 | 14. Case execution failure 是否不会误算 Contract failure？ | 是。Fixture、service、infrastructure 和 trigger absence 被明确分离。 |
 | 15. 是否需要 Test Case Candidate？ | 当前不需要 mandatory Candidate；Working Case Drafts 足够，需真实复杂 authoring 再验证。 |
 | 16. 是否需要 Test Case Design Audit？ | 需要轻量非 Core Audit，因为 purpose、risk、exercise、granularity 和 redundancy rationale 不应塞入最小 Schema。 |
-| 17. 当前 Test Case Schema 最小字段是什么？ | `test_case_id`、`task`、`preconditions`、`fixtures`、`initial_state`、`expected_assertions`，以及 nested `contract_id + expectation`。 |
+| 17. 当前 Test Case Schema 最小字段是什么？ | `test_case_id`、`task`、`preconditions`、`fixtures`、`initial_state`、`interaction_steps`、`expected_assertions`，以及 nested InteractionStep 与 ExpectedAssertion。 |
 | 18. 哪些字段不应该进入 Frozen Schema？ | name、purpose、top-level contract_ids、targeted_failure_modes、case_type、repeat_count、Evidence / Grader refs 和 actual result fields。 |
 | 19. 是否出现 target-specific assumption？ | 未发现。方法适用于文本、交互、工具、Artifact、状态与 workflow 型 Agent Skills。 |
-| 20. 哪些问题必须真实 validation 后才能判断？ | Schema 字段充分性、ExpectedAssertion 表达力、无 top-level contract_ids 的可用性、Fixture 表达、multi-Contract granularity、Audit 负担和 reviewer 对 discriminative power 的一致性。 |
+| 20. 真实 validation 暴露了什么？ | Static fields、ExpectedAssertion 与单一 Contract authority 可用；multi-turn continuation 需要 InteractionStep；setup visibility、canonical placement、subset exposure 与 discriminative reviewer consistency 需要 hardening。 |
 
 ### 35.1 Self-review corrections incorporated
 
@@ -1310,23 +1539,44 @@ BLOCKED Episode、NOT_EXERCISED、actual PASS / FAIL、retry 和 execution state
 - 为避免 Case explosion，加入 Failure-Mode Coverage 与 Redundancy Review；
 - 为避免 criticality 机械增加 Case 数，改用加强 risk review；
 - 为避免 minimal Schema 承担全部设计审计，引入非 Core Audit。
+- 为避免 future user response 被错误预置，增加最小 InteractionStep 与 trigger-gated response semantics；
+- 为避免 setup visibility 依赖 reviewer 猜测，明确 Subject-visible 与 evaluator-side fields；
+- 为避免 precondition / fixture / initial state 重复，增加 canonical placement；
+- 为避免 subset Case 被误报为完整 production Case，增加 Out-of-Subset Responsibility Exposure Review。
 
-### 35.2 Method Validation Coverage Needed
+### 35.2 Further Method Validation Coverage Needed
 
-在冻结 TestCase Schema 前，至少需要真实 validation 检查：
+本轮 real validation 已覆盖 simple Outcome、Workflow、conditional、authorization / scope edge、multi-Contract、1→N、substitution risk、low-discrimination、failure-mode grouping、ExpectedAssertion 与 static setup-field boundaries，并真实发现 multi-turn continuation blocker。
 
-- 一个 simple Outcome Contract Case；
-- 一个 Workflow action / ordering Case；
-- 一个 conditional Contract trigger Case；
-- 一个 authorization 或 scope edge Case；
-- 一个 multi-Contract Case 与合理 split 对比；
-- 一个 evaluator setup 容易替代 Subject responsibility 的 Case；
-- 一个 trivial-pass / low-discrimination 反例；
-- Failure modes 多但不应一对一生成 Cases 的 Contract；
-- ExpectedAssertion 对 Outcome、Workflow 与 conditional semantics 的表达；
-- Fixture / initial_state / precondition 三者的边界。
+Hardening 后仍需要新的 validation run 检查：
 
-这些是 future validation coverage，不在本轮执行，也不应被误报为 Test Case implementation 已通过。
+- 原 blocking Case 是否能用 `interaction_steps` 完整表达 compliant 与 violating paths；
+- 不同 reviewer 是否能一致写出 semantic trigger，而不会滑向 executable matcher；
+- Subject visibility 与 Hidden Setup Dependency Rule 是否能稳定消除 precondition substitution ambiguity；
+- Canonical Placement Rule 是否能降低 precondition / fixture / initial state 重复；
+- Out-of-Subset Responsibility Exposure Review 是否能阻止 validation-local Case 被误报为 production-valid Case；
+- 不同 Agent Skill classes 中，最小两字段 InteractionStep 是否仍然足够。
+
+这些是 future validation coverage，不是本轮已执行结果，也不应被误报为 Runtime implementation 或 Test Case execution PASS。
+
+### 35.3 Hardening Self-Review
+
+| 检查 | 结论 |
+|---|---|
+| 1. Multi-turn compliant path 是否能定义？ | 是。Subject 满足 semantic trigger 后，evaluator 才提供 response，Case 可继续。 |
+| 2. Violating path 是否不会自动收到 response？ | 是。Trigger 不满足时禁止注入 response。 |
+| 3. Interaction 是否仍属于 Definition-time？ | 是。只保存 policy，不保存 actual turn、trigger result 或 transcript。 |
+| 4. Trigger 是否保持 semantic？ | 是。禁止 regex、trace index、checker、callback 或 executable matcher。 |
+| 5. Subject visibility 是否明确？ | 是。task 与 triggered response 可见；setup descriptions 默认不直接 prompt-visible。 |
+| 6. Setup 是否不会替 Subject 做 Workflow responsibility？ | 是。Future confirmation 不得进入 initial state 或 fixture。 |
+| 7. Preconditions / fixtures / initial state 是否有稳定 placement？ | 是。分别按 readiness、prepared resource、scenario-start state 归位。 |
+| 8. Conditional ExpectedAssertion 是否更清晰？ | 是。必须包含 trigger context 与 required responsibility，不能只写 should be exercised / pass。 |
+| 9. 是否保持单一 Contract relation authority？ | 是。仍只使用 `expected_assertions[].contract_id`。 |
+| 10. Subset exposure review 是否只影响 method validation？ | 是。它是 validation working artifact，不修改 production TestCase Schema。 |
+| 11. 是否新增不必要 Core Object？ | 否。InteractionStep 与 ExpectedAssertion 都是 nested structures。 |
+| 12. 是否提前设计 Evidence / Grader？ | 否。没有定义 trigger matcher、capture、checker、judge 或 Runtime engine。 |
+| 13. Schema Proposal 是否仍然最小？ | 是。只增加真实 blocking finding 所需的两字段 InteractionStep 与列表。 |
+| 14. 是否存在 target-specific assumptions？ | 否。正文没有特定 Skill、平台、工具、目录或命令。 |
 
 ---
 
@@ -1338,6 +1588,7 @@ BLOCKED Episode、NOT_EXERCISED、actual PASS / FAIL、retry 和 execution state
 - [ ] Contract Design Status 为 `CONTRACTS_READY`
 - [ ] Inputs 没有 stale 或 unresolved semantic issue
 - [ ] Method validation subset 保留 validation-only 边界与限定 status
+- [ ] Method validation subset 已完成 Out-of-Subset Responsibility Exposure Review
 
 ### Exercise and Coverage
 
@@ -1356,12 +1607,16 @@ BLOCKED Episode、NOT_EXERCISED、actual PASS / FAIL、retry 和 execution state
 - [ ] Discriminative power 足够
 - [ ] 没有 trivial pass
 - [ ] Initial state 没有预先锁死结果
+- [ ] 需要 continuation 的 Case 定义了完整 compliant path 与现实 violating path
+- [ ] Interaction response 只在 semantic trigger 满足后提供
 
 ### Fixture and Preconditions
 
 - [ ] Preconditions 只描述 environment readiness
 - [ ] Evaluator setup 没有替 Subject 完成 Workflow responsibility
+- [ ] Setup-field visibility 与 hidden setup dependency 已明确
 - [ ] Fixture / initial state 可理解且原则上可重复
+- [ ] Preconditions / fixtures / initial state 遵守 canonical placement
 - [ ] Case semantics 不依赖其他 Case 的 runtime outcome
 
 ### Granularity and Redundancy
@@ -1374,6 +1629,8 @@ BLOCKED Episode、NOT_EXERCISED、actual PASS / FAIL、retry 和 execution state
 ### Definition Boundaries
 
 - [ ] Expected Assertions 只包含 Contract-level semantic expectations
+- [ ] Conditional expectation 同时表达 trigger context 与 required responsibility
+- [ ] InteractionStep 只包含 semantic trigger 与 future user response policy
 - [ ] 没有 Evidence path、trace schema 或 capture implementation
 - [ ] 没有 Grader algorithm、regex、JSONPath、threshold 或 judge prompt
 - [ ] 没有 actual Episode、Artifact、Evidence 或 Result data
