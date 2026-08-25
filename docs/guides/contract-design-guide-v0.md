@@ -131,6 +131,63 @@ Contract Design Status = CONTRACTS_BLOCKED
 - 用 Contract wording 暗中解决上游冲突；
 - 宣称 Contract coverage 已完成。
 
+### 3.3 Contract Method Validation Subset
+
+生产 Contract Design 的 authoritative input 始终是完整、当前有效的 `Frozen Requirement Set`。本节不改变该 Entry Gate，也不允许 production workflow 使用 partial Requirements。
+
+Method Validation 存在一个受限的研究场景：完整 Target Requirement Set 可能因其他 source-side gaps 或 benchmark-wide unresolved issues 尚不能整体 Finalize，但其中部分 responsibilities 已经 individually resolved，并具备完整规范支持。为了隔离验证 Contract Design 方法本身，允许构造：
+
+```text
+Contract Method Validation Subset
+```
+
+它只能用于：
+
+- Contract Design method validation；
+- granularity analysis；
+- success / failure / failure-mode criteria analysis；
+- criticality analysis；
+- Schema adequacy analysis；
+- method research 或 review。
+
+它不得用于：
+
+- 生产 Benchmark Definition；
+- authoritative complete Contract Set；
+- 正式 Requirement 或 Contract coverage 声明；
+- Benchmark freeze；
+- downstream production Test Case、Evidence 或 Grader generation；
+- 绕过 `TRACE_BLOCKED` 或其他 benchmark-wide blocker；
+- 宣称整个 Target Skill 或完整 Benchmark 的 Contracts READY。
+
+进入 subset 的每条 Requirement 必须能够独立证明：
+
+- 来自 individually eligible normalized responsibility；
+- normalization status 为 `NORMALIZED`；
+- backward trace 为 `SUPPORTED`；
+- 没有 unresolved blocking issue；
+- authoritative provenance 可追溯；
+- validation-local Requirement projection 是 deterministic 的；
+- source snapshot 与 eligibility audit 当前有效且没有 stale。
+
+任一条件无法证明时，该 Requirement 不得进入 subset。RC、NR、TI 和 Trace artifacts 仍然只是 eligibility / provenance audit context，不能直接作为 Contract 的 authoritative `requirement_ids`。
+
+使用 subset 时，状态必须完整写成：
+
+```text
+CONTRACTS_READY for validation subset
+```
+
+或：
+
+```text
+CONTRACTS_BLOCKED for validation subset
+```
+
+不得简写为 `CONTRACTS_READY` 或 `CONTRACTS_BLOCKED`，以免与 production readiness 混淆。Subset 结论只覆盖被明确选择的 validation-local Requirements，不得外推到未选择责任、完整 Target Skill 或生产 Benchmark。
+
+Contract Method Validation Subset 不是 Framework Core Object，不是新的 production lifecycle state，也不修改 Frozen Requirement / Contract Schema。它只是 Method Validation working construct；相关 validation-local projection、eligibility basis 和 scope boundary 必须保留在 validation record 中。
+
 ---
 
 ## 4. Frozen Contract Schema 与设计边界
@@ -605,23 +662,33 @@ Workflow Requirement → Workflow Contract
 
 ## 16. Criticality
 
-`criticality = normal | critical` 表达 Contract violation 的 evaluation severity / benchmark significance。
+`criticality = normal | critical` 表达 Contract violation 的 benchmark-level evaluation severity / significance。
 
 ### 16.1 normal
 
 违反会影响对 Skill 能力或合规性的判断，但没有足够依据表明它需要作为关键失败被特别对待。
 
+如果 violation：
+
+- 是可恢复的；
+- 不破坏核心任务成立性；
+- 不跨越 authorization、safety、security、destructive 或 irreversible boundary；
+- 主要降低 completeness、usability、presentation 或 auxiliary correctness；
+- 且 Requirement、authoritative provenance 和 benchmark intent 没有赋予更高重要性；
+
+则通常保持 `normal`。`normal` 不表示不重要，也不表示该 Contract 可以被忽略；它只表示当前没有充分依据将 violation 提升为 benchmark-level critical failure。
+
 ### 16.2 critical
 
-违反具有显著 benchmark significance，例如涉及：
+只有存在明确理由时才使用 `critical`。典型依据包括 violation 会直接涉及：
 
-- safety；
-- destructive action；
-- user authorization；
-- irreversible side effect；
-- core correctness；
-- data integrity；
-- 任务是否实质完成。
+- destructive 或 irreversible side effect；
+- authorization 或 consent boundary；
+- safety 或 security boundary；
+- material data integrity loss；
+- explicit normative task-completion boundary；
+- core result invalidation，使任务即使其他方面正确也不能被合理视为完成；
+- benchmark intent 明确指定为不可被普通成功抵消的责任。
 
 这些只是需要检查的风险类别，不是关键词匹配规则。`critical` 必须从以下依据推导：
 
@@ -631,15 +698,37 @@ Workflow Requirement → Workflow Contract
 - 违反后的影响范围与可逆性；
 - authoritative audit context 中可支持的重要性语义。
 
-不得因为 statement 中出现 “must”“critical”“delete” 等词就机械标记，也不得因为某条责任容易测试就提升 criticality。
+不得因为 statement 中出现 “must”“critical”“delete”“authorization”等词就机械标记，也不得因为某条责任容易测试、看起来重要或属于核心功能区域就提升 criticality。同样不得把所有普通 correctness、precondition、handoff 或 incomplete output 自动标记为 `critical`。
 
-每个 `critical` 决定必须在 Contract Design Audit 中保留简短 rationale。无法可靠判断 required `criticality` 时，该 Contract 的设计仍未完成；不得任意默认为 `normal` 来绕过问题。
+每个 Contract 都必须在 Contract Design Audit 中保留简短 criticality rationale，而不只记录 `critical` 决定。
 
-### 16.3 与 Gate / Weight 的边界
+### 16.3 Ambiguous Criticality
+
+如果根据以下输入仍无法可靠决定 `normal` 或 `critical`：
+
+- Frozen Requirement；
+- authoritative provenance；
+- benchmark intent 或 authoritative design context；
+
+则不得：
+
+- 根据关键词猜测；
+- 根据“感觉严重”猜测；
+- 默认全部 `critical`；
+- 默认全部 `normal`；
+- 新增第三个 criticality enum；
+- 新增 numeric severity 来绕过二分判断。
+
+设计者必须在 Contract Design Audit 中记录 `criticality_uncertainty`，说明缺少什么 authoritative decision basis、它为何影响判断，以及需要谁或什么 design context 解决。
+
+由于 `criticality` 是 Frozen Contract Schema 的 required field，unresolved criticality uncertainty 表示该 Contract 尚未完成设计，并使相关 Contract Design 保持 `CONTRACTS_BLOCKED`，直到 benchmark owner 或其他 authoritative design context 提供足够依据。
+
+### 16.4 与 Gate / Weight / Score 的边界
 
 ```text
 criticality ≠ Gate
 criticality ≠ weight
+criticality ≠ score
 ```
 
 Critical Contract 失败不自动等于整个 Benchmark 失败。哪些结果真正阻断由后续 Gate Specification 定义；如何计分或聚合由后续 Metric / Weight Design 定义。本阶段不得提前写 gate expression、score weight 或聚合公式。
@@ -745,9 +834,20 @@ Contract Design Audit 是非 Core、非冻结 Schema 的工作记录，用来保
 | `requirement_ids` | 被考虑的 Frozen Requirement IDs |
 | `mapping_decision` | direct、split 或 merge |
 | `granularity_rationale` | 为什么该边界具有更好的 fidelity / diagnostic value |
-| `criticality_rationale` | `normal` 或 `critical` 的来源支持与判断 |
+| `criticality_rationale` | `normal` 或 `critical` 的来源支持与判断；每个 Contract 都必须记录 |
+| `criticality_uncertainty` | 无 uncertainty 时可简写 none；存在时记录缺失的 authoritative decision basis 及其阻塞影响 |
 | `applicability_note` | conditional responsibility 如何表达；无条件时可简写 none |
 | `design_notes` | 重要替代方案、排除理由或 downstream concern |
+
+每个 Contract 的 `criticality_rationale` 至少回答：
+
+1. violation 会影响什么；
+2. 该影响是否可恢复；
+3. 是否涉及 authorization、consent、safety、security、destructive、irreversible 或 data-integrity boundary；
+4. 是否破坏 core task completion 或 core correctness；
+5. authoritative Requirement、provenance 或 benchmark intent 是否显式给予高重要性。
+
+Rationale 不需要长篇文字，但不能只写“很重要”“安全相关”或“核心功能”，而不说明具体影响、可恢复性和 authoritative basis。
 
 该 Audit：
 
@@ -1086,17 +1186,20 @@ PASS、FAIL、NOT_APPLICABLE、NOT_EXERCISED、BLOCKED 和 INSUFFICIENT_EVIDENCE
 - 为避免 criticality 偷偷成为 Gate 或 weight，明确三者属于不同设计阶段；
 - 为避免机械复制 Requirement Candidate 架构，取消 mandatory Contract Candidate lifecycle。
 
-### 27.2 尚需真实案例验证的部分
+### 27.2 Method Validation Coverage Notes
 
-本文完成的是通用方法设计，不是 empirical validation。后续应使用多个类型不同的真实 Frozen Requirement Sets 验证：
+Real validation 已支持本指南的核心 Contract definition、Atomicity / Diagnostic Value、criteria 分离、conditional semantics、Outcome / Workflow boundary、Coverage Mapping、轻量 Audit 和不引入 mandatory Contract Candidate 的当前设计。
 
-- 不同 reviewer 对 split / merge 是否得到可接受的一致结论；
-- criteria 能否稳定表达 conditional applicability；
-- Contract Design Audit 是否足够轻量且不与 Contract Set 漂移；
-- `normal / critical` 二分是否能支持真实 benchmark intent；
-- Outcome 与 Workflow Contracts 是否都能自然进入后续 Case / Evidence / Grader Design。
+以下仍属于 future validation coverage：
 
-在完成这些验证前，不应把 v0 称为已被普遍实证证明的方法。
+- 真实 positive N→1 acceptance，而不只是拒绝不合理 merge；
+- cross-reviewer criticality agreement，尤其是 handoff、recoverable incompleteness、ordinary correctness 和 precondition failures 等中间区域；
+- 更复杂 split / merge 中的 Contract Design Audit consistency；
+- 不同 Skill classes 中的 conditional semantics。
+
+这些是 validation coverage limitations，不是当前 method failure，也不阻塞 Contract Design v0 freeze。不得为了填补 coverage 而强制产生 N→1、增加 merge rule、引入 Candidate lifecycle、增加 applicability field 或修改 many-to-many 模型。
+
+当前证据仍不足以声称该方法已对所有 Agent Skills、所有 many-to-many 形态和所有 criticality 边界完成普遍实证验证。
 
 ---
 
@@ -1108,6 +1211,14 @@ PASS、FAIL、NOT_APPLICABLE、NOT_EXERCISED、BLOCKED 和 INSUFFICIENT_EVIDENCE
 - [ ] Requirement Finalization 为 `FINALIZATION_READY`
 - [ ] 输入没有 stale 或 unresolved Requirement
 - [ ] 没有从 RC / NR 直接生成正式 Contract
+
+### Method Validation Subset（仅在明确执行 Method Validation 时）
+
+- [ ] Subset 只用于 Method Validation，不进入 production Benchmark 或 downstream production design
+- [ ] 每条 validation-local Requirement 均有 individually eligible、`NORMALIZED`、`SUPPORTED`、resolved 和 current provenance 证明
+- [ ] Validation-local projection 是 deterministic 且没有直接把 RC / NR 当成 Contract reference
+- [ ] Subset scope 与完整 Target / Benchmark readiness 边界已明确
+- [ ] Status 完整写为 `CONTRACTS_READY for validation subset` 或 `CONTRACTS_BLOCKED for validation subset`
 
 ### Mapping and Granularity
 
@@ -1128,7 +1239,9 @@ PASS、FAIL、NOT_APPLICABLE、NOT_EXERCISED、BLOCKED 和 INSUFFICIENT_EVIDENCE
 - [ ] conditional responsibility 保留 exercise condition
 - [ ] 缺少 success evidence 没有被自动写成 failure
 - [ ] outcome / workflow 类型完全对齐
-- [ ] criticality 有依据且不等于 Gate / weight
+- [ ] 每个 Contract 的 criticality rationale 都回答影响、可恢复性、风险边界、core completion/correctness 和 authoritative importance
+- [ ] unresolved criticality uncertainty 已记录并阻塞，没有用默认值或新增 enum 绕过
+- [ ] criticality 有依据且不等于 Gate / weight / score
 
 ### Boundaries
 
@@ -1138,7 +1251,7 @@ PASS、FAIL、NOT_APPLICABLE、NOT_EXERCISED、BLOCKED 和 INSUFFICIENT_EVIDENCE
 - [ ] 没有写 Metric、score weight 或 Gate expression
 - [ ] 没有修改 Frozen Requirement 或 Frozen Contract Schema
 
-### Validation and Outputs
+### Production Validation and Outputs
 
 - [ ] Structural / Field Validation 已完成
 - [ ] Cross-object Validation 已完成
@@ -1147,9 +1260,9 @@ PASS、FAIL、NOT_APPLICABLE、NOT_EXERCISED、BLOCKED 和 INSUFFICIENT_EVIDENCE
 - [ ] Contract Set 与 Coverage Mapping 双向一致
 - [ ] Issues 与 blocking status 一致
 - [ ] Contract Design Audit 保留必要 rationale
-- [ ] Status 只能是 `CONTRACTS_READY` 或 `CONTRACTS_BLOCKED`
+- [ ] Production Status 只能是 `CONTRACTS_READY` 或 `CONTRACTS_BLOCKED`
 
-只有全部必需检查通过、所有 Requirements 均为 `COVERED` 且没有 unresolved semantic design issue 时，才能输出：
+对于 production Contract Design，只有全部必需检查通过、所有 Requirements 均为 `COVERED` 且没有 unresolved semantic design issue 时，才能输出：
 
 ```text
 CONTRACTS_READY
@@ -1161,4 +1274,4 @@ CONTRACTS_READY
 CONTRACTS_BLOCKED
 ```
 
-并停止在 Contract Design 边界。
+并停止在 Contract Design 边界。Method Validation Subset 使用 3.3 节规定的限定状态措辞，不改变上述 production status model。
