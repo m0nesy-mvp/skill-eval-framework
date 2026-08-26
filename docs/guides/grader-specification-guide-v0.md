@@ -1,0 +1,1675 @@
+# 《Grader Specification Design Guide v0》
+
+Status: Design Guide
+
+本文定义从 authoritative Frozen Requirements、validated Contracts、validated Test Cases 与 validated Evidence Specifications 到 Grader Specification 的通用设计方法。它适用于通用 Agent Skill Eval，不绑定特定 Skill、平台、工具、Artifact 格式、执行器或判断实现。
+
+本文提出最小 GraderSpecification Schema Proposal，但不修改已经冻结的 Requirement、Contract、Test Case、Evidence Specification、Concept Model 或其他 Schema，不实现 Runtime，不开始 Metric 或 Gate Design，也不编写 concrete checker。
+
+---
+
+## 1. Grader Specification 的角色
+
+Grader Specification 回答：
+
+> How should qualified Evidence be judged against the target Contract semantics?
+
+它是 Definition-time first-class object，预先冻结：
+
+- judgment target；
+- required Evidence Specification inputs；
+- Contract-faithful judgment criteria；
+- satisfied、violated、insufficient 与适用时 not-exercised 的 semantic meaning；
+- qualitative judgment需要时的Rubric policy；
+- Evidence不足时停止substantive judgment的原则；
+- Grader Result应提供的explanation语义。
+
+Grader Specification 不负责：
+
+- 保存actual Evidence；
+- 保存actual PASS / FAIL或其他实际judgment；
+- 保存actual explanation、failure diagnosis或score；
+- 运行Episode；
+- 收集或qualify Evidence；
+- 选择Runtime collector；
+- 编写regex、JSONPath、exact matcher、code function或judge prompt；
+- 聚合多个Grader Results；
+- 定义Metric、Weight、Benchmark score或Gate；
+- 决定critical failure是否阻断整个Benchmark。
+
+---
+
+## 2. Grader Specification 与 Grader Result
+
+Concept Model 已冻结：
+
+```text
+Grader Specification
+= Definition-time judgment policy
+
+Grader Result
+= Runtime application of that policy to qualified Evidence
+```
+
+Grader Specification 描述：
+
+- 对哪些 ExpectedAssertions 采用什么 judgment semantics；
+- 每个target必须消费哪些Evidence Specifications；
+- 什么Evidence relation支持satisfied或violated；
+- Evidence不足时为什么不得形成substantive verdict；
+- future result应解释哪些semantic basis。
+
+Grader Result 描述：
+
+- 某次Run / Episode实际应用了哪个Grader Specification；
+- 实际消费了哪些qualified Evidence；
+- 实际判断了哪个Contract-specific target；
+- 实际得到什么judgment；
+- 实际 explanation、failure diagnosis、insufficiency reason或Grader error是什么。
+
+因此Grader Specification中禁止保存：
+
+- actual Episode ID；
+- actual Evidence ID或value；
+- actual verdict；
+- actual rationale；
+- actual failure mode attribution；
+- actual Rubric anchor selection；
+- actual local score；
+- actual Runtime error。
+
+---
+
+## 3. Contract 与 Grader 的边界
+
+Contract 回答：
+
+> What counts as satisfying or violating the Requirement?
+
+Grader Specification 回答：
+
+> How are qualified observations interpreted to decide whether those already-defined semantics were satisfied or violated in this Episode?
+
+Grader Specification 必须忠实消费：
+
+- Contract statement；
+- success criteria；
+- failure criteria；
+- failure modes；
+- evaluation type；
+- applicability / trigger semantics；
+- Test Case ExpectedAssertion context。
+
+它不得：
+
+- 修改Contract；
+- 新增normative responsibility；
+- strengthen或weaken success criteria；
+- 把failure mode升级为新failure requirement；
+- 用容易实现的proxy替代Contract semantics；
+- 因Evidence难以获得而降低判断标准；
+- 因criticality而增加来源未规定的violation。
+
+如果Contract无法形成清楚judgment，应按原因回退：
+
+```text
+Contract semantics ambiguous or internally inconsistent
+→ Contract Design lifecycle
+
+Required facts are not observable or qualified
+→ Evidence Specification / Evidence qualification concern
+
+Evidence facts exist but their semantic relation is not yet articulated
+→ Grader Specification Design
+```
+
+不得由Grader临时发明规则填补upstream gap。
+
+---
+
+## 4. Evidence Specification 与 Grader 的边界
+
+Evidence Specification 回答：
+
+> What must be observable?
+
+Grader Specification 回答：
+
+> How are those qualified observations interpreted against Contract semantics?
+
+允许的Grader-level表达：
+
+> 判断authorization observation与destructive-action observation是否属于同一次operation，并判断authorization是否先于action。
+
+Evidence Specification阶段只负责要求same-operation与ordering information可用，不负责形成上述judgment。
+
+Grader Specification必须消费qualified Evidence，而不是直接消费任意Artifact、raw Trace或未qualification的captured data。Artifact存在、log存在或字段可读取都不自动等于可进行substantive grading。
+
+---
+
+## 5. Grader Specification 与 Concrete Checker
+
+Grader Specification可以声明semantic grading rule，例如：
+
+> 实际影响范围必须保持在已授权范围内。
+
+它不应写成：
+
+```python
+set(actual_paths).issubset(set(authorized_paths))
+```
+
+Specification level允许：
+
+- equality、containment、ordering、identity、correspondence等semantic relation；
+- required semantic elements是否存在；
+- observations是否共同支持Contract success或failure semantics；
+- qualitative dimensions与anchors；
+- absence-of-event reasoning所需的完整性前提。
+
+Concrete implementation level包括：
+
+- code function；
+- library call；
+- regex；
+- JSONPath；
+- exact event index；
+- trace field selector；
+- timestamp comparison code；
+- prompt template / system prompt；
+- model name与temperature；
+- database query；
+- filesystem traversal algorithm；
+- executable matcher或threshold implementation。
+
+如果authoritative Requirement本身规定特定validator、格式或标准，该规范事实可以进入judgment criteria；如何调用工具、解析输出和执行comparison仍属于后续implementation。
+
+---
+
+## 6. Authoritative Inputs 与 Entry Gate
+
+### 6.1 Production inputs
+
+Production Grader Specification Design必须消费：
+
+1. authoritative Frozen Requirement Set；
+2. validated Contract Set；
+3. validated Test Case Set；
+4. valid ExpectedAssertions；
+5. validated Evidence Specification Set；
+6. ExpectedAssertion → Evidence Specification Coverage Mapping；
+7. Contract success criteria、failure criteria与failure modes；
+8. Contract `evaluation_type`与`criticality`；
+9. Test Case task、initial state、fixtures、interaction steps与expectation；
+10. Evidence observation、provenance、context与qualification requirements；
+11. relevant upstream Design Audits when needed。
+
+Audit只帮助理解既有decision，不得成为新的normative authority。
+
+### 6.2 Production Entry Gate
+
+只有以下条件全部满足，才能开始production Grader Specification Design：
+
+- Evidence Specification Design Status为`EVIDENCE_SPECS_READY`；
+- Requirements、Contracts、Test Cases与Evidence Specifications当前有效且没有stale；
+- ExpectedAssertion target pairs可解析；
+- EvidenceTarget coverage完整；
+- 没有unresolved upstream semantic blocker；
+- 所有对象属于同一个有效Definition context。
+
+任一条件不满足时：
+
+```text
+Grader Specification Design Status = GRADERS_BLOCKED
+```
+
+不得用Grader wording修补Contract ambiguity、Test Case exercise gap或Evidence insufficiency。
+
+### 6.3 Method Validation Subset
+
+如果上游状态是完整限定的：
+
+```text
+EVIDENCE_SPECS_READY for validation subset
+```
+
+Grader method validation可以使用同一validation-local Requirements、Contracts、Test Cases与Evidence Specifications，但必须：
+
+- 只用于method validation、Schema adequacy research或review；
+- 不进入production Benchmark Definition；
+- 不形成authoritative complete Grader Specification Set；
+- 不进入production Metric或Gate Design；
+- 不绕过任何benchmark-wide upstream blocker；
+- 不宣称完整Target的Graders READY。
+
+Subset状态必须完整写成：
+
+```text
+GRADERS_READY for validation subset
+```
+
+或：
+
+```text
+GRADERS_BLOCKED for validation subset
+```
+
+Grader Method Validation Subset不是Core Object，也不是production lifecycle state。
+
+---
+
+## 7. Grader Target 与关系 Authority
+
+当前ExpectedAssertion没有独立ID，但同一Test Case内同一`contract_id`最多出现一次。因此：
+
+```text
+(test_case_id, contract_id)
+```
+
+能够在Definition context中唯一定位一个ExpectedAssertion。
+
+Grader Specification使用独立nested type：
+
+```text
+GraderTarget:
+- test_case_id
+- contract_id
+- evidence_spec_ids
+```
+
+它与EvidenceTarget语义不同：
+
+- EvidenceTarget表示某Evidence Specification服务哪个ExpectedAssertion；
+- GraderTarget表示某Grader policy应用于哪个ExpectedAssertion，并冻结该target消费哪些Evidence Specifications。
+
+规则：
+
+- pair必须解析到Test Case的`expected_assertions[].contract_id`；
+- ExpectedAssertion仍是Test Case → Contract relation的唯一authority；
+- GraderTarget不得创建新的Test Case → Contract relation；
+- 不增加ExpectedAssertion ID；
+- `evidence_spec_ids`是该target的显式Evidence consumption authority，不是新的EvidenceTarget authority。
+
+---
+
+## 8. Evidence Consumption Model
+
+Concept Model要求每个Grader Specification明确其Evidence Specification依赖。v0不采用“运行时自动拿所有看起来相关Evidence”的隐式模型。
+
+每个GraderTarget必须显式保存：
+
+```text
+evidence_spec_ids: list[str]
+```
+
+因为一个Grader Specification可以应用到多个targets，不使用单一top-level `evidence_spec_ids`；否则无法确定某份Evidence Specification服务哪个target，并可能产生Cartesian ambiguity。
+
+对每个target，`evidence_spec_ids`必须：
+
+- 非空；
+- 无重复；
+- 全部存在且validated；
+- 每个Evidence Specification的targets包含同一pair；
+- 覆盖该ExpectedAssertion的完整minimum required Evidence Specification set；
+- 不省略Cross-Spec Composition所需的任一Spec；
+- 不加入只用于debugging或与target无关的Spec；
+- 不引用其他Test Case、其他Contract或其他Definition中的Spec。
+
+核心原则：
+
+```text
+Explicit evidence consumption
+≠ arbitrary evidence selection
+```
+
+Grader可以消费多个Evidence Specifications，一份Evidence Specification也可以被多个Grader targets复用；复用不表示它自动适用于所有judgments。
+
+---
+
+## 9. Evidence Sufficiency Before Judgment
+
+Grader进行Contract semantic judgment前，必须先确认required Evidence inputs在本次Episode中具有合法判断基础。
+
+至少区分：
+
+```text
+Evidence sufficient for substantive judgment
+
+Evidence insufficient for substantive judgment
+```
+
+如果任一required evidence contribution：
+
+- missing；
+- incomplete；
+- corrupted；
+- incompatible；
+- provenance不明；
+- qualification失败；
+- cross-Spec relation无法建立；
+
+则Grader不得根据剩余片段伪造satisfied或violated判断，除非Contract semantics与本Grader criteria明确证明缺失部分对当前特定判断不再必要；这种情况应首先回查Evidence Specification minimality，而不能由Runtime临时选择。
+
+Evidence sufficiency check不是Contract verdict，也不是Grader error。
+
+---
+
+## 10. Judgment Semantics
+
+Grader Specification的judgment criteria必须把qualified Evidence中的事实与Contract已经冻结的语义相连。
+
+每项criteria至少应说明：
+
+- 使用哪些semantic observations；
+- 需要建立什么relation；
+- 该relation支持Contract satisfied、violated、insufficient或not-exercised中的哪种meaning；
+- 哪些前提必须完整，特别是absence-of-event reasoning；
+- 为什么没有增加或削弱Contract responsibility。
+
+较弱表达：
+
+> 检查authorization。
+
+较稳定表达：
+
+> 当目标operation实际发生时，判断qualified interaction evidence是否建立针对同一operation的有效authorization，并判断该authorization是否先于operation。
+
+禁止写：
+
+> 查找event[4]，比较timestamp并返回1或0。
+
+---
+
+## 11. Satisfied / Violated / Insufficient / Not Exercised
+
+本Guide不冻结完整Runtime Grader Result enum，但Definition-time result semantics必须清楚区分至少以下meaning。
+
+### 11.1 Satisfied
+
+只有qualified Evidence提供affirmative basis，能够建立Contract success criteria要求的semantic facts与relations时，才支持satisfied meaning。
+
+```text
+Satisfied
+≠ no failure observed
+```
+
+### 11.2 Violated
+
+只有qualified Evidence提供affirmative basis，能够建立Contract failure criteria描述的真实violation时，才支持violated meaning。
+
+```text
+Violated
+≠ no proof of success
+```
+
+### 11.3 Insufficient Evidence
+
+Required Evidence缺失、无资格、不完整或关键relation不可建立时，应停止substantive judgment并使用insufficiency meaning。
+
+```text
+Insufficient Evidence
+≠ Violated
+```
+
+### 11.4 Not Exercised
+
+如果Episode存在且qualified Evidence足以确认Contract的applicability / trigger没有发生，可以使用not-exercised meaning。
+
+以下状态不由Grader Specification重新定义：
+
+- Case未调度；
+- Episode未创建；
+- Runtime启动失败；
+- environment precondition阻塞；
+- Grader engine自身错误。
+
+它们属于未来Run / Episode / Runtime Result lifecycle边界。Grader不能把“没有Episode”解释为not-exercised，也不能把Grader error解释为insufficient Evidence。
+
+---
+
+## 12. Positive Evidence、Negative Evidence 与 Absence-of-Event
+
+某些judgments依赖affirmative compliance evidence，例如：
+
+```text
+authorization request
+→ valid confirmation
+→ same-operation action
+```
+
+某些violations依赖affirmative violation evidence，例如：
+
+```text
+action occurred
++ complete relevant interaction interval
++ no valid authorization before action
+```
+
+Absence-of-event reasoning只有在以下条件满足时才合法：
+
+- relevant observation interval定义清楚；
+- interval完整到足以观察目标event；
+- participant / source provenance明确；
+- capture没有关键gap；
+- target event不会合理发生在未覆盖surface；
+- absence与当前operation / attempt正确关联。
+
+如果interaction、Trace或action interval不完整：
+
+```text
+event not observed
+≠ event did not occur
+```
+
+Grader Specification必须在judgment criteria或insufficiency handling中写明所需completeness语义，但不得规定具体trace schema或event matcher。
+
+---
+
+## 13. Temporal Judgment
+
+Workflow Contracts经常依赖：
+
+```text
+A before B
+A after C
+retry after failure
+cleanup after completion
+handoff after final write
+```
+
+Grader Specification可以定义：
+
+- relevant events的semantic identity；
+- same-operation / same-attempt relation；
+- before、after、during或continuation relation；
+- 哪个ordering支持satisfied或violated semantics；
+- ordering Evidence不足时停止判断。
+
+它不得规定：
+
+- timestamp format；
+- event index；
+- trace field；
+- comparison function；
+- executable ordering matcher。
+
+Temporal judgment必须利用Evidence Specification已要求的`context_requirements`，不能要求Runtime临时产生未在Evidence Design中声明的新context。
+
+---
+
+## 14. Scope 与 Identity Judgment
+
+Grader Specification可以定义semantic relations，例如：
+
+- actual effect remains within authorized scope；
+- reported object identity corresponds to actual produced Artifact；
+- final filename identity corresponds to renamed component identity；
+- affected resources correspond only to target resources；
+- current output identity differs from historical output identity。
+
+Equality、subset / containment、correspondence与identity match在Specification中可以作为semantic relation出现。它们变成具体set operation、path normalization、string comparison或ID lookup时，才进入checker implementation。
+
+Boundary rule：
+
+```text
+Specify the semantic relation that must hold.
+Do not specify the executable procedure that computes it.
+```
+
+---
+
+## 15. Structured Output Grading
+
+对structured Artifact，Grader Specification可以判断：
+
+- required semantic elements是否存在；
+- required block是否完整；
+- identity是否一致；
+- required relations是否保持；
+- final Artifact与intermediate declaration是否正确区分；
+- content是否符合Contract规定的semantic format。
+
+不得：
+
+- 因每个字段都可检查就机械创建一个Grader；
+- 在Grader中新增Contract未规定的field；
+- 把一个validator的默认规则当成Contract semantics；
+- 写JSONPath、schema call或field-by-field checker；
+- 把Artifact parse failure自动当Contract violation，而不先区分Evidence qualification。
+
+Contract atomicity仍然约束Grader granularity。多个criteria共同描述同一个atomic Contract时，可以由一个Grader Specification整体判断。
+
+---
+
+## 16. Deterministic 与 Semantic Grading
+
+### 16.1 Clearly deterministic semantics
+
+常见包括：
+
+- Artifact existence；
+- required element presence；
+- exact semantic identity；
+- ordering relation；
+- scope containment；
+- explicit action occurrence；
+- required handoff occurrence。
+
+“deterministic”描述judgment relation原则上可以稳定决定，不等于本Guide已经选择了具体checker。
+
+### 16.2 Semantic / qualitative semantics
+
+常见包括：
+
+- answer correctness；
+- relevance；
+- explanation quality；
+- instruction fidelity；
+- nuanced policy compliance；
+- user-facing usefulness。
+
+Qualitative Grader Specification必须给出bounded、Contract-faithful criteria或Rubric，不能只写：
+
+> Judge whether the output is good.
+
+### 16.3 Grader type taxonomy decision
+
+v0不在Schema中增加`grader_type` enum。
+
+理由：
+
+- deterministic / semantic描述judgment semantics；
+- program / Human / LLM / mixed描述可能的execution actor；
+- 同一semantic policy可能由不同actor实现；
+- 当前没有稳定Framework behavior要求用type字段改变Result semantics；
+- `rubric`是否存在已经表达qualitative policy是否需要额外结构。
+
+Design Audit可以记录anticipated judgment character或implementation concern，但不成为Frozen authority。未来validation只有在type确实改变required fields、validation rules或result semantics时，才重新评估enum。
+
+---
+
+## 17. Rubric 的角色
+
+Rubric是Grader Specification内部的optional nested judgment policy，不是top-level Core Object。
+
+Rubric回答：
+
+> For a qualitative Contract, which bounded semantic dimensions and anchors guide the target-level judgment?
+
+Rubric可以定义：
+
+- dimensions；
+- each dimension criterion；
+- human-readable anchors；
+- dimensions / anchors如何支持整体Contract-level interpretation。
+
+Rubric不得：
+
+- 创建新Requirement；
+- 修改Contract success / failure semantics；
+- 定义Benchmark-wide score；
+- 定义cross-case aggregation；
+- 分配Metric weight；
+- 定义Gate threshold；
+- 保存actual Rubric Result；
+- 保存actual selected anchor。
+
+简单deterministic或single-rule Grader不需要Rubric。强制所有Graders携带复杂Rubric会产生无意义boilerplate。
+
+---
+
+## 18. Rubric Dimensions 与 Anchors
+
+Rubric Dimension表示一个Contract内部、对同一atomic judgment有必要的qualitative evaluation dimension。
+
+每个dimension必须：
+
+- 回到Contract statement或criteria；
+- 具有清楚criterion；
+- 不与其他dimension重复；
+- 不把独立Contract责任隐藏在Rubric中；
+- 不因“通常评价质量”而加入source未规定维度。
+
+Rubric Anchor定义某个dimension上有区别意义的semantic level。Anchor必须：
+
+- human-readable；
+- observable from qualified Evidence；
+- mutually distinguishable enough for review；
+- 避免只有“good / okay / bad”的空泛标签；
+- 不依赖未声明Evidence；
+- 不要求具体judge prompt。
+
+如果dimensions可以独立满足 / 违反、需要独立Evidence、独立diagnosis或独立downstream aggregation，应先检查Contract granularity，而不是无限扩张Rubric。
+
+---
+
+## 19. Binary、Ordinal 与 Local Scalar Judgment
+
+Grader-level judgment不必假定所有评价都是0/1。
+
+允许的local judgment semantics可以包括：
+
+- binary satisfied / violated；
+- ordinal Rubric anchor；
+- bounded local scalar，前提是Contract与Rubric明确其semantic meaning；
+- insufficient或not-exercised等non-substantive meaning。
+
+但是：
+
+- local value必须属于一个target-specific Grader Result；
+- 它不能表示Benchmark score；
+- 不得在Grader Specification中聚合多个Cases、Episodes或Contracts；
+- 不得定义weight、average、pass rate或cross-run comparison；
+- local anchor / scalar与Contract satisfied / violated之间的interpretation必须清楚，不能交给Metric补定义。
+
+本Guide不冻结完整Runtime Grader Result value schema。
+
+---
+
+## 20. Grader Atomicity Test
+
+对每个proposed Grader Specification询问：
+
+1. Targets是否使用同一judgment semantics？
+2. 每个target是否消费兼容的minimum Evidence package？
+3. Judgment criteria是否可以原样应用到每个target？
+4. Result interpretation是否相同？
+5. Explanation meaning是否相同？
+6. 某项failure是否需要target-specific diagnosis？
+7. 是否把多个独立Contract judgments隐藏成一个结果？
+8. 是否把本应属于同一Contract的必要criteria拆给多个Graders？
+9. 是否试图让Metric组合同一Contract的必要条件？
+10. Split / merge是否真正提高traceability与diagnosis？
+
+目标是：
+
+```text
+Contract-faithful atomic judgment
++ explicit Evidence consumption
++ target-specific Result traceability
+```
+
+而不是机械执行`1 Contract = 1 Grader`，也不是把所有Cases放进一个Grader。
+
+---
+
+## 21. One Assertion → Multiple Graders
+
+v0不支持多个authoritative Grader Specifications共同组成同一个ExpectedAssertion的Contract verdict。
+
+规则：
+
+```text
+Each ExpectedAssertion pair
+→ exactly one authoritative Grader Specification coverage
+```
+
+理由：
+
+- 尚未定义多个 Grader Results 如何组成一个 authoritative Contract judgment；
+- AND / OR / precedence / conflict resolution会引入新的composition semantics；
+- 使用Metric聚合同一Contract的必要条件会混淆judgment与aggregation；
+- 一个Grader satisfied、另一个violated时没有当前authority决定最终meaning；
+- 多Grader重复消费Evidence可能导致double counting与解释冲突。
+
+如果一个atomic Contract需要多个independent checks：
+
+- 将它们写为同一Grader Specification中的多个`judgment_criteria`；
+- qualitative时可使用多个Rubric dimensions；
+- 在`result_semantics`或Rubric `overall_interpretation`中定义它们如何共同支持一个target-level judgment；
+- 不把它们交给Metric聚合。
+
+如果多个checks真的需要独立authoritative results、独立aggregation或可以独立满足 / 违反，应回查Contract granularity。
+
+未来只有真实validation证明需要稳定multi-Grader composition时，才重新设计composition object或authority；本轮不预留字段。
+
+---
+
+## 22. One Grader → Multiple Assertions
+
+一个Grader Specification可以包含多个GraderTargets，但它表示同一judgment policy的Definition reuse，不表示把多个Contracts合并成一个verdict。
+
+只有以下条件全部满足才允许共享：
+
+- judgment criteria substantially same；
+- Evidence semantics与required relations compatible；
+- result semantics相同；
+- Rubric policy相同；
+- insufficiency handling相同；
+- explanation requirements相同；
+- 不迫使某个target消费无关Evidence；
+- 不损失Contract-specific diagnosis；
+- policy可以对每个target独立应用。
+
+每个target在Runtime仍必须产生Contract-specific Grader Result；不得产生一个模糊的multi-Contract PASS / FAIL。
+
+核心原则：
+
+```text
+Shared grader policy
+≠ merged target judgment
+```
+
+如果任一target需要不同criteria、Rubric、result interpretation或diagnosis，应拆分Grader Specifications。
+
+---
+
+## 23. Grader Composition 与 Metric Boundary
+
+同一Contract satisfaction semantics所要求的A、B、C条件必须在一个authoritative Grader Specification中完成组合。
+
+错误模型：
+
+```text
+Grader A judges required condition A
+Grader B judges required condition B
+Metric averages A and B
+→ claims Contract satisfied
+```
+
+Metric不应被用来组合本来属于一个Contract verdict的必要条件。
+
+正确边界：
+
+```text
+One authoritative Grader Specification
+├── criterion A
+├── criterion B
+└── target-level result semantics
+
+Metric
+→ later aggregates completed Grader Results across evaluation observations
+```
+
+这不禁止一个Grader消费多个Evidence Specifications，也不禁止一个Rubric包含多个dimensions；它只禁止把Contract-level judgment authority推给Metric。
+
+---
+
+## 24. Failure Criteria 与 Failure Modes
+
+Contract success criteria与failure criteria是Grader judgment的normative semantics。
+
+Failure modes主要服务：
+
+- diagnosis；
+- explanation；
+- Test Case coverage理解；
+- known violation pattern attribution。
+
+规则：
+
+- failure mode不得被提升为额外Contract；
+- failure mode label本身不自动产生violated verdict；
+- Evidence必须先支持Contract failure criterion；
+- 只有Evidence进一步支持具体mode时才能进行mode attribution；
+- 如果Evidence足以支持violation但不足以区分具体failure mode，可以保留violated judgment并说明diagnosis未确定；
+- 不得为了得到更具体mode而推翻已经充分的Contract-level judgment；
+- mode attribution不足不自动等于Evidence对verdict不足。
+
+Grader Specification的`explanation_requirements`可以要求“when supported, identify relevant Contract failure mode”，不需要独立`failure_mode_handling` Schema field。
+
+---
+
+## 25. Explanation 与 Rationale
+
+Grader Specification必须声明future Grader Result的minimum explanation expectations。
+
+至少应要求：
+
+- identify the target ExpectedAssertion / Contract；
+- identify relevant Evidence contributions；
+- state the semantic reason linking Evidence to judgment；
+- for insufficiency, state which required contribution or relation is missing / unusable；
+- for violation, identify supported failure criterion and, when supported, failure mode；
+- distinguish observed fact from inference；
+- avoid conclusions unsupported by qualified Evidence。
+
+Explanation requirements不定义：
+
+- report template；
+- Markdown格式；
+- word count；
+- UI presentation；
+- Scorecard layout；
+- judge chain-of-thought；
+- hidden reasoning disclosure。
+
+Explanation是traceability requirement，不是Metric，也不是额外verdict condition。
+
+---
+
+## 26. LLM-as-Judge Boundary
+
+LLM Grading只有在受以下Definition authority约束时才合法：
+
+```text
+Validated Contract
++ target ExpectedAssertion
++ declared qualified Evidence inputs
++ bounded judgment criteria
++ optional bounded Rubric
++ explicit result / insufficiency semantics
+```
+
+禁止：
+
+- open-ended `judge if good`；
+- judge自行增加标准；
+- 使用未声明Evidence；
+- Evidence不足仍强制binary verdict；
+- 根据target identity、版本声誉或外部知识替代Evidence；
+- prompt漂移改变Contract meaning；
+- 把Rubric anchor当Benchmark score。
+
+本Guide不设计LLM system prompt、model、temperature、sampling或retry policy。
+
+---
+
+## 27. Human Grader Boundary 与 Reviewer Consistency
+
+Human reviewer也必须受Contract、Evidence inputs、criteria、Rubric与result semantics约束，不能凭直觉扩展Benchmark语义。
+
+Reviewer Consistency Review至少检查：
+
+- criteria是否有多个合理但冲突的解释；
+- qualitative terms是否有bounded anchors；
+- evidence不足时是否允许停止而不是强制判断；
+- failure criterion与mode attribution是否分开；
+- different reviewers是否会使用不同未声明Evidence；
+- explanation requirements是否足以复核；
+- shared Grader policy对每个target是否真的相同；
+- criteria是否包含hidden implementation assumption。
+
+需要Human judgment不等于方法失败；但criteria模糊到reviewers无法合理一致时，Grader Design应`BLOCKED`。
+
+---
+
+## 28. Grader Specification Candidate / Working Stage
+
+v0不引入mandatory Grader Specification Candidate对象或Candidate lifecycle。
+
+复杂authoring可以使用temporary Working Grader Drafts比较：
+
+- alternate judgment criteria；
+- binary vs Rubric-based policy；
+- target sharing vs split；
+- Evidence consumption choices；
+- insufficiency handling；
+- explanation expectations。
+
+Working Draft：
+
+- 不是Core Object；
+- 不进入Frozen Grader Specification Set；
+- 不算grading coverage；
+- 不占用正式`Gxxx` ID；
+- resolved后由正式Spec或Design Issue取代。
+
+只有未来真实design出现大量alternate policies、稳定draft lineage或复杂multi-reviewer reconciliation时，才重新评估Candidate lifecycle。
+
+---
+
+## 29. Grader Specification Design Audit
+
+v0引入轻量、非Core、非authoritative的Grader Specification Design Audit，用于保存最小Schema不承载的design rationale。
+
+建议至少记录：
+
+| 字段 | 含义 |
+|---|---|
+| `grader_id` | 正式Grader ID；draft可使用temporary label |
+| `targets` | 从Schema派生的ExpectedAssertion pairs |
+| `target_rationale` | 为什么同一policy适用于这些targets |
+| `evidence_consumption_rationale` | 为什么每个target引用这些Evidence Specifications |
+| `judgment_rationale` | criteria如何忠实使用Contract semantics |
+| `judgment_character` | deterministic、semantic或mixed working label；不是enum |
+| `rubric_rationale` | 为什么需要或不需要Rubric |
+| `result_semantics_rationale` | satisfied / violated / insufficient / not-exercised meaning选择 |
+| `granularity_decision` | shared / split与atomicity理由 |
+| `failure_diagnosis_rationale` | failure criteria与mode attribution边界 |
+| `insufficiency_rationale` | Evidence不足时为何停止substantive judgment |
+| `reviewer_consistency_concern` | 可能产生不一致的criteria / anchors |
+| `downstream_metric_concern` | 只记录未来aggregation concern，不设计Metric |
+| `design_notes` | upstream、implementation或future validation concern |
+
+Audit：
+
+- 不替代Grader Specification；
+- 不成为target或Evidence consumption第二套authority；
+- 不保存actual Grader Result；
+- 不保存actual Evidence或verdict；
+- 不定义Metric或Gate；
+- 不要求简单Grader写长篇说明；
+- 必须与Schema、Coverage Mapping与upstream objects一致。
+
+---
+
+## 30. Minimal GraderSpecification Schema Proposal
+
+### 30.1 GraderSpecification
+
+```text
+GraderSpecification:
+- grader_id
+- targets: list[GraderTarget]
+- judgment_criteria: list[str]
+- result_semantics: GraderResultSemantics
+- insufficiency_handling: list[str]
+- explanation_requirements: list[str]
+- rubric: Rubric?
+```
+
+### 30.2 GraderTarget
+
+```text
+GraderTarget:
+- test_case_id
+- contract_id
+- evidence_spec_ids: list[str]
+```
+
+### 30.3 GraderResultSemantics
+
+```text
+GraderResultSemantics:
+- satisfied: str
+- violated: str
+- insufficient_evidence: str
+- not_exercised: str?
+```
+
+这是Definition-time allowed meaning，不是Runtime Grader Result enum或actual result。
+
+### 30.4 Optional Rubric structures
+
+```text
+Rubric:
+- dimensions: list[RubricDimension]
+- overall_interpretation: str
+
+RubricDimension:
+- name
+- criterion
+- anchors: list[RubricAnchor]
+
+RubricAnchor:
+- label
+- meaning
+```
+
+Rubric仅在bounded qualitative judgment需要时出现。Simple deterministic Grader应省略`rubric`，而不是创建空Rubric。
+
+这是Schema Proposal，不规定YAML、JSON、Pydantic、directory、checker、Grading Engine或Runtime serialization。
+
+---
+
+## 31. Schema Field Decisions
+
+| 候选字段 | v0决定 | 理由 |
+|---|---|---|
+| `grader_id` | 进入Schema，必填 | Grader Specification是一等Definition object，需要稳定identity |
+| `targets` | 进入Schema，非空 | 支持policy reuse并保持target-specific mapping |
+| `test_case_id + contract_id` | 进入nested GraderTarget | pair唯一定位ExpectedAssertion，无需assertion ID |
+| `evidence_spec_ids` | 进入GraderTarget，非空 | 冻结每个target的显式Evidence consumption，避免multi-target ambiguity |
+| `judgment_criteria` | 进入Schema，非空 | 定义qualified Evidence如何支持Contract semantics |
+| `result_semantics` | 进入Schema，必填 | 定义allowed judgment meanings，不保存actual verdict |
+| `insufficiency_handling` | 进入Schema，非空 | 防止missing Evidence自动变FAIL或强制verdict |
+| `explanation_requirements` | 进入Schema，非空 | 保证future Result可追溯但不规定report格式 |
+| `rubric` | Optional nested field | 仅qualitative judgment需要；simple Grader不受复杂Rubric拖累 |
+| `grader_type` | 不进入 | semantics与execution actor不应混成不稳定enum |
+| `failure_mode_handling` | 不单独进入 | Contract failure modes + explanation requirements足够表达diagnosis原则 |
+| `score` / `weight` | 禁止进入 | aggregation与weight属于Metric；actual local value属于Grader Result |
+| checker / prompt ref | 不进入v0 | concrete implementation尚未设计，不应成为semantic authority |
+| Metric / Gate ref | 禁止进入本轮 | 属于downstream Definition objects |
+| actual Evidence / Result | 禁止进入 | 属于Runtime / Result |
+| composition field | 不进入v0 | v0每个assertion恰好一个authoritative Grader coverage |
+
+### ID Rules
+
+推荐形式：
+
+```text
+G001
+G002
+G003
+```
+
+规则：
+
+- 在一个Benchmark Definition中唯一；
+- 使用`G`加至少三位十进制数字；
+- 不要求跨Benchmarks全局唯一；
+- targets、Evidence consumption、judgment criteria、result semantics或Rubric发生重大变化时，应分配新ID；
+- 被删除的ID不应在同一Benchmark lineage中复用于不同Grader policy。
+
+---
+
+## 32. Schema Field Semantics
+
+### 32.1 grader_id
+
+非空string，表示Definition-time Grader Specification identity，不是Runtime Grader Result ID。
+
+### 32.2 targets
+
+必填`list[GraderTarget]`，至少一项且pair不得重复。每个target由`test_case_id + contract_id`唯一定位ExpectedAssertion，并显式声明`evidence_spec_ids`。
+
+多个targets表示同一policy独立应用到每个target，不表示产生一个合并verdict。
+
+### 32.3 evidence_spec_ids
+
+每个GraderTarget内必填非空`list[str]`，无重复。它必须完整引用该target minimum sufficient Evidence coverage中的所有authoritative Evidence Specifications。
+
+不得省略required Spec、加入无关Spec或只依赖运行时自动发现。
+
+### 32.4 judgment_criteria
+
+必填非空`list[str]`。每项描述qualified Evidence facts / relations如何支持Contract success、failure、insufficiency或applicability semantics。
+
+不得包含checker code、selector、prompt implementation、Metric aggregation或来源未支持的新规则。
+
+### 32.5 result_semantics
+
+必填nested structure，定义该policy下satisfied、violated与insufficient-evidence的human-readable meaning；conditional Contract可选定义not-exercised meaning。
+
+这些字段不保存actual result，也不冻结完整Runtime Result status model。
+
+### 32.6 insufficiency_handling
+
+必填非空`list[str]`，定义哪些Evidence缺口、qualification failure或relation gap阻止substantive judgment，以及不得自动推导什么。
+
+不得定义Runtime retry、error enum或collector behavior。
+
+### 32.7 explanation_requirements
+
+必填非空`list[str]`，定义future Result为traceability必须说明的target、Evidence contribution、semantic reason、insufficiency或supported failure diagnosis。
+
+不得要求hidden chain-of-thought或固定report formatting。
+
+### 32.8 rubric
+
+Optional。只有Contract需要bounded qualitative judgment时使用。出现时必须包含至少一个dimension；每个dimension至少两个有区别意义的anchors；`overall_interpretation`必须说明dimension / anchor如何支持target-level result semantics。
+
+Rubric不得保存actual anchor selection、score、weight或aggregation result。
+
+---
+
+## 33. Three-Layer Grader Specification Validation
+
+### 33.1 A. Structural / Field Validation
+
+未来可deterministic检查：
+
+- `grader_id`符合`G`+至少三位数字；
+- Grader IDs在Definition中唯一；
+- `targets`至少一项；
+- GraderTarget包含非空`test_case_id`、`contract_id`与`evidence_spec_ids`；
+- 同一Spec内target pair不重复；
+- 每个target内Evidence Spec IDs不重复；
+- `judgment_criteria`非空且条目非空；
+- `result_semantics`包含非空`satisfied`、`violated`、`insufficient_evidence`；
+- `not_exercised`若出现则非空；
+- `insufficiency_handling`非空；
+- `explanation_requirements`非空；
+- Rubric若出现则dimensions非空；
+- Rubric Dimension names不重复，criterion非空；
+- 每个dimension anchors至少两项，labels不重复，meaning非空；
+- `overall_interpretation`非空；
+- 不存在actual Evidence、Result、Metric、Gate、score aggregation或checker implementation字段。
+
+### 33.2 B. Cross-object Validation
+
+需要完整Definition context：
+
+- 每个target `test_case_id`存在且validated；
+- 每个target `contract_id`存在且validated；
+- pair实际出现在该Test Case的ExpectedAssertions中；
+- 每个`evidence_spec_id`存在且validated；
+- referenced Evidence Specification的targets包含同一pair；
+- 每个target引用完整minimum required Evidence Specification set；
+- 没有dangling、stale、cross-Benchmark或validation-only-to-production refs；
+- 每个ExpectedAssertion pair恰好由一个authoritative Grader Specification覆盖；
+- shared Grader的targets均合法；
+- Grader Set、Coverage Mapping与Audit双向一致；
+- Requirement → Contract → Test Case → Evidence Specification → Grader Specification trace可恢复；
+- 没有Metric或Gate refs。
+
+Cross-object validation不能证明criteria忠实、Rubric清楚或reviewers会一致。
+
+### 33.3 C. Semantic Grader Review
+
+逐Spec至少检查：
+
+- judgment criteria是否忠实于每个target Contract；
+- 是否新增、strengthen或weaken normative semantics；
+- Evidence consumption是否complete且minimum；
+- Cross-Spec Evidence composition是否被正确使用；
+- satisfied是否有affirmative basis；
+- violated是否有affirmative violation basis；
+- insufficient是否不会自动变FAIL；
+- not-exercised是否只用于已存在Episode中的untriggered Contract；
+- Outcome / Workflow grading是否匹配；
+- temporal / scope / identity relation是否保持semantic level；
+- absence-of-event是否要求完整observation interval；
+- Rubric dimensions / anchors是否bounded且Contract-faithful；
+- local ordinal / scalar是否没有变成Metric；
+- Grader atomicity与shared / split是否合理；
+- one assertion → multiple authoritative Graders是否被禁止；
+- multi-target policy是否仍产生target-specific judgment；
+- failure criteria与failure-mode diagnosis是否分开；
+- explanation requirements是否可复核且不要求chain-of-thought；
+- Human / LLM reviewer consistency是否合理；
+- 是否包含Metric、Gate或Runtime implementation leakage；
+- criticality是否没有被误写成Benchmark failure logic。
+
+Semantic Review需要Agent / Human judgment，不能伪装成Schema validation。
+
+---
+
+## 34. ExpectedAssertion → Grader Specification Coverage
+
+Coverage Mapping是轻量working artifact，不是Core Object，也不是Frozen GraderSpecification Schema的一部分。
+
+建议至少记录：
+
+| 字段 | 含义 |
+|---|---|
+| `test_case_id` | Validated Test Case ID |
+| `contract_id` | 该Case中唯一ExpectedAssertion的Contract ID |
+| `grader_id` | 唯一authoritative Grader Specification ID |
+| `evidence_spec_ids` | 从该GraderTarget派生的显式Evidence inputs |
+| `coverage_status` | `COVERED`或`BLOCKED` |
+| `rationale` | 为什么该policy形成合法grading coverage，或为什么被阻塞 |
+
+只有满足以下条件才能标记`COVERED`：
+
+- 恰好一个valid authoritative Grader Specification包含该target；
+- GraderTarget引用该pair完整minimum required Evidence Specifications；
+- judgment criteria覆盖完整Contract semantics；
+- result与insufficiency semantics清楚；
+- Rubric在需要时充分、不需要时省略；
+- Grader通过三层validation；
+- 不只是ID linkage；
+- 没有unresolved reviewer-consistency或composition issue。
+
+以下情况必须`BLOCKED`：
+
+- target没有Grader；
+- target被多个authoritative Graders覆盖；
+- required Evidence Spec遗漏；
+- Grader引用无关Evidence；
+- Contract semantics无法形成judgment；
+- Evidence不足却强制verdict；
+- Rubric模糊或增加标准；
+- shared policy不能原样应用到每个target；
+- criteria越界进入Metric、Gate或Runtime implementation；
+- semantic reviewer无法合理一致。
+
+不得用grader数量或coverage percentage掩盖一个blocking pair。
+
+---
+
+## 35. Grader Specification Design Issues 与 Rollback
+
+至少区分：
+
+- upstream Contract ambiguity；
+- upstream Test Case / ExpectedAssertion issue；
+- Evidence consumption / sufficiency issue；
+- judgment fidelity issue；
+- result-semantics issue；
+- absence-of-event completeness issue；
+- temporal / scope / identity judgment issue；
+- Rubric clarity issue；
+- granularity / shared-policy issue；
+- multi-Grader composition issue；
+- explanation / diagnosis issue；
+- reviewer-consistency issue；
+- Schema insufficiency；
+- downstream Metric concern；
+- downstream Gate concern；
+- implementation / Runtime concern。
+
+Rollback：
+
+```text
+Success / failure semantics ambiguous
+→ Contract Design lifecycle
+
+Scenario does not exercise responsibility
+→ Test Case Design lifecycle
+
+Required observation or context unavailable
+→ Evidence Specification Design lifecycle
+
+Qualified observations exist but interpretation is unclear
+→ Grader Specification Design
+
+Target-level judgments are complete but aggregation is unclear
+→ Downstream Metric Design Concern
+
+Judgment semantics are clear but executable procedure is unknown
+→ Downstream Grader Implementation Concern
+```
+
+不得为方便implementation或aggregation而改变upstream semantics，也不得直接修改upstream Guides。
+
+---
+
+## 36. Grader Specification Design Workflow
+
+### Step 1 — Verify Inputs
+
+- 验证Requirements、Contracts、Test Cases、Evidence Specifications、Coverage与statuses；
+- production input不满足Entry Gate时立即BLOCK；
+- method validation subset保留限定边界。
+
+### Step 2 — Build ExpectedAssertion Inventory
+
+- 以`(test_case_id, contract_id)`列出每个target；
+- 读取Contract criteria、failure modes、evaluation type与applicability；
+- 读取ExpectedAssertion与完整Evidence Specification coverage；
+- 不重新设计upstream objects。
+
+### Step 3 — Freeze Evidence Consumption
+
+- 为每个target列出完整minimum required`evidence_spec_ids`；
+- 检查Cross-Spec Composition；
+- 删除debugging或无关Evidence inputs；
+- 不依赖Runtime自动发现。
+
+### Step 4 — Draft Judgment Semantics
+
+- 写affirmative satisfied basis；
+- 写affirmative violation basis；
+- 写Evidence insufficiency handling；
+- conditional Contract写not-exercised meaning；
+- absence-of-event写完整性前提；
+- 不写checker。
+
+### Step 5 — Decide Rubric Need
+
+- deterministic / bounded semantic relation优先使用judgment criteria；
+- qualitative Contract需要时设计dimensions、anchors与overall interpretation；
+- 不为统一外观强制Rubric；
+- 不加入Metric weight或score aggregation。
+
+### Step 6 — Run Atomicity and Sharing Review
+
+- 每个assertion保持一个authoritative Grader coverage；
+- 多个necessary checks放入同一policy；
+- shared policy逐target检查criteria、Evidence、result、Rubric与diagnosis兼容性；
+- 需要独立authoritative results时回查Contract granularity。
+
+### Step 7 — Write Grader Specifications
+
+- 分配正式`Gxxx`；
+- 写targets与per-target Evidence refs；
+- 写criteria、result semantics、insufficiency与explanation；
+- 需要时写optional Rubric；
+- 不写actual Result、Metric、Gate或implementation。
+
+### Step 8 — Build Coverage and Audit
+
+- 每个ExpectedAssertion pair建立Coverage row；
+- 确保恰好一个authoritative grader；
+- 记录evidence consumption、Rubric、granularity与reviewer consistency rationale；
+- 保留downstream concerns。
+
+### Step 9 — Validate
+
+- Structural / Field Validation；
+- Cross-object Validation；
+- Semantic Grader Review；
+- unresolved issue进入Grader Specification Design Issues。
+
+### Step 10 — Determine Status
+
+- 每个target获得valid grading coverage且validation通过时READY；
+- 任一required target BLOCKED时整体BLOCKED；
+- 输出必需artifacts并停止，不进入Metric、Gate或Runtime implementation。
+
+---
+
+## 37. Grader Specification Design Status
+
+Production状态只保留：
+
+```text
+GRADERS_READY
+GRADERS_BLOCKED
+```
+
+### 37.1 GRADERS_READY
+
+只有同时满足：
+
+- authoritative upstream Definition当前有效；
+- Evidence Specification Design为`EVIDENCE_SPECS_READY`；
+- 每个ExpectedAssertion pair恰好一个authoritative Grader coverage；
+- 每个target消费完整minimum Evidence Specifications；
+- criteria忠实覆盖Contract semantics；
+- satisfied / violated / insufficient与适用时not-exercised meaning清楚；
+- Rubric在需要时充分、不需要时省略；
+- reviewer consistency可接受；
+- 所有Graders通过三层validation；
+- Coverage Mapping、Spec Set与Audit一致；
+- 没有unresolved Grader Design Issue；
+- 没有Metric、Gate或Runtime implementation leakage。
+
+### 37.2 GRADERS_BLOCKED
+
+例如：
+
+- Contract semantics无法判；
+- required Evidence不够或引用不完整；
+- missing Evidence被写成FAIL；
+- absence-of-event没有完整性前提；
+- criteria增加normative semantics；
+- Rubric模糊或unbounded；
+- one assertion被多个authoritative Graders覆盖；
+- shared policy对targets并不相同；
+- failure mode被错误提升为verdict condition；
+- semantic review无法形成合理reviewer consistency；
+- criteria依赖未定义Runtime assumption；
+- coverage gap或validation failure。
+
+状态不是quality score：
+
+```text
+99% targets COVERED + 1 blocking gap
+= GRADERS_BLOCKED
+```
+
+Method Validation Subset使用6.3节完整限定status wording，不改变production status model。
+
+---
+
+## 38. Required Outputs
+
+Grader Specification Design至少产生：
+
+1. **Grader Specification Set**：使用Proposed Schema的正式Definition-time Specs；
+2. **ExpectedAssertion → Grader Specification Coverage Mapping**：逐target pair的semantic grading coverage；
+3. **Grader Specification Design Audit**：Evidence consumption、criteria、Rubric、granularity与reviewer-consistency rationale；
+4. **Grader Specification Design Issues**：blocking issues与upstream / downstream concerns；
+5. **Grader Specification Validation Summary**：Structural、Cross-object、Semantic三层结果；
+6. **Grader Specification Design Status**：`GRADERS_READY`或`GRADERS_BLOCKED`；
+7. **Schema Design Findings**：只记录真实design暴露的schema need。
+
+Working Grader Drafts不是必需final output，也不算Coverage。
+
+---
+
+## 39. Grader Result Boundary
+
+本轮不设计完整Grader Result Schema，但必须保持：
+
+```text
+Specification:
+how a qualified Evidence package should be judged
+
+Result:
+what this grading operation actually judged
+```
+
+Future Grader Result在概念上至少需要关联：
+
+- Grader Specification；
+- Run / Episode；
+- Contract-specific target；
+- consumed Evidence；
+- actual judgment；
+- actual explanation；
+- actual insufficiency / diagnosis / Grader error when applicable。
+
+这些信息都不得提前写入Grader Specification实例。本Guide的`result_semantics`只定义allowed meaning，不保存actual value，也不替代未来Result Design。
+
+---
+
+## 40. Metric 与 Gate Boundary
+
+### 40.1 Metric
+
+```text
+Grader
+→ judges one target-specific evaluation observation
+
+Metric
+→ aggregates completed Grader Results
+```
+
+Grader Specification禁止定义：
+
+- pass rate；
+- average；
+- weighted score；
+- Benchmark score；
+- cross-case aggregation；
+- cross-Episode aggregation；
+- cross-Run comparison；
+- sample policy；
+- retry weighting。
+
+即使一个Grader未来产生local ordinal或scalar value，也不能在本层聚合多个targets、Cases或Episodes。
+
+### 40.2 Gate
+
+Grader判断target-specific事实或质量；Gate决定某类Result是否阻断整体Benchmark。
+
+Contract `criticality`可以提示加强Grader review，但不改变Contract verdict semantics，也不允许Grader自动宣布整个Benchmark FAIL。
+
+禁止：
+
+```text
+critical Contract violated
+→ Grader directly sets Benchmark Gate failure
+```
+
+Gate Specification与Gate Result属于后续阶段。
+
+---
+
+## 41. Schema Design Findings
+
+### 41.1 GraderTarget pair remains sufficient
+
+`(test_case_id, contract_id)`唯一定位ExpectedAssertion，不需要新增assertion ID。GraderTarget独立命名是因为它还包含per-target Evidence consumption，而不是复用EvidenceTarget后增加隐藏语义。
+
+### 41.2 Evidence refs belong inside GraderTarget
+
+Multi-target Grader需要每个target独立Evidence binding。Top-level `evidence_spec_ids`会产生target ambiguity，因此`evidence_spec_ids`进入nested GraderTarget。
+
+### 41.3 One authoritative Grader per assertion
+
+v0不引入multi-Grader composition field。一个assertion的多个necessary checks保留在同一Grader Specification；Metric不得承担Contract-level composition。
+
+### 41.4 Multi-target policy reuse is allowed
+
+`targets`是list，以支持Concept Model中的reuse。但policy必须逐target独立应用并产生Contract-specific Result；共享不产生merged verdict。
+
+### 41.5 Result semantics are Definition policy, not Result data
+
+`GraderResultSemantics`定义satisfied、violated、insufficient与可选not-exercised的meaning。它不是Runtime enum、actual verdict或Result Schema。
+
+### 41.6 Rubric is optional and nested
+
+Rubric只在bounded qualitative judgment需要时出现；simple Grader不创建空Rubric。Rubric Dimension与Anchor不是Core Objects。
+
+### 41.7 No grader_type enum
+
+Judgment semantics与execution actor是不同维度，当前没有稳定Framework behavior要求冻结type taxonomy。
+
+### 41.8 No score, weight, Metric or Gate fields
+
+Local actual value属于future Grader Result；aggregation、weight与Benchmark score属于Metric；blocking policy属于Gate。
+
+### 41.9 No checker implementation reference
+
+当前Schema冻结semantic judgment policy，不绑定code、prompt、model、library、selector或execution engine。
+
+---
+
+## 42. Method Self-Review
+
+| 检查问题 | v0结论 |
+|---|---|
+| 1. Grader Spec vs Grader Result是否清楚？ | 是。Spec是Definition policy；Result是某次实际application与judgment。 |
+| 2. Contract vs Grader边界是否清楚？ | 是。Contract定义success/failure；Grader只解释qualified Evidence如何支持既有语义。 |
+| 3. Evidence vs Grader边界是否清楚？ | 是。Evidence定义qualified observations；Grader形成semantic judgment。 |
+| 4. Grader vs concrete checker边界是否清楚？ | 是。允许semantic relation，禁止code、selector、prompt与library implementation。 |
+| 5. target mapping是否清楚？ | 是。GraderTarget使用`test_case_id + contract_id`定位ExpectedAssertion。 |
+| 6. evidence consumption authority是否清楚？ | 是。每个GraderTarget显式保存完整minimum`evidence_spec_ids`。 |
+| 7. PASS/FAIL/insufficient边界是否清楚？ | 是。satisfied与violated都需affirmative basis；insufficient不等于FAIL。 |
+| 8. Outcome/Workflow grading是否稳定？ | 是。Outcome关注Artifact/content/state；Workflow关注action/order/authorization/scope且不能由Outcome替代。 |
+| 9. temporal/scope judgment是否保持semantic？ | 是。定义relation，不写timestamp/index/set-operation implementation。 |
+| 10. deterministic与semantic grading是否都支持？ | 是。普通criteria支持deterministic；optional bounded Rubric支持qualitative。 |
+| 11. Rubric角色是否清楚？ | 是。Rubric是optional nested policy，不是Requirement、Metric或Core Object。 |
+| 12. binary/scaled judgment边界是否清楚？ | 是。允许target-local anchors/value semantics，但禁止aggregation与Benchmark score。 |
+| 13. Grader granularity是否可执行？ | 是。Atomicity Test检查policy、Evidence、Result、diagnosis与downstream independence。 |
+| 14. one assertion→multiple Graders是否支持或明确限制？ | v0明确不支持多个authoritative Graders composition；每个pair恰好一个coverage。 |
+| 15. one Grader→multiple assertions是否支持？ | 支持相同policy复用，但每个target独立应用并产生Contract-specific Result。 |
+| 16. failure modes如何使用？ | 用于diagnosis / explanation；不自动成为verdict condition。 |
+| 17. explanation/rationale要求是否合理？ | 是。要求target、Evidence contribution与semantic reason，不规定report格式或chain-of-thought。 |
+| 18. LLM-as-judge是否受约束？ | 是。必须受Contract、Evidence、criteria、Rubric与insufficiency semantics约束。 |
+| 19. human reviewer consistency如何保证？ | 通过bounded criteria/anchors、declared Evidence、stop-on-insufficiency与consistency review。 |
+| 20. Candidate是否需要？ | 当前不需要mandatory Candidate；Working Draft + Audit足够。 |
+| 21. Audit是否需要？ | 需要非Core Audit记录mapping、Evidence consumption、Rubric、granularity与review风险。 |
+| 22. 最小Schema是什么？ | G ID、targets with Evidence refs、criteria、result semantics、insufficiency、explanation与optional Rubric。 |
+| 23. 是否泄漏Metric？ | 未泄漏。没有weight、aggregation、pass rate或Benchmark score。 |
+| 24. 是否泄漏Gate？ | 未泄漏。criticality不改变target verdict，也不设置Benchmark blocker。 |
+| 25. 是否泄漏Runtime implementation？ | 未泄漏。没有checker、prompt、model、selector、collector或actual Result。 |
+| 26. 哪些问题必须真实validation？ | Schema adequacy、Evidence-ref authoring、affirmative/absence reasoning、Rubric anchors、shared policy、reviewer consistency与one-Grader restriction。 |
+
+### 42.1 Self-review corrections incorporated
+
+本轮自审已经在正文中处理：
+
+- 为避免Contract被Grader改写，固定Contract criteria为normative authority；
+- 为避免Evidence缺失自动变FAIL，要求先做Evidence sufficiency boundary；
+- 为避免PASS成为absence of failure，要求affirmative satisfied basis；
+- 为避免FAIL成为absence of proof，要求affirmative violation basis；
+- 为避免absence-of-event误判，增加complete observation interval前提；
+- 为避免multi-target Evidence ambiguity，把refs放入GraderTarget；
+- 为避免多个Grader Results的authority不明，v0限制每个assertion一个authoritative Grader coverage；
+- 为避免Metric代替Contract judgment composition，把multiple criteria留在同一Grader policy；
+- 为避免shared policy产生Case-level模糊结果，要求每个target独立Contract-specific Result；
+- 为避免Rubric成为新Requirement，要求dimensions与anchors回到Contract；
+- 为避免simple Grader产生boilerplate，Rubric保持optional；
+- 为避免grader type混淆semantics与actor，不冻结enum；
+- 为避免failure mode主导verdict，将其限制为supported diagnosis；
+- 为避免LLM/Human自由扩展标准，增加bounded criteria与reviewer-consistency review；
+- 为避免Result data进入Definition，分开result semantics与actual judgment；
+- 为避免Metric/Gate leakage，明确禁止aggregation、weight、score与blocking logic。
+
+### 42.2 Method Validation Coverage Needed
+
+在冻结GraderSpecification Schema前，至少需要真实validation检查：
+
+- simple Artifact existence / completeness judgment；
+- structured output multi-criteria judgment；
+- Workflow action occurrence judgment；
+- temporal ordering judgment；
+- scope containment / identity relation judgment；
+- conditional Contract与not-exercised meaning；
+- absence-of-event with complete vs incomplete interval；
+- one target consuming multiple Evidence Specifications；
+- one shared Grader policy applied to multiple targets；
+- a rejected shared-policy counterexample；
+- qualitative Contract requiring Rubric；
+- deterministic Contract not requiring Rubric；
+- local ordinal / scalar without Metric leakage；
+- violation with known failure mode；
+- violation with unresolved mode attribution；
+- Evidence insufficiency vs Grader engine error；
+- Human / LLM reviewer-consistency comparison；
+- one-assertion-one-authoritative-Grader restriction under multi-check Contract。
+
+这些是future method validation coverage，不是Runtime execution、Grader Result、Metric或Gate PASS。
+
+---
+
+## 43. Final Decision Checklist
+
+### Inputs
+
+- [ ] Production input使用authoritative Frozen Requirements与validated Contracts / Test Cases / Evidence Specifications
+- [ ] Evidence Specification Design Status为`EVIDENCE_SPECS_READY`
+- [ ] Inputs没有stale或unresolved upstream issue
+- [ ] Method validation subset保留validation-only boundary与限定status
+
+### Target and Evidence Mapping
+
+- [ ] 每个GraderTarget pair解析到真实ExpectedAssertion
+- [ ] ExpectedAssertion authority仍在TestCase中
+- [ ] 不新增assertion ID
+- [ ] 每个target显式列出完整minimum`evidence_spec_ids`
+- [ ] Evidence refs均服务同一pair且没有无关输入
+- [ ] 每个ExpectedAssertion恰好一个authoritative Grader coverage
+
+### Judgment Semantics
+
+- [ ] Criteria忠实于Contract statement / success / failure semantics
+- [ ] 没有unsupported strengthening或weakening
+- [ ] Satisfied具有affirmative Evidence basis
+- [ ] Violated具有affirmative violation basis
+- [ ] Insufficient Evidence没有被写成FAIL
+- [ ] Conditional target的not-exercised meaning清楚
+- [ ] Absence-of-event依赖完整observation interval
+
+### Temporal、Scope and Structured Judgment
+
+- [ ] Same-operation / ordering / identity / scope relation清楚
+- [ ] Judgment保持semantic level
+- [ ] 没有timestamp code、event index、selector或set-operation implementation
+- [ ] Structured output没有按普通字段机械拆Grader
+- [ ] Parse / qualification failure没有自动变Contract violation
+
+### Rubric and Reviewer Consistency
+
+- [ ] 只有qualitative judgment需要时才使用Rubric
+- [ ] Rubric dimensions回到Contract authority
+- [ ] Anchors有区别意义且Evidence-grounded
+- [ ] Overall interpretation形成target-level semantics而非Metric
+- [ ] Human / LLM reviewer consistency可接受
+- [ ] Evidence不足时允许停止判断
+
+### Granularity and Composition
+
+- [ ] Grader Atomicity Test完成
+- [ ] Multi-check atomic Contract由一个authoritative policy组合
+- [ ] 没有用Metric组合Contract必要条件
+- [ ] Shared policy对每个target完全兼容
+- [ ] 每个target未来产生Contract-specific Result而非merged verdict
+- [ ] Failure criteria与failure-mode diagnosis分开
+
+### Definition Boundaries
+
+- [ ] 没有actual Evidence、Episode、Result、verdict、explanation或score
+- [ ] 没有regex、JSONPath、checker、judge prompt、model或library implementation
+- [ ] 没有Metric、Weight、aggregation、Benchmark score或cross-case policy
+- [ ] 没有Gate、blocking logic或criticality-to-Benchmark-failure rule
+- [ ] 不引入mandatory Candidate或grader_type enum
+
+### Validation and Status
+
+- [ ] Structural / Field Validation完成
+- [ ] Cross-object Validation完成
+- [ ] Semantic Grader Review完成
+- [ ] Spec Set、Coverage Mapping与Audit一致
+- [ ] 无unresolved Grader Design Issue
+- [ ] Production status只使用`GRADERS_READY`或`GRADERS_BLOCKED`
+
+全部必需检查通过时，production Grader Specification Design才可输出：
+
+```text
+GRADERS_READY
+```
+
+否则输出：
+
+```text
+GRADERS_BLOCKED
+```
+
+并停止在Grader Specification Design边界，不开始Metric、Gate、Grader implementation或其他Runtime Design。
