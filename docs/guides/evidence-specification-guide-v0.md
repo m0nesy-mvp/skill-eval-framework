@@ -134,6 +134,13 @@ Artifact existence
 - context 与完整性足够；
 - 被明确纳入本次 evaluation。
 
+因此即使 Artifact 已经存在，仍至少可能需要确认：
+
+- correct Artifact identity；
+- current Episode provenance；
+- relevant temporal、scope或same-output context；
+- completeness、readability、integrity等usable qualification。
+
 Evidence 也不一定来自独立 Artifact。以下 observation 可以直接成为 Evidence source：
 
 - interaction history；
@@ -425,9 +432,27 @@ Minimality Review 至少检查：
 - 是否产生明显 privacy、cost 或 storage overcollection？
 - 是否可以在不降低 sufficiency 的情况下缩小 observation scope？
 
+对每一项 proposed observation requirement 还必须执行 Removal Test：
+
+> If this observation were removed, would the downstream evaluator still have a legitimate basis to distinguish compliant from violating semantics?
+
+- 如果答案为 `YES`，该 observation 可能不是 minimum required evidence，应从 authoritative Evidence Specification 移出；
+- 如果答案为 `NO`，且没有其他 observation 已经提供相同 semantic basis，则保留；
+- 该问题是 authoring judgment，不是 automatic algorithm，也不定义 Grader logic。
+
 本指南不设计 privacy policy、retention period 或 storage system，只固定 minimum sufficient principle。
 
-Debugging / supporting observations 不自动进入 authoritative Evidence Specification。它们可以留在 Design Audit 或未来 Runtime diagnostics policy。
+Debugging / supporting observations 不自动进入 authoritative Evidence Specification。它们可以留在 Design Audit 或未来 Runtime diagnostics policy。Runtime 可能顺便产生某项信息，也不构成把它提升为 required evidence 的理由。
+
+正式边界保持：
+
+```text
+Formal Evidence Specification
+= minimum required evidence need
+
+Supporting / debugging-only observations
+= Design Audit or future Runtime diagnostics policy
+```
 
 ---
 
@@ -444,8 +469,7 @@ Evidence Specification 必须声明对 qualification 语义必要的最低 prove
 - relevant Artifact identity；
 - interaction participant identity；
 - action / state observation origin；
-- transformed observation 与 original source 的 lineage；
-- 需要时的 temporal relation。
+- transformed observation 与 original source 的 lineage。
 
 Provenance expectation 不是 actual runtime provenance record。Evidence Specification 不保存 Episode ID、Artifact ID、actual path 或 timestamp，只说明未来 Evidence 必须能够证明这些关系中的哪些。
 
@@ -455,6 +479,26 @@ Provenance expectation 不是 actual runtime provenance record。Evidence Specif
 需要能够确认 final output observation 来自当前 Episode 的 Subject-produced Artifact，
 而不是历史 Run 中名称相似的文件。
 ```
+
+常见 provenance ambiguity 包括：
+
+### Current vs historical Artifact
+
+环境中存在多个名称或内容相似的 outputs 时，Evidence 必须能够归因到 current Episode 的目标 final Artifact，不能仅按名称相似度选取历史产物。
+
+### Final vs intermediate Artifact
+
+中间 draft、declaration、skeleton 或 partially transformed output 不能自动成为 final Artifact Evidence source。Provenance 必须能建立 relevant final / intermediate identity 与必要 lineage。
+
+### Subject vs Evaluator interaction
+
+Interaction observation 必须保留 participant origin。Evaluator response 不能被误当作 Subject request，environment event 也不能被误归因到 Subject action。
+
+### Current vs stale authorization
+
+历史 interaction 中的 authorization 不自动支持当前 operation。需要时，provenance 与 context 必须共同建立 authorization 属于当前 Episode、当前 interaction 与当前 operation。
+
+这些是 generic authoring examples，不引入 Runtime ID、Artifact reference field 或新的 Schema field。
 
 ---
 
@@ -486,6 +530,31 @@ Evidence Specification 应表达：
 - comparison function。
 
 除非这些信息本身由 authoritative Requirement规定，否则它们属于 Runtime encoding或Grader implementation。
+
+### Cross-Spec Context
+
+当同一个 ExpectedAssertion 由多个 Evidence Specifications 共同覆盖时，某个 Spec 的 `context_requirements` 可以引用由同一 target coverage 中其他 Spec 提供的 semantic observation，例如：
+
+> 本 authorization observation 必须能够与同一 target 的 destructive-action observation 建立 same-operation 与 before relation。
+
+允许的是 semantic relation，不是新的 reference system。禁止增加或暗示：
+
+- `depends_on_evidence_spec_ids`；
+- Evidence Specification execution ordering；
+- Runtime Evidence ID；
+- Artifact ID；
+- event ID；
+- 第二套 relation authority。
+
+Cross-Spec relation 仍通过以下三者共同建立：
+
+```text
+shared EvidenceTarget
++ semantic context requirement
++ Coverage Review
+```
+
+如果两个 Specs 都存在，但它们之间所需的 same-operation、before / after、same-output 或 continuation relation无法建立，则 combined coverage 仍不充分。
 
 ---
 
@@ -551,19 +620,132 @@ Upstream Test Case Design Concern
 
 ---
 
-## 16. Evidence Qualification Principles
+## 16. Canonical Field Placement 与 Evidence Qualification
 
-Captured data 不自动成为 qualified Evidence。未来 observation 至少应按相关 Evidence Specification 检查：
+### 16.1 Four-field canonical placement
 
-- 与 target Contract / ExpectedAssertion 相关；
-- 可归因到当前 Episode；
-- source identity 正确；
-- Artifact 或 interaction identity 没有与其他 Run混淆；
-- 必需内容完整；
-- 没有 stale；
-- 没有被不明 transformation破坏；
-- temporal / scope context 在需要时被保留；
-- 没有因截断、corruption或ambiguity失去判断价值。
+四组 requirements 都是 Definition-time authority，但每组有不同 primary semantic role。
+
+#### observation_requirements
+
+回答：
+
+> What must be observed?
+
+优先描述：
+
+- object；
+- event；
+- state；
+- content；
+- action occurrence；
+- interaction occurrence；
+- Artifact content / state。
+
+例如：
+
+> 最终 Subject-produced Artifact 的相关结构化内容必须可观察。
+
+不要主要在这里描述它属于哪个 Episode、与另一个 event 的顺序，或捕获结果是否完整可读。
+
+#### provenance_requirements
+
+回答：
+
+> Where / from whom / which execution does this observation come?
+
+优先描述：
+
+- current Episode association；
+- Subject / Evaluator / Environment / Tool origin；
+- participant identity；
+- Artifact identity；
+- final vs intermediate / skeleton identity；
+- transformation / derivation lineage；
+- current vs historical source；
+- source attribution。
+
+Canonical rule：如果问题是“这个 observation 到底是谁的、哪次运行的、哪个 Artifact 的、从哪里来的”，优先属于 provenance。
+
+#### context_requirements
+
+回答：
+
+> What semantic relation between relevant observations must be preserved?
+
+优先描述：
+
+- before / after / during；
+- same operation；
+- same attempt；
+- same completion flow；
+- same interaction；
+- same output package；
+- causal / continuation relation；
+- relevant scope relation。
+
+Canonical rule：如果单个 observations 已经确认，但评价还需要知道“它们彼此是什么关系”，优先属于 context。
+
+Context 不得保存 Runtime event ID、exact timestamp format、trace index、matcher 或 executable relation。
+
+#### qualification_requirements
+
+回答：
+
+> What must be true of the captured observation itself so that it is usable as Evidence?
+
+优先描述：
+
+- sufficiently complete；
+- readable / interpretable；
+- not truncated；
+- integrity preserved；
+- enough scope coverage；
+- sufficiently unambiguous；
+- transformation preserves relevant semantics。
+
+Canonical rule：即使 provenance 已经确定，captured observation 本身是否达到可供 evaluation 使用的质量，属于 qualification。
+
+`unambiguous` 不能作为万能词。如果 ambiguity 本质是“是否来自当前 Episode / 当前 Artifact / 正确 participant”，主要问题属于 provenance；qualification 只描述来源已经确定后 observation 本身的 usable condition。
+
+### 16.2 Anti-duplication rule
+
+同一个 semantic requirement 不得为了“保险”完整复制到 provenance、context 与 qualification 多个字段。Author 必须先判断其 primary semantic role。
+
+一个事实可以具有 secondary implications，但 authoritative wording 应放在最主要字段；其他字段只在确实存在独立要求时补充。
+
+不建议：
+
+```text
+provenance:
+Artifact 必须属于当前 Episode 且完整无歧义。
+
+qualification:
+Artifact 必须属于当前 Episode 且完整无歧义。
+```
+
+应拆为：
+
+```text
+provenance:
+Artifact 必须可归因到当前 Episode 的目标输出。
+
+qualification:
+Artifact 必须完整、可读取，足以支持目标 semantic content evaluation。
+```
+
+### 16.3 Evidence qualification principles
+
+Captured data 不自动成为 qualified Evidence。在provenance与context已经分别建立source identity、Episode association和semantic relation之后，captured observation本身至少还应按相关Evidence Specification检查：
+
+- required information是否完整；
+- content是否readable / interpretable；
+- observation是否被截断或corrupted；
+- transformation是否保留目标semantic content；
+- required scope是否被充分覆盖；
+- 是否仍存在会使目标信息无法使用的residual ambiguity。
+
+Current Episode、source identity、current vs historical Artifact等问题优先属于provenance；temporal / scope relation优先属于context，不应在qualification中完整复制。
 
 Evidence Specification 只声明 qualification expectations，不保存 actual qualification status，也不设计 automatic Evidence validator。
 
@@ -576,6 +758,33 @@ Qualification:
 Grading:
 这些 qualified observations 是否说明 Contract satisfied or violated？
 ```
+
+### 16.4 Qualification anti-boilerplate rule
+
+Qualification requirement 必须说明：
+
+```text
+什么 information
++ 什么 usable condition
+```
+
+禁止单独使用没有对象和具体 qualification dimension 的空泛表述，例如：
+
+- `sufficient`；
+- `complete enough`；
+- `usable`；
+- `valid`；
+- `unambiguous`。
+
+较好：
+
+> Relevant interaction turns must be complete enough to preserve participant identity, authorization scope, and ordering.
+
+不足：
+
+> Evidence must be sufficiently complete.
+
+Qualification 保持 semantic level，不需要转成数值 threshold、checker 或 automatic validator。
 
 ---
 
@@ -611,6 +820,21 @@ Evidence collection failure
 - Subject 已产生，但 evaluator capture / qualification失败。
 
 具体 Result enum 与 Grader missing-input policy 不在本轮设计。
+
+设计与后续解释必须区分三种语义：
+
+```text
+A. Observation完整，并明确显示Subject未履行责任
+→ may support an observed Contract violation
+
+B. Required observation缺失或不完整
+→ Evidence insufficiency
+
+C. Subject实际完成责任，但Evaluator capture mechanism失败
+→ Evaluator / infrastructure capture failure
+```
+
+只有 A 包含完整 observation 所支持的 Subject behavior事实。B 与 C 都不得自动归为 Subject failure；本指南不为三者设计 Runtime Result enum。
 
 ---
 
@@ -652,6 +876,14 @@ Multi-Contract Case 中，不同 targets 可以共享或拆分 Evidence Specific
 - 共享不隐藏任一 target的sufficiency；
 - 共享显著减少重复收集。
 
+共享还必须通过 negative check：
+
+- observation need 是否 substantially same；
+- shared package 对每个 target 是否都是 minimum evidence；
+- 是否迫使某个 target 收集对自身不必要的信息；
+- 是否损失 Contract-specific missing-evidence diagnosis；
+- 一个 observation capture failure 对各 targets 的影响语义是否合理。
+
 应拆分的倾向：
 
 - Outcome Artifact 与Workflow interaction来自不同surface；
@@ -663,6 +895,23 @@ Multi-Contract Case 中，不同 targets 可以共享或拆分 Evidence Specific
 - 合并要求保存大量与某一target无关的信息。
 
 共享 Evidence Specification 不表示多个 Contracts 被合并，也不改变 ExpectedAssertion authority。
+
+以下事实都不能单独证明应共享 Spec：
+
+- 使用同一个 Artifact；
+- 读取同一个 log；
+- 来自同一个 trace；
+- 涉及同一个 action；
+- Runtime collector 恰好能一次捕获。
+
+核心原则：
+
+```text
+Shared runtime source
+≠ Shared Evidence Need
+```
+
+只要关键 observation semantics、provenance、context、qualification、target-specific minimality 或 diagnosis 不同，即使 Runtime source 相同也应拆分。
 
 ---
 
@@ -678,6 +927,10 @@ Multi-Contract Case 中，不同 targets 可以共享或拆分 Evidence Specific
 6. Temporal / context relation是否不同？
 7. 拆分是否提高missing-evidence diagnosis？
 8. 合并是否真正形成不可分的minimum sufficient package？
+
+不得根据“一个文件、一个 log、一个 trace、一个 Artifact”机械决定一个 ES；也不得因为出现“两种 observations、两个字段、两个 events”就机械拆成两个 ES。
+
+Atomicity authority 来自 provenance independence、collection surface、qualification independence、temporal/context relation、independent missing-evidence meaning、diagnostic value 与 minimum-package coherence，而不是 source object 或列表项数量。
 
 如果 A 与 B provenance、collection、qualification或独立缺失语义不同，通常拆分。
 
@@ -736,14 +989,27 @@ v0引入轻量、非Core、非authoritative的Evidence Specification Design Audi
 | `evidence_need_rationale` | 为什么这些observations支持targets |
 | `sufficiency_rationale` | 为什么原则上足够合法判断 |
 | `minimality_rationale` | 为什么没有过度收集 |
-| `provenance_rationale` | 为什么这些source / identity expectations必要 |
+| `provenance_rationale` | 为什么这些source / identity / current-vs-historical expectations必要 |
 | `context_rationale` | temporal、scope、before / after等context选择 |
-| `qualification_rationale` | completeness、staleness、ambiguity等最低资格要求 |
+| `qualification_rationale` | completeness、readability、integrity、scope coverage与residual ambiguity等最低资格要求 |
 | `category_labels` | Outcome、interaction、ordering、scope等working labels；不是enum |
 | `shared_split_decision` | 多target共享或拆分理由 |
 | `overcollection_concern` | privacy、cost、storage或无关数据风险 |
 | `downstream_grader_concern` | observations存在但未来判断仍需解决的问题 |
 | `design_notes` | upstream concern、环境限制或暂未解决风险 |
+
+当多个 Specs 共同覆盖一个 ExpectedAssertion 时，Audit 还必须记录：
+
+- each Spec contribution；
+- composition rationale；
+- required cross-Spec semantic relation；
+- why combined coverage is sufficient。
+
+当一个 Spec 共享给多个 targets 时，Audit 还必须记录：
+
+- why the evidence need is genuinely shared；
+- why individual target minimality is preserved；
+- why shared capture-failure semantics and diagnosis remain acceptable。
 
 Audit：
 
@@ -817,7 +1083,7 @@ EvidenceTarget:
 | `observation_requirements` | 进入Schema，非空列表 | 定义目标判断必须可获得的observation semantics |
 | `provenance_requirements` | 进入Schema，非空列表 | 定义source、origin、Episode / Artifact / participant identity等最低语义要求 |
 | `context_requirements` | 进入Schema，必填列表，允许空 | 定义temporal、ordering、scope、before / after或interaction context；无额外context时显式空列表 |
-| `qualification_requirements` | 进入Schema，非空列表 | 定义completeness、currentness、non-ambiguity等最低Evidence qualification expectations |
+| `qualification_requirements` | 进入Schema，非空列表 | 定义completeness、readability、integrity、scope coverage与post-provenance residual ambiguity等最低Evidence qualification expectations |
 | `required / optional` | 不进入 | 每个Spec本身就是minimum required need；supporting observations留Audit / diagnostics |
 | `evidence_type` / `category` | 不进入 | 当前只用于Design分类，没有稳定Framework behavior |
 | `producer` | 不作为独立字段 | Semantic source与origin由provenance requirements表达；不提前绑定collector implementation |
@@ -864,11 +1130,15 @@ Targets表示该Spec服务哪些ExpectedAssertions，不表示这些targets最�
 
 不得包含checker、field selector、path、runtime ID或actual observation。
 
+Canonical placement：主要写需要观察的object、event、state、content或occurrence；Episode / source identity优先写入provenance，observations之间的relation优先写入context，捕获结果本身的usable condition优先写入qualification。
+
 ### 25.4 provenance_requirements
 
 必填`list[str]`，至少一项。每项描述qualification所需的semantic origin / identity / lineage，例如current Episode association、Subject-produced output identity或interaction participant identity。
 
 不得填写actual Episode ID、Artifact ID、filepath或timestamp。
+
+Canonical placement：主要回答 observation来自谁、哪个execution、哪个Artifact或什么lineage；不要同时复制qualification中的completeness / readability wording。
 
 ### 25.5 context_requirements
 
@@ -876,11 +1146,17 @@ Targets表示该Spec服务哪些ExpectedAssertions，不表示这些targets最�
 
 空列表表示该Spec没有超出observation与provenance本身的额外context requirement，不表示Runtime没有context。
 
+`context_requirements: []`明确表示当前Evidence Need不要求额外temporal、ordering、same-operation、same-output或cross-observation relation。它不是“context validation未完成”，也不是`unknown`。
+
+如果同一target由多个Specs共同覆盖，context可以语义引用其他Spec提供的relevant observation，但不得增加Spec dependency ID或Runtime relation ID。
+
 ### 25.6 qualification_requirements
 
-必填`list[str]`，至少一项。每项描述observation成为qualified Evidence所需的最低completeness、currentness、integrity、non-ambiguity或transformation-lineage expectation。
+必填`list[str]`，至少一项。每项描述observation成为qualified Evidence所需的最低completeness、readability、integrity、scope coverage、post-provenance residual ambiguity或transformation-preservation expectation。
 
 它不能描述Contract PASS / FAIL，也不能定义Grader algorithm。
+
+每一项必须同时指出被qualification的information与具体usable condition；禁止只写`valid`、`sufficient`、`complete enough`或`unambiguous`等无对象模板句。
 
 ---
 
@@ -1005,6 +1281,26 @@ Coverage Mapping是轻量working artifact，不是Core Object，也不是Frozen 
 - 不是仅靠ID linkage；
 - critical Contract完成更严格sufficiency review。
 
+### Cross-Spec Composition Review
+
+当一个ExpectedAssertion由多个Evidence Specifications共同覆盖时，仅把多个`evidence_spec_ids`列入同一Coverage row不等于sufficient composition。Coverage Review必须确认：
+
+1. 每个Spec贡献哪一部分minimum evidence；
+2. 所有贡献组合后是否覆盖完整assertion semantics；
+3. 它们之间是否存在必须保留的same-operation、before / after、same-output、same-interaction、scope或continuation relation；
+4. 必需relation是否已经由relevant `context_requirements`表达；
+5. 是否存在每个Spec单独都valid，但组合后仍无法建立目标判断的gap；
+6. 一个Spec缺失时，剩余Specs还能支持什么、不能支持什么，是否具有清楚的missing-evidence diagnosis。
+
+例如，authorization interaction observation与destructive action observation都存在，仍不足以自动形成authorization coverage。还必须能够建立：
+
+```text
+authorization belongs to the same operation
++ authorization occurs before the action
+```
+
+如果required cross-Spec relation无法建立，该Coverage row必须`BLOCKED`。
+
 例如以下情况必须`BLOCKED`：
 
 - assertion无法定义principle-level sufficient observations；
@@ -1086,6 +1382,7 @@ Capture mechanism原则上无法提供required observation
 ### Step 4 — Run Sufficiency and Minimality Review
 
 - 确认compliant / violating semantics原则上可区分；
+- 对每项observation执行Removal Test；
 - 删除仅用于debugging或future convenience的overcollection；
 - 对critical targets执行加强review。
 
@@ -1095,6 +1392,8 @@ Capture mechanism原则上无法提供required observation
 - 拆分不同provenance、context或qualification surfaces；
 - 合并真正不可分的observation package；
 - 避免Maximum Fragmentation与Maximum Integration。
+- 对shared Spec执行`Shared runtime source ≠ Shared Evidence Need` negative check；
+- 对one assertion → multiple Specs执行Cross-Spec Composition Review。
 
 ### Step 6 — Write Evidence Specifications
 
@@ -1107,6 +1406,8 @@ Capture mechanism原则上无法提供required observation
 
 - 每个ExpectedAssertion pair建立Coverage row；
 - 记录sufficiency、minimality与shared / split rationale；
+- 记录每个Spec contribution与required cross-Spec semantic relation；
+- 对shared Spec记录每个target的individual minimality；
 - 保留upstream、capture与downstream concerns。
 
 ### Step 8 — Validate
@@ -1238,7 +1539,7 @@ Nested pair支持many-to-many共享，并避免独立`test_case_ids`与`contract
 - what must be observed；
 - where / from whom / which Episode relation it must come；
 - what temporal / scope / before-after relation must be preserved；
-- what minimum completeness / identity / non-ambiguity makes it qualified。
+- what minimum completeness / readability / integrity / residual non-ambiguity makes it qualified。
 
 它们是Evidence Specification作为Definition / Runtime interface的最小独立语义，不是Grader fields。
 
@@ -1257,6 +1558,39 @@ Source / origin semantic expectation由`provenance_requirements`表达。具体c
 ### 34.6 No Runtime identity fields
 
 Evidence Specification不保存Episode ID、Artifact ID、actual path、timestamp、value、availability或qualification result。Definition只声明未来identity / association必须可证明。
+
+### 34.7 No composition or dependency fields
+
+真实method validation已经证明one assertion → multiple Specs与multiple targets → one shared Spec都可通过现有`targets`、semantic `context_requirements`、Coverage Mapping与Design Audit解释。
+
+当前不增加：
+
+- `depends_on_evidence_spec_ids`；
+- composition object；
+- evidence group ID；
+- shared runtime-source field。
+
+Cross-Spec Composition Review负责确认semantic completeness；它不是第二套Frozen relation authority。
+
+### 34.8 Schema remains unchanged after real validation
+
+真实validation没有证明任何新增字段必要。最小Schema继续保持：
+
+```text
+EvidenceSpecification:
+- evidence_spec_id
+- targets: list[EvidenceTarget]
+- observation_requirements: list[str]
+- provenance_requirements: list[str]
+- context_requirements: list[str]
+- qualification_requirements: list[str]
+
+EvidenceTarget:
+- test_case_id
+- contract_id
+```
+
+特别不增加assertion ID、required / optional、category / type、producer、Artifact / Episode reference ID、Grader reference、actual qualification result或Runtime path / value / timestamp。
 
 ---
 
@@ -1284,7 +1618,7 @@ Evidence Specification不保存Episode ID、Artifact ID、actual path、timestam
 | 18. 最小Schema是什么？ | ES ID、EvidenceTarget pairs、observation、provenance、context与qualification requirements。 |
 | 19. ExpectedAssertion没有ID是否造成真实关联问题？ | 当前没有。Test Case内唯一`contract_id`使pair可唯一定位assertion。 |
 | 20. 是否出现target-specific assumption？ | 未发现。方法适用于coding、browser、research、file、tool-use、conversational、multi-turn与data-processing Skills。 |
-| 21. 哪些问题必须真实validation？ | Field adequacy、pair target authoring、shared-spec复用、atomicity、minimality、interaction evidence、provenance表达与reviewer consistency。 |
+| 21. 真实validation暴露了什么？ | Schema与pair足够；canonical field placement、qualification anti-boilerplate、Cross-Spec Composition与shared-source negative check需要generic hardening。 |
 
 ### 35.1 Self-review corrections incorporated
 
@@ -1300,11 +1634,17 @@ Evidence Specification不保存Episode ID、Artifact ID、actual path、timestam
 - 为避免missing Evidence误判Subject FAIL，固定capture / violation boundary；
 - 为避免Spec explosion，增加Atomicity与shared / split review；
 - 为避免optional observation弱化authority，不增加required / optional enum；
-- 为避免Audit成为第二套authority，所有targets只以Schema为准。
+- 为避免Audit成为第二套authority，所有targets只以Schema为准；
+- 为避免四字段在identity、same-operation、ambiguity与completeness附近重复，增加canonical placement与anti-duplication rule；
+- 为避免qualification退化为模板句，要求同时写明information与usable condition；
+- 为避免multiple ES IDs假充combined coverage，增加Cross-Spec Composition Review；
+- 为避免同一Artifact/log/action被机械共享，增加`Shared runtime source ≠ Shared Evidence Need`；
+- 为避免supporting observation因Runtime顺便产生而升级为required evidence，增加Removal Test与supporting evidence rule；
+- 为避免missing observation继续被二分为“有/无”，明确区分observed Subject behavior、Evidence insufficiency与capture failure。
 
-### 35.2 Method Validation Coverage Needed
+### 35.2 Real Method Validation Coverage
 
-在冻结EvidenceSpecification Schema前，至少需要真实validation检查：
+Evidence Specification Design v0 real validation已经实际覆盖：
 
 - simple final Outcome Artifact Case；
 - structured output content Case；
@@ -1319,7 +1659,109 @@ Evidence Specification不保存Episode ID、Artifact ID、actual path、timestam
 - minimum evidence与overcollection对比；
 - EvidenceTarget pair authoring与Coverage反向生成。
 
-这些是future validation coverage，不应被误报为Runtime Evidence、Grader或execution PASS。
+Validation status为：
+
+```text
+EVIDENCE_SPECS_READY for validation subset
+```
+
+没有发现Schema blocker。该结论不应被误报为Runtime Evidence、Grader、execution PASS或production `EVIDENCE_SPECS_READY`。
+
+### 35.3 Focused Consistency Check
+
+Hardening后对真实validation已经证明的三类generic design执行focused consistency check；不重新author整套validation。
+
+#### A. Ordinary single-Spec target
+
+抽象Case：一个final structured Artifact target由单个Spec覆盖。
+
+| Check | Result |
+|---|---|
+| object/content写入observation | PASS |
+| current Episode与final-vs-intermediate identity写入provenance | PASS |
+| 没有额外relation时使用`context_requirements: []` | PASS |
+| readability、non-truncation与semantic completeness写入qualification | PASS |
+| 没有字段完整复制 | PASS |
+| qualification不是空泛模板 | PASS |
+
+结论：canonical placement没有使此前valid single-Spec design失效。
+
+#### B. One assertion → multiple Specs
+
+抽象Case：authorization interaction observation与later destructive-action observation共同覆盖一个authorization assertion。
+
+| Check | Result |
+|---|---|
+| each Spec contribution可说明 | PASS |
+| same-operation relation可由semantic context表达 | PASS |
+| authorization-before-action relation可表达 | PASS |
+| 不需要Spec dependency ID | PASS |
+| 只有多个IDs但没有relation时会被阻止标COVERED | PASS |
+
+结论：Cross-Spec Composition Rule完整解释此前valid one assertion → N Specs design，并能拒绝ID-only composition。
+
+#### C. Multiple targets → one shared Spec
+
+抽象Case：同一个destructive-action occurrence与affected-scope observation package同时服务authorization与scope targets。
+
+| Check | Result |
+|---|---|
+| observation need对两个targets substantially same | PASS |
+| provenance / context / qualification substantially same | PASS |
+| shared package对两个targets都是minimum evidence | PASS |
+| 不迫使任一target收集无关信息 | PASS |
+| Contract-specific diagnosis仍由各自专属Specs保留 | PASS |
+| shared capture failure对两个targets的影响语义合理 | PASS |
+
+结论：`Shared runtime source ≠ Shared Evidence Need`不会错误否定真正共享；它只拒绝“来源相同但Evidence semantics不同”的机械合并。
+
+Focused consistency check：
+
+```text
+PASS
+```
+
+### 35.4 Hardening Self-Review and Freeze Readiness
+
+| Freeze condition | Result |
+|---|---|
+| no Schema blocker | PASS |
+| canonical placement clear | PASS |
+| anti-duplication clear | PASS |
+| qualification anti-boilerplate clear | PASS |
+| Cross-Spec Composition clear | PASS |
+| shared Spec negative rule clear | PASS |
+| Evidence Atomicity stable | PASS |
+| Minimum Sufficient Evidence stable | PASS |
+| supporting evidence boundary stable | PASS |
+| missing / capture boundary stable | PASS |
+| Artifact / Evidence boundary stable | PASS |
+| EvidenceTarget authority unchanged | PASS |
+| validation-subset boundary preserved | PASS |
+| no Runtime leakage | PASS |
+| no Grader leakage | PASS |
+| focused consistency check | PASS |
+
+结论：
+
+```text
+EVIDENCE_SPEC_DESIGN_V0_FREEZE_READY:
+YES
+```
+
+`YES`表示当前方法与Schema Proposal在已经完成的validation coverage内没有已知generic blocker。它不表示Runtime Evidence、collector、qualification execution、Grader、Metric、Gate或完整Target Benchmark已经ready。
+
+### 35.5 Future Validation Notes
+
+以下是future coverage limitations，不是当前freeze blocker：
+
+- 在其他Agent Skill classes中复验four-field canonical placement；
+- 复验不同reviewer对primary semantic role的独立一致性；
+- 复验三个及以上Specs共同覆盖一个assertion时的composition review；
+- 复验一个Spec跨不同Test Cases共享时，individual target minimality是否仍容易审查；
+- 复验transformed / summarized observations的lineage与qualification wording；
+- 复验高隐私或高成本observation的Removal Test一致性；
+- 复验partial capture与truncation情况下A/B/C boundary的reviewer agreement。
 
 ---
 
@@ -1345,22 +1787,30 @@ Evidence Specification不保存Episode ID、Artifact ID、actual path、timestam
 
 - [ ] Required facts、action、order、scope或state可被观察
 - [ ] Compliant与violating semantics原则上可区分
+- [ ] 每项observation已通过Removal Test
 - [ ] 没有收集整个Episode作为默认策略
 - [ ] Debugging / future-convenience data没有进入minimum authority
+- [ ] Runtime顺便产生的信息没有因此被升级为required evidence
 - [ ] 没有明显privacy、cost或storage overcollection
 
 ### Provenance and Context
 
 - [ ] Current Episode association可建立
 - [ ] Source / participant / Artifact identity requirements明确
+- [ ] Four-field canonical placement完成且没有完整复制同一semantic requirement
 - [ ] Temporal / ordering / scope relation在需要时表达
+- [ ] Multiple Specs共同覆盖时，required cross-Spec relation已经表达
 - [ ] Before / after只在必要时要求
 - [ ] Interaction Evidence覆盖相关turn与later action context
+- [ ] `context_requirements: []`仅表示无额外relation，不表示unknown或未验证
 
 ### Qualification and Failure Boundaries
 
 - [ ] Completeness、staleness、ambiguity与lineage expectations明确
+- [ ] 每项qualification同时说明information与usable condition
+- [ ] 没有`valid`、`sufficient`、`complete enough`等无对象模板句
 - [ ] Missing Evidence没有被写成Contract failure
+- [ ] Evidence insufficiency与capture failure已经区分
 - [ ] Capture failure没有被归咎于Subject
 - [ ] Qualification没有滑向Grading
 
@@ -1368,6 +1818,9 @@ Evidence Specification不保存Episode ID、Artifact ID、actual path、timestam
 
 - [ ] Atomicity Test完成
 - [ ] Shared / split decision有rationale
+- [ ] Shared Spec通过`Shared runtime source ≠ Shared Evidence Need` negative check
+- [ ] Shared Spec保持每个target的individual minimality与diagnosis
+- [ ] One assertion → multiple Specs完成Composition Review
 - [ ] 没有Maximum Fragmentation / Integration
 - [ ] Audit没有成为第二套authority
 - [ ] 不引入mandatory Candidate
@@ -1375,6 +1828,7 @@ Evidence Specification不保存Episode ID、Artifact ID、actual path、timestam
 ### Definition Boundaries
 
 - [ ] 没有actual Evidence、Artifact、Episode、message、trace、path或timestamp
+- [ ] 没有assertion ID、Spec dependency ID、composition object或evidence group ID
 - [ ] 没有regex、JSONPath、checker、judge prompt、threshold或comparison algorithm
 - [ ] 没有Grader、Metric、Weight、Score或Gate design
 - [ ] 没有Runtime collector或validator implementation
