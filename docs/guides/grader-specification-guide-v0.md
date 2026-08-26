@@ -352,6 +352,33 @@ Evidence insufficient for substantive judgment
 
 Evidence sufficiency check不是Contract verdict，也不是Grader error。
 
+### Baseline insufficiency authoring template
+
+每个`insufficiency_handling`应只选择该target真实相关的项目，至少检查：
+
+1. required Evidence Specification是否缺失；
+2. Evidence虽然存在但是否unqualified、incomplete或corrupted；
+3. required cross-Evidence semantic relation是否无法建立；
+4. provenance、participant、Artifact或operation identity是否有歧义；
+5. relevant observation interval或surface是否不完整；
+6. Evaluator / capture mechanism是否发生关键failure；
+7. Grader execution failure是否被错误吞入Evidence insufficiency。
+
+这是authoring checklist，不是Frozen enum，也不要求每个Spec机械复制全部七项。Spec只保留会真实阻止该target形成substantive judgment的边界。
+
+### Evidence insufficiency vs Grader execution failure
+
+```text
+Required qualified Evidence unavailable or unusable
+→ Evidence insufficiency
+
+Qualified Evidence complete,
+but checker / LLM judge / Human evaluation process fails
+→ future Grader execution status
+```
+
+后者不是`insufficient_evidence`，因为输入Evidence本身并不不足。Grader Specification不得使用insufficiency meaning掩盖implementation、judge invocation、review process或Runtime failure；本Guide不因此设计Runtime error enum。
+
 ---
 
 ## 10. Judgment Semantics
@@ -393,6 +420,10 @@ Satisfied
 ≠ no failure observed
 ```
 
+Authoring question：
+
+> What qualified facts affirmatively establish the Contract success semantics?
+
 ### 11.2 Violated
 
 只有qualified Evidence提供affirmative basis，能够建立Contract failure criteria描述的真实violation时，才支持violated meaning。
@@ -401,6 +432,10 @@ Satisfied
 Violated
 ≠ no proof of success
 ```
+
+Authoring question：
+
+> What qualified facts affirmatively establish the Contract failure semantics?
 
 ### 11.3 Insufficient Evidence
 
@@ -411,9 +446,38 @@ Insufficient Evidence
 ≠ Violated
 ```
 
+Authoring question：
+
+> What missing, invalid or unresolved Evidence contribution or relation prevents either substantive conclusion?
+
 ### 11.4 Not Exercised
 
-如果Episode存在且qualified Evidence足以确认Contract的applicability / trigger没有发生，可以使用not-exercised meaning。
+Not Exercised只有在以下条件全部满足时才可使用：
+
+1. Episode确实存在，并产生了足够qualified Evidence；
+2. 目标Contract具有真实applicability / trigger condition；
+3. Evidence能够affirmatively establish该condition在本Episode中没有发生；
+4. 因此目标responsibility没有进入可评价状态。
+
+```text
+Not Exercised
+≠ Satisfied
+≠ Insufficient Evidence
+≠ Case blocked
+≠ Episode not executed
+≠ Subject task noncompletion
+```
+
+“目标动作没有发生”不自动支持not-exercised。它还可能表示：
+
+- trigger已经发生，但Subject没有履行required action；
+- Subject stopped early；
+- Case / task execution没有完成；
+- Evidence不完整；
+- Contract failure criterion已经成立；
+- 或trigger确实没有发生。
+
+必须先读取Contract的trigger semantics，再决定absence属于violated、insufficient、not-exercised或future Case / Episode lifecycle concern。
 
 以下状态不由Grader Specification重新定义：
 
@@ -425,9 +489,56 @@ Insufficient Evidence
 
 它们属于未来Run / Episode / Runtime Result lifecycle边界。Grader不能把“没有Episode”解释为not-exercised，也不能把Grader error解释为insufficient Evidence。
 
+### 11.5 Trigger vs Required Action
+
+Contract trigger / applicability condition与Subject required action必须严格分开：
+
+```text
+When condition X occurs,
+Subject must perform action Y.
+
+Complete Evidence establishes X occurred,
+but Y did not occur
+→ potential violated meaning
+
+Complete Evidence establishes X did not occur
+→ potential not-exercised meaning
+
+Evidence cannot establish whether X occurred
+→ insufficient Evidence
+```
+
+这条规则适用于conditional Workflow、conditional Outcome、authorization、retry / recovery、cleanup、handoff与optional-branch responsibilities。
+
+不得把“没有观察到required action Y”直接当作“trigger X没有发生”。
+
+### 11.6 Case / Task Noncompletion Boundary
+
+Subject没有完成整个Test Case task，不直接决定任一target Contract verdict。每个target仍须独立判断：
+
+- Contract trigger是否发生；
+- target responsibility是否已经适用；
+- required Evidence是否完整；
+- success或failure semantics是否得到affirmative support。
+
+可能同时出现：
+
+```text
+Case overall not completed
++ one Contract already violated
+
+Case overall not completed
++ another Contract not exercised
+
+Case overall not completed
++ another Contract has insufficient Evidence
+```
+
+Grader Specification不定义Case overall execution status。Case未完成、Subject stopped early或Episode lifecycle状态由未来Episode / Runtime层处理，不能被压缩成单一target的not-exercised meaning。
+
 ---
 
-## 12. Positive Evidence、Negative Evidence 与 Absence-of-Event
+## 12. Positive Evidence、Negative Evidence 与 Complete Observation Surface
 
 某些judgments依赖affirmative compliance evidence，例如：
 
@@ -445,14 +556,18 @@ action occurred
 + no valid authorization before action
 ```
 
-Absence-of-event reasoning只有在以下条件满足时才合法：
+### 12.1 Complete Observation Surface / Interval Principle
 
-- relevant observation interval定义清楚；
-- interval完整到足以观察目标event；
-- participant / source provenance明确；
-- capture没有关键gap；
-- target event不会合理发生在未覆盖surface；
-- absence与当前operation / attempt正确关联。
+如果Grader使用某个object、event、action或interaction“没有出现”作为satisfied或violated basis，必须先确认：
+
+1. relevant observation source被完整覆盖；
+2. relevant temporal interval完整；
+3. relevant participants、resources与Artifact identities明确；
+4. relevant provenance完整；
+5. capture没有关键gap；
+6. target fact不会合理发生在未覆盖的alternative surface；
+7. qualification足以支持absence inference；
+8. absence与当前Episode、operation或attempt正确关联。
 
 如果interaction、Trace或action interval不完整：
 
@@ -461,7 +576,72 @@ event not observed
 ≠ event did not occur
 ```
 
+也就是：
+
+```text
+Absence of observation
+≠ observation of absence
+```
+
 Grader Specification必须在judgment criteria或insufficiency handling中写明所需completeness语义，但不得规定具体trace schema或event matcher。
+
+推荐表达：
+
+> Qualified Evidence must establish a complete relevant observation interval before the absence of X may support the Contract failure semantics.
+
+避免：
+
+> If X is not found, mark violated.
+
+### 12.2 Artifact Absence Checklist
+
+在“required Artifact不存在”可以支持violation前，至少检查：
+
+- correct target identity已知；
+- current Episode / operation已知；
+- expected location或output surface已知；
+- observation surface完整可用；
+- collector / capture mechanism没有关键failure；
+- historical、intermediate或同名Artifact不会造成混淆；
+- qualification足以确认真实absence。
+
+```text
+Evidence object unavailable
+≠ Artifact did not exist
+```
+
+### 12.3 Action Absence Checklist
+
+在“Subject没有执行required action”可以支持violation前，至少检查：
+
+- action responsibility已经由Contract trigger激活；
+- relevant action surface被完整观察；
+- relevant interval完整；
+- action identity与operation context明确；
+- capture没有关键gap；
+- absence不是因为Case从未进入applicable branch。
+
+否则应根据真实原因进入insufficient、not-exercised或future Case / Episode lifecycle concern，而不是机械FAIL。
+
+### 12.4 Interaction Absence Checklist
+
+在“Subject没有请求确认、没有响应或没有进行required interaction”可以支持violation前，至少检查：
+
+- relevant participant identities；
+- relevant interaction interval；
+- initial trigger context；
+- conversation continuity；
+- interaction capture completeness；
+- current-operation association。
+
+如果turn recorder有关键gap：
+
+```text
+Subject request not observed
+≠ Subject did not request
+```
+
+这些checklists定义semantic completeness，不引入event index、timestamp comparison、log parser或Runtime matcher。
 
 ---
 
@@ -616,6 +796,13 @@ Rubric不得：
 
 简单deterministic或single-rule Grader不需要Rubric。强制所有Graders携带复杂Rubric会产生无意义boilerplate。
 
+当前v0 real method validation没有包含真正qualitative Contract，因此Rubric的真实authoring、anchor quality与inter-rater behavior仍是future validation limitation。不得：
+
+- 把deterministic Contract人为包装成qualitative Case；
+- 因coverage gap声称Rubric已经real-validated；
+- 因尚未验证Rubric而阻塞已经通过的deterministic / bounded semantic method；
+- 为补偿coverage而修改Rubric Schema。
+
 ---
 
 ## 18. Rubric Dimensions 与 Anchors
@@ -663,6 +850,13 @@ Grader-level judgment不必假定所有评价都是0/1。
 - local anchor / scalar与Contract satisfied / violated之间的interpretation必须清楚，不能交给Metric补定义。
 
 本Guide不冻结完整Runtime Grader Result value schema。
+
+当前v0 real method validation只覆盖了binary Contract-level substantive semantics，以及insufficient / not-exercised边界。Ordinal Rubric anchors与bounded local scalar仍属于future validation limitation：
+
+- 不得因为尚未覆盖就制造artificial qualitative或scalar Case；
+- 不得把未验证能力写成已验证结论；
+- 不得因此新增`score`、`weight`或Metric字段；
+- deterministic / bounded semantic Grader method不因该coverage gap而自动BLOCKED。
 
 ---
 
@@ -741,6 +935,18 @@ Each ExpectedAssertion pair
 - 不损失Contract-specific diagnosis；
 - policy可以对每个target独立应用。
 
+以下相似性都不能单独证明shared Grader合法：
+
+- shared Evidence source；
+- same Contract family；
+- same tool或action；
+- same Artifact；
+- same evaluation type；
+- both critical；
+- 相似名称或相邻workflow stage。
+
+Evidence Spec IDs可以因target不同而不同。只要每个GraderTarget独立绑定自己的完整minimum Evidence set，且同一policy可以原样应用，就不应仅因IDs不同强制拆分。
+
 每个target在Runtime仍必须产生Contract-specific Grader Result；不得产生一个模糊的multi-Contract PASS / FAIL。
 
 核心原则：
@@ -806,6 +1012,8 @@ Failure modes主要服务：
 - 不得为了得到更具体mode而推翻已经充分的Contract-level judgment；
 - mode attribution不足不自动等于Evidence对verdict不足。
 
+只有当uncertainty影响核心Contract failure criterion本身，例如无法确认目标event、scope、identity或required relation是否成立时，才可能使verdict进入insufficient Evidence。仅仅无法区分两个diagnostic labels，不得把clear violated meaning降级为insufficient。
+
 Grader Specification的`explanation_requirements`可以要求“when supported, identify relevant Contract failure mode”，不需要独立`failure_mode_handling` Schema field。
 
 ---
@@ -823,6 +1031,30 @@ Grader Specification必须声明future Grader Result的minimum explanation expec
 - for violation, identify supported failure criterion and, when supported, failure mode；
 - distinguish observed fact from inference；
 - avoid conclusions unsupported by qualified Evidence。
+
+Minimum explanation authoring baseline应按target实际需要覆盖：
+
+- target identity；
+- qualified Evidence contributions；
+- relevant observed facts；
+- facts与Contract success / failure semantics之间的relation；
+- satisfied或violated的affirmative basis；
+- insufficiency gap when applicable；
+- supported failure criterion；
+- failure mode only if supported；
+- observed fact与inference边界。
+
+不要机械复制所有项目；但只写以下空泛要求不足以形成可复核的authority：
+
+```text
+Explain the result.
+Provide rationale.
+Cite evidence.
+```
+
+更稳定的表达是：
+
+> Identify the qualified Evidence contributions that establish the target operation identity and explain how their ordering supports or fails to support the Contract criterion.
 
 Explanation requirements不定义：
 
@@ -879,6 +1111,24 @@ Reviewer Consistency Review至少检查：
 - explanation requirements是否足以复核；
 - shared Grader policy对每个target是否真的相同；
 - criteria是否包含hidden implementation assumption。
+
+Focused semantic review还必须检查：
+
+- Contract criteria是否仍是唯一normative authority；
+- judgment criteria是否增加了新标准；
+- Evidence refs是否完整；
+- satisfied是否有affirmative basis；
+- violated是否有affirmative basis；
+- absence reasoning是否依赖complete observation surface；
+- not-exercised是否真的来自trigger未发生；
+- required action absence是否被误写成trigger absence；
+- task noncompletion是否被误当not-exercised；
+- Evidence insufficiency是否与Grader execution failure分离；
+- failure-mode attribution是否越界；
+- qualitative reviewer是否受bounded criteria / Rubric约束；
+- Metric或Gate semantics是否泄漏。
+
+这是qualitative consistency checklist，不产生数值reviewer score。
 
 需要Human judgment不等于方法失败；但criteria模糊到reviewers无法合理一致时，Grader Design应`BLOCKED`。
 
@@ -1147,10 +1397,15 @@ Cross-object validation不能证明criteria忠实、Rubric清楚或reviewers会�
 - satisfied是否有affirmative basis；
 - violated是否有affirmative violation basis；
 - insufficient是否不会自动变FAIL；
-- not-exercised是否只用于已存在Episode中的untriggered Contract；
+- not-exercised是否只用于已存在Episode中被affirmatively证明未触发的Contract；
+- Contract trigger与Subject required action是否分开；
+- required action absence是否没有被误写成trigger absence；
+- Case / task noncompletion是否没有被压缩成target not-exercised；
 - Outcome / Workflow grading是否匹配；
 - temporal / scope / identity relation是否保持semantic level；
-- absence-of-event是否要求完整observation interval；
+- Artifact / action / interaction absence是否要求完整observation surface / interval；
+- absence of observation是否没有被误写成observation of absence；
+- Evidence insufficiency是否与Grader execution failure分开；
 - Rubric dimensions / anchors是否bounded且Contract-faithful；
 - local ordinal / scalar是否没有变成Metric；
 - Grader atomicity与shared / split是否合理；
@@ -1283,8 +1538,12 @@ Judgment semantics are clear but executable procedure is unknown
 - 写affirmative satisfied basis；
 - 写affirmative violation basis；
 - 写Evidence insufficiency handling；
-- conditional Contract写not-exercised meaning；
-- absence-of-event写完整性前提；
+- conditional Contract先分开trigger与required action，再写not-exercised meaning；
+- 检查Case / task noncompletion不会替代target Contract judgment；
+- Artifact / action / interaction absence写complete observation surface前提；
+- 使用baseline insufficiency checklist，但只保留target相关项目；
+- 分开Evidence insufficiency与Grader execution failure；
+- explanation requirements使用minimum baseline并避免空泛boilerplate；
 - 不写checker。
 
 ### Step 5 — Decide Rubric Need
@@ -1299,6 +1558,8 @@ Judgment semantics are clear but executable procedure is unknown
 - 每个assertion保持一个authoritative Grader coverage；
 - 多个necessary checks放入同一policy；
 - shared policy逐target检查criteria、Evidence、result、Rubric与diagnosis兼容性；
+- 不因shared Evidence source、same tool / Artifact、same Contract family或both critical而自动共享；
+- 不因不同targets使用不同Evidence Spec IDs而自动拆分；
 - 需要独立authoritative results时回查Contract granularity。
 
 ### Step 7 — Write Grader Specifications
@@ -1350,6 +1611,10 @@ GRADERS_BLOCKED
 - 每个target消费完整minimum Evidence Specifications；
 - criteria忠实覆盖Contract semantics；
 - satisfied / violated / insufficient与适用时not-exercised meaning清楚；
+- trigger与required action清楚分开；
+- Artifact / action / interaction absence依赖complete observation surface；
+- Case / task noncompletion没有替代target Contract judgment；
+- Evidence insufficiency与Grader execution failure分开；
 - Rubric在需要时充分、不需要时省略；
 - reviewer consistency可接受；
 - 所有Graders通过三层validation；
@@ -1508,6 +1773,22 @@ Local actual value属于future Grader Result；aggregation、weight与Benchmark 
 
 当前Schema冻结semantic judgment policy，不绑定code、prompt、model、library、selector或execution engine。
 
+### 41.10 One-authoritative-Grader restriction validated
+
+Real method validation已经证明，structured multi-criteria、conditional trigger / required action、multi-Evidence authorization与scope / before-after checks都可以保留在一个authoritative Grader Specification中形成target-level judgment。当前不需要multi-Grader composition、voting、precedence、ensemble或result merger字段。
+
+### 41.11 Multi-target policy reuse validated
+
+Real method validation出现了同一judgment policy应用于多个targets的合法正例。不同targets可以在各自GraderTarget中绑定不同`evidence_spec_ids`；只要criteria、result、insufficiency、explanation与Rubric policy兼容，就不需要因Evidence ID不同而拆分。每个target未来仍产生独立Contract-specific Result。
+
+### 41.12 Insufficiency and explanation fields remain necessary
+
+真实authoring反复需要表达required ES缺失、qualification failure、cross-Evidence relation gap、identity ambiguity与complete-surface requirement，因此`insufficiency_handling`不能并入通用result label。`explanation_requirements`也需要保存target-specific traceability expectation，但可以使用本Guide的baseline template减少boilerplate。
+
+### 41.13 Schema remains unchanged after real validation
+
+Real validation没有证明新增字段必要。特别不增加assertion ID、grader type、failure-mode handling、multi-Grader composition、checker reference、Metric / Gate reference、Runtime Result、score或weight字段。第30节Minimal Schema Proposal保持不变。
+
 ---
 
 ## 42. Method Self-Review
@@ -1560,32 +1841,120 @@ Local actual value属于future Grader Result；aggregation、weight与Benchmark 
 - 为避免failure mode主导verdict，将其限制为supported diagnosis；
 - 为避免LLM/Human自由扩展标准，增加bounded criteria与reviewer-consistency review；
 - 为避免Result data进入Definition，分开result semantics与actual judgment；
-- 为避免Metric/Gate leakage，明确禁止aggregation、weight、score与blocking logic。
+- 为避免Metric/Gate leakage，明确禁止aggregation、weight、score与blocking logic；
+- real validation后，为避免not-exercised吞掉required-action absence，明确分开trigger与required action；
+- 为避免Case / task noncompletion决定target verdict，固定per-target semantic judgment boundary；
+- 为避免Artifact、action或interaction capture gap被当成真实absence，统一Complete Observation Surface Principle；
+- 为避免insufficient吞掉judge implementation failure，分开Evidence insufficiency与Grader execution failure；
+- 为避免explanation boilerplate，增加minimum baseline与target-specific anti-boilerplate rule；
+- 为避免shared policy误判，增加shared-source / same-tool / both-critical negative checks，并允许per-target Evidence IDs不同。
 
-### 42.2 Method Validation Coverage Needed
+### 42.2 Real Method Validation Coverage
 
-在冻结GraderSpecification Schema前，至少需要真实validation检查：
+当前real validation已经覆盖：
 
 - simple Artifact existence / completeness judgment；
 - structured output multi-criteria judgment；
 - Workflow action occurrence judgment；
 - temporal ordering judgment；
 - scope containment / identity relation judgment；
-- conditional Contract与not-exercised meaning；
-- absence-of-event with complete vs incomplete interval；
+- conditional Contract与not-exercised authoring；
+- absence reasoning with complete vs incomplete surface；
 - one target consuming multiple Evidence Specifications；
 - one shared Grader policy applied to multiple targets；
-- a rejected shared-policy counterexample；
-- qualitative Contract requiring Rubric；
-- deterministic Contract not requiring Rubric；
-- local ordinal / scalar without Metric leakage；
-- violation with known failure mode；
-- violation with unresolved mode attribution；
-- Evidence insufficiency vs Grader engine error；
-- Human / LLM reviewer-consistency comparison；
-- one-assertion-one-authoritative-Grader restriction under multi-check Contract。
+- rejected shared-policy counterexamples；
+- deterministic Contract不需要Rubric；
+- violation与failure-mode attribution分离；
+- Evidence insufficiency与Grader execution failure边界；
+- one-assertion-one-authoritative-Grader restriction under multi-check Contract；
+- no Metric、Gate或concrete checker leakage。
 
-这些是future method validation coverage，不是Runtime execution、Grader Result、Metric或Gate PASS。
+Real validation status是：
+
+```text
+GRADERS_READY for validation subset
+```
+
+它不等于production`GRADERS_READY`，也不证明Runtime Result或implementation已经完成。
+
+### 42.3 Future Validation Limitations
+
+以下仍需真实future validation：
+
+- qualitative Contract requiring bounded Rubric；
+- Rubric dimensions / anchors的inter-rater behavior；
+- local ordinal / scalar without Metric leakage；
+- Human / LLM reviewer-consistency comparison；
+- 不同Contracts之间真正共享同一Grader policy的正例；
+- 高隐私、高成本或transformed Evidence条件下的judgment consistency。
+
+这些coverage limitations不构成当前deterministic / bounded semantic method blocker，也不得被误报为已经验证。
+
+### 42.4 Focused Consistency Checks After Hardening
+
+本轮hardening不重跑完整real validation，只复用已经通过的validation conclusions执行以下三个focused checks。
+
+#### A. Conditional not-exercised
+
+抽象Contract：当condition X成立时，Subject必须执行action Y。
+
+| Evidence state | Expected meaning | Check |
+|---|---|---|
+| complete Evidence证明X未发生 | `not_exercised` candidate | PASS |
+| complete Evidence证明X发生但Y未发生 | `violated` candidate | PASS |
+| 无法确认X是否发生 | `insufficient_evidence` | PASS |
+| task整体未完成，但X与Y关系可判 | 独立target judgment + future Case status | PASS |
+
+Hardening没有把required-action absence误写成trigger absence，也没有让task noncompletion自动变not-exercised。
+
+#### B. Absence with complete vs incomplete surface
+
+| Evidence state | Expected meaning | Check |
+|---|---|---|
+| known target identity + complete output surface + healthy capture + required Artifact absent | absence可支持Contract failure semantics | PASS |
+| output collector无法读取目标surface | Evidence insufficiency，不推断Artifact不存在 | PASS |
+| complete interaction interval + action occurred + required authorization absent | absence可支持Contract failure semantics | PASS |
+| participant turn recorder存在关键gap | Evidence insufficiency，不推断Subject未请求 | PASS |
+
+规则保持semantic level，没有增加event index、timestamp、parser或matcher。
+
+#### C. Shared Grader policy reuse
+
+抽象shared policy应用于两个targets：两者judgment、result、insufficiency与explanation policy相同，但各自绑定不同Evidence Specification IDs。
+
+检查结果：
+
+- 不因Evidence IDs不同而强制split：PASS；
+- 每个target仍只消费自己的minimum Evidence set：PASS；
+- shared policy不生成merged verdict：PASS；
+- shared Evidence source、same Artifact或both critical不自动证明sharing：PASS；
+- 每个target未来仍产生独立Contract-specific Result：PASS。
+
+### 42.5 Freeze Readiness
+
+Hardening self-review与三个focused consistency checks均通过：
+
+- no Schema blocker；
+- one-authoritative-Grader restriction stable；
+- satisfied / violated affirmative basis stable；
+- insufficiency boundary stable；
+- not-exercised boundary stable；
+- complete observation surface rule stable；
+- Grader execution failure separated；
+- shared Grader rule stable；
+- failure-mode diagnosis stable；
+- explanation requirements bounded；
+- no Metric leakage；
+- no Gate leakage；
+- no Runtime / checker leakage。
+
+因此：
+
+```text
+GRADER_SPEC_DESIGN_V0_FREEZE_READY: YES
+```
+
+Rubric、ordinal / scalar与actual inter-rater evaluation保留为future validation limitation，不阻止当前v0 method freeze。
 
 ---
 
@@ -1615,7 +1984,12 @@ Local actual value属于future Grader Result；aggregation、weight与Benchmark 
 - [ ] Violated具有affirmative violation basis
 - [ ] Insufficient Evidence没有被写成FAIL
 - [ ] Conditional target的not-exercised meaning清楚
-- [ ] Absence-of-event依赖完整observation interval
+- [ ] Not-exercised来自affirmatively established trigger absence
+- [ ] Trigger absence与required-action absence没有混淆
+- [ ] Case / task noncompletion没有自动变not-exercised
+- [ ] Artifact / action / interaction absence依赖完整observation surface / interval
+- [ ] Absence of observation没有被误写成observation of absence
+- [ ] Evidence insufficiency与Grader execution failure分开
 
 ### Temporal、Scope and Structured Judgment
 
@@ -1640,6 +2014,8 @@ Local actual value属于future Grader Result；aggregation、weight与Benchmark 
 - [ ] Multi-check atomic Contract由一个authoritative policy组合
 - [ ] 没有用Metric组合Contract必要条件
 - [ ] Shared policy对每个target完全兼容
+- [ ] 没有因shared source / tool / Artifact / criticality自动共享
+- [ ] 没有因per-target Evidence IDs不同自动拆分compatible policy
 - [ ] 每个target未来产生Contract-specific Result而非merged verdict
 - [ ] Failure criteria与failure-mode diagnosis分开
 
