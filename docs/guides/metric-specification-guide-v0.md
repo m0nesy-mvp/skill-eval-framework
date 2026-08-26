@@ -19,6 +19,7 @@ Metric Specification回答：
 - Metric semantic identity；
 - aggregation population；
 - Definition-time membership；
+- distinct Result / attempt selection；
 - accepted Grader Result semantics；
 - eligibility与denominator policy；
 - contribution mapping；
@@ -315,6 +316,90 @@ Grader Result是最小可聚合evaluation observation。Metric Specification只�
 
 ---
 
+## 8.1 Result Selection Policy
+
+`result_selection_policy`回答：
+
+> Given the distinct Grader Results associated with one MetricInput within the current Run, which Result observations are selected for this Metric before eligibility and contribution mapping?
+
+它是Definition-time Metric semantics，定义selection intent，不保存actual Episode、attempt或Grader Result identity。Future Runtime负责提供足够actual identity与ordering，以区分same logical Result、duplicate record、distinct Episodes / attempts以及current Run association。
+
+Metric processing的conceptual semantic order固定为：
+
+```text
+1. Resolve explicit MetricInput population
+2. Associate available Grader Results from the current Run
+3. Deduplicate duplicate records of the same logical Grader Result
+4. Apply result_selection_policy
+5. Apply eligibility_policy
+6. Apply contribution_mapping
+7. Map selected contributions to aggregation units
+8. Apply unit_reduction
+9. Apply weighting_policy
+10. Apply aggregation_rule
+11. Apply completeness / empty-denominator policy
+12. Interpret Metric Result
+```
+
+这是方法语义顺序，不是Runtime engine设计。Duplicate logical Result records必须在selection前去重；author不能选择把同一logical Result的重复记录计数两次。Metric Specification不新增`duplicate_handling`字段，Runtime以后必须提供执行该invariant所需的identity evidence。
+
+`result_selection_policy`必须明确：
+
+- selection population；
+- selection basis；
+- 需要ordering时的ordering basis；
+- selected cardinality；
+- required identity或ordering不可用时的behavior；
+- unexpected attempt multiplicity如何处理；
+- selected Result为insufficient、not-exercised或unavailable时是否禁止fallback。
+
+允许的deterministic patterns例如：
+
+```text
+Select all distinct attempt-level Grader Results associated with each MetricInput in the current Run after duplicate logical Result records are removed.
+
+Select the first distinct attempt-level Grader Result for each MetricInput according to the Runtime-provided attempt order.
+
+Select the final distinct attempt-level Grader Result for each MetricInput according to the Runtime-provided attempt order. Do not fall back to an earlier Result when the selected final Result is non-substantive or unavailable.
+```
+
+对于预期只有一个distinct Result的Metric，也必须明确：
+
+> Use the sole distinct Grader Result associated with each MetricInput; if multiple distinct attempts exist, the Metric Definition is not satisfied unless this policy explicitly defines their selection.
+
+禁止模糊selection：
+
+- `use the most relevant attempt`；
+- `use the best result`；
+- `use the final valid result`；
+
+除非`relevant`、`best`或`valid`已有完整、deterministic且不循环依赖Metric judgment的semantics。本轮不设计selector language或concrete selection code。
+
+### Final raw attempt vs final eligible contribution
+
+两者是不同Metric policies：
+
+```text
+Final raw attempt:
+select final distinct raw Result
+→ eligibility
+→ contribution
+```
+
+如果final raw Result是`insufficient_evidence`，不得为了得到数值而回退到earlier satisfied Result。它之后按eligibility与completeness处理。
+
+```text
+Final eligible contribution:
+select all distinct attempts
+→ eligibility
+→ contribution mapping
+→ unit_reduction selects final eligible contribution using preserved attempt order
+```
+
+两种policy可能产生相同numeric value，但contributing-unit count、denominator、coverage与availability可能不同，不能互换。
+
+---
+
 ## 9. Aggregation Unit
 
 Aggregation Unit定义：
@@ -348,16 +433,14 @@ v0不冻结`aggregation_unit` enum。Spec必须用human-readable但deterministic
 
 ---
 
-## 10. Unit-Level Reduction 与 Repeated Results
+## 10. Unit-Level Reduction 与 Selected Contributions
 
-同一个MetricInput在一个Run中可能产生多个Grader Results，例如重复Episodes、retries或stability sampling。Metric必须先定义如何把同一aggregation unit内的eligible observations形成一个unit contribution。
+`unit_reduction`只处理已经经过deduplication、Result Selection、eligibility与contribution mapping的selected eligible contributions。它不得重新隐式决定first raw attempt或final raw attempt；这属于`result_selection_policy`。
 
 `unit_reduction`至少回答：
 
-- 同一input有多个Results时哪些可进入；
-- retries是否独立计数；
-- duplicate Result如何识别与排除；
 - 同一Contract多个Cases如何reduce；
+- 同一aggregation unit内多个selected eligible contributions如何reduce；
 - reduction是mean、worst-case、all-satisfied、proportion还是其他明确规则；
 - unit没有eligible observation时如何处理。
 
@@ -368,7 +451,37 @@ Every produced Grader Result
 = one independent equal sample
 ```
 
-重复执行可能测量stability，也可能只是retry。是否等权必须在Definition-time冻结。
+例如`worst substantive attempt`更稳定的decomposition是：
+
+```text
+result_selection_policy:
+select all distinct attempts
+
+eligibility + contribution mapping
+
+unit_reduction:
+select the worst eligible contribution
+```
+
+如果Benchmark真正要求按raw Result semantic value选择attempt，必须特别审查selection是否与judgment semantics产生循环或隐式耦合，不得临时发明复杂selector language。
+
+重复执行可能测量stability，也可能是replacement retry或其他sample semantics。哪些distinct Results进入后续processing由Result Selection冻结；selected contributions怎样形成unit contribution由Unit Reduction冻结。
+
+### Attempt / Episode Multiplicity Review
+
+Case数量与Episode数量是不同multiplicity dimensions。每个Metric Design至少检查：
+
+1. 每个MetricInput是否可能产生多个distinct Results；
+2. 预期单Result时，policy如何处理unexpected multiplicity；
+3. 多Result时，selection basis与selected cardinality是什么；
+4. selection是否明确发生在eligibility之前；
+5. ordering依据是否由future Runtime提供；
+6. duplicate logical Results是否在selection前去重；
+7. selected Result为insufficient、not-exercised或unavailable时是否允许fallback；
+8. retries代表replacement、samples、stability observations还是其他semantics；
+9. Result selection如何影响denominator、coverage与completeness interpretation。
+
+Attempt / Episode Multiplicity Review属于Design Audit与Semantic Review，不是Core Object，也不保存actual Runtime IDs。
 
 ---
 
@@ -425,6 +538,7 @@ compliance rate
 但只有在Spec明确以下内容时才合法：
 
 - expected population是什么；
+- 每个MetricInput经过`result_selection_policy`选择了哪些distinct Results；
 - unit是什么；
 - 哪些actual Results eligible；
 - unit-level reduction何时发生；
@@ -504,12 +618,15 @@ Metric completeness回答：
 
 Spec必须定义：
 
+- Result selection之后的selected population如何计入coverage；
 - minimum eligible observation requirement；
 - minimum unit coverage；
 - insufficient / not-exercised / unavailable对coverage的影响；
 - partial computation是否允许；
 - partial value如何保持honest interpretation；
 - 哪些gap使Metric unavailable。
+
+Selection完成后，selected Result可能是substantive、not-exercised、insufficient-evidence或unavailable；之后才适用eligibility与completeness。Final raw Result为insufficient时不得隐式fallback到earlier satisfied Result。只有明确选择all distinct attempts并在post-eligibility `unit_reduction`中定义final eligible contribution的Metric，才具有该另一种semantics。
 
 不同Metrics可以选择不同policy：
 
@@ -822,6 +939,8 @@ Metric Specification的`completeness_policy.transparency_requirements`必须要�
 
 - expected population size；
 - actual Grader Results available；
+- distinct Results remaining after duplicate removal；
+- Results selected by `result_selection_policy`与selection coverage；
 - eligible substantive count；
 - excluded not-exercised count；
 - insufficient-evidence count；
@@ -830,6 +949,8 @@ Metric Specification的`completeness_policy.transparency_requirements`必须要�
 - units failing minimum completeness；
 - partial / unavailable interpretation；
 - included Cases或target identities的traceability。
+
+Future Result metadata必须使reviewer能够区分：expected MetricInputs、available raw Results、deduplicated distinct Results、selected Results、eligible contributions与contributing units。相同numeric value但selection coverage不同的Results不具有相同完整语义。
 
 这些是future Metric Result concept metadata requirements，不是Specification中的actual counts，也不意味着自动创建companion Metrics。
 
@@ -842,6 +963,7 @@ v0不引入mandatory Metric Specification Candidate对象或Candidate lifecycle�
 复杂authoring可以使用temporary Working Metric Drafts比较：
 
 - alternate populations；
+- alternate Result selection与Attempt multiplicity semantics；
 - per-target vs per-contract units；
 - eligibility与denominator policies；
 - strict vs partial completeness；
@@ -871,13 +993,15 @@ v0引入轻量、非Core、非authoritative的Metric Specification Design Audit�
 | `purpose_rationale` | 为什么该Metric具有独立Benchmark meaning |
 | `population_rationale` | 为什么选择这些MetricInputs |
 | `membership_exclusions` | 明确排除哪些相似targets及原因 |
+| `result_selection_rationale` | 哪些distinct Results被选择、selection basis与cardinality为何匹配Metric purpose |
 | `aggregation_unit_rationale` | 为什么选择per-target / contract / case或其他derivable unit |
-| `unit_reduction_rationale` | repeated Results与multi-Case unit如何reduce |
+| `unit_reduction_rationale` | selected eligible contributions与multi-Case unit如何reduce |
 | `eligibility_rationale` | 为什么某些meanings进入或退出contribution |
 | `denominator_rationale` | denominator为何匹配Metric interpretation |
 | `contribution_rationale` | mapping为何不改写Grader judgment |
 | `weighting_rationale` | equal / unequal weighting与unit alignment |
 | `case_multiplicity_rationale` | Case count影响是否intentional |
+| `attempt_multiplicity_rationale` | Episode / retry semantics、duplicate invariant、ordering与fallback policy |
 | `completeness_rationale` | partial / unavailable policy为何仍保持解释诚实 |
 | `result_semantics_rationale` | direction、scale与meaning选择 |
 | `comparison_concern` | Benchmark version或Run comparability concern |
@@ -905,6 +1029,7 @@ MetricSpecification:
 - metric_id
 - name
 - inputs: list[MetricInput]
+- result_selection_policy: str
 - aggregation_unit: str
 - eligibility_policy: MetricEligibilityPolicy
 - contribution_mapping: list[MetricContributionRule]
@@ -974,10 +1099,14 @@ MetricResultSemantics:
 | `test_case_id + contract_id` | nested MetricInput | pair定位ExpectedAssertion与authoritative GraderTarget |
 | `grader_id` | 不进入MetricInput | pair可解析Grader；加入会形成双authority并使shared Grader歧义 |
 | selector / query | 不进入v0 | 防止future objects自动加入与query ambiguity |
+| `result_selection_policy` | 必填string | 在eligibility前冻结distinct attempt-level Results的selection intent与cardinality |
+| nested ResultSelectionPolicy / selection enum | 不进入v0 | 当前all / first / final patterns可由exact required string稳定表达；没有证据支持提前冻结enum |
+| Episode / attempt / Result ID或ordering字段 | 禁止 | 属于future Runtime actual identity，不是Metric Definition identity |
+| `duplicate_handling` | 不进入v0 | Duplicate logical Result必须在selection前去重，是correctness invariant，不是author option |
 | `aggregation_unit` | 必填string | unit是Case multiplicity与weighting解释基础；暂不冻结enum |
 | `eligibility_policy` | 必填nested | 必须分开substantive、non-substantive与unavailable inputs |
 | `contribution_mapping` | 非空nested rules | 冻结judgment-to-contribution semantics，不等同checker code |
-| `unit_reduction` | 必填string | 处理multi-Case、repeat、retry与同unit多Results |
+| `unit_reduction` | 必填string | 处理selected eligible contributions、multi-Case与同unit多contributions，不重新选择raw attempts |
 | `aggregation_rule` | 必填string | 冻结deterministic final rule，不用过早enum |
 | `weighting_policy` | 必填string | 禁止implicit Case-count或criticality weighting |
 | `completeness_policy` | 必填nested | 决定partial、unavailable与empty denominator |
@@ -1025,11 +1154,17 @@ M003
 
 必填非空`list[MetricInput]`，pair不得重复。它冻结expected Definition population，不保存Episode或Grader Result IDs。
 
-### 33.4 aggregation_unit
+### 33.4 result_selection_policy
+
+必填非空deterministic string。它在duplicate logical Result records去重后、eligibility之前，定义每个MetricInput选择哪些distinct Results。
+
+Policy必须说明selection population、basis、需要时的ordering basis、selected cardinality以及identity / ordering不可用时的behavior。它不得保存actual Episode、attempt或Result IDs，不得引用`grader_id`，也不得依赖`best`、`relevant`、`valid`等未定义判断。
+
+### 33.5 aggregation_unit
 
 非空string，明确unit identity如何从inputs确定。必须足够deterministic，不能只写`appropriate unit`。
 
-### 33.5 eligibility_policy
+### 33.6 eligibility_policy
 
 必填nested structure：
 
@@ -1039,27 +1174,27 @@ M003
 
 它不冻结全局Result enum，也不保存actual counts。
 
-### 33.6 contribution_mapping
+### 33.7 contribution_mapping
 
 必填非空rules。每个`source_semantics`在同一Metric中不得存在冲突mapping；`contribution_semantics`必须明确value、unit或category meaning。
 
-### 33.7 unit_reduction
+### 33.8 unit_reduction
 
-非空deterministic semantic rule。即使每个input预计只有一个Result，也必须说明duplicate / repeated / unavailable observations如何处理。
+非空deterministic semantic rule。它只处理selection、eligibility与contribution mapping之后的contributions，必须说明同一unit的多个eligible contributions如何形成一个unit contribution以及无eligible contribution时如何处理。它不得再次决定first / final raw attempt。
 
-### 33.8 aggregation_rule
+### 33.9 aggregation_rule
 
 非空、可复核、deterministic。必须说明unit contributions如何形成one Metric Result，并与result semantics一致。
 
-### 33.9 weighting_policy
+### 33.10 weighting_policy
 
 非空。必须说明equal或unequal、weight attachment unit、normalization与omitted units。不得只写`weighted as appropriate`。
 
-### 33.10 completeness_policy
+### 33.11 completeness_policy
 
 四个必填semantics：minimum requirement、partial policy、empty denominator、transparency requirements。它定义availability policy，不保存actual coverage。
 
-### 33.11 result_semantics
+### 33.12 result_semantics
 
 四个非空strings共同定义future Result meaning。对于count Metric，`denominator_meaning`说明count universe或明确denominator不适用，而不能留空。
 
@@ -1077,6 +1212,7 @@ M003
 - `inputs`至少一项；
 - 每个MetricInput包含非空`test_case_id`与`contract_id`；
 - input pairs不重复；
+- `result_selection_policy`非空；
 - `aggregation_unit`非空；
 - eligibility三组fields均非空；
 - contribution mapping至少一项；
@@ -1099,6 +1235,9 @@ M003
 - inputs属于同一个Benchmark Definition version；
 - 没有dangling、stale、cross-Benchmark或validation-only-to-production refs；
 - population没有duplicate entries；
+- result selection policy与MetricInput population兼容；
+- selection policy不保存actual Runtime IDs或引入grader ID authority；
+- selection basis可由future Runtime提供的Result identity、Episode identity、attempt ordering与Run association执行；
 - aggregation units可从inputs deterministic派生；
 - weighting attachment units存在且与aggregation unit一致；
 - Metric Set、Population Review与Audit双向一致；
@@ -1112,6 +1251,11 @@ M003
 - population是否匹配Metric purpose；
 - explicit inputs是否完整且minimum；
 - evaluation types是否兼容；
+- repeated Episode / retry semantics是否明确；
+- duplicate logical Result records是否在selection前去重且不双计；
+- selection是否明确发生在eligibility之前；
+- selection population、basis、cardinality与ordering是否deterministic；
+- selected Result为non-substantive或unavailable时是否没有implicit fallback；
 - eligibility是否不篡改Grader meanings；
 - insufficient evidence是否没有自动变violated / zero；
 - not-exercised handling是否符合Metric purpose；
@@ -1121,13 +1265,15 @@ M003
 - partial policy是否保持honest interpretation；
 - contribution mapping是否清楚；
 - aggregation unit是否有semantic意义；
-- unit reduction是否处理repeat / retry / duplicates；
+- unit reduction是否只处理selected eligible contributions，没有重新选择raw attempts；
 - Case multiplicity是否intentional；
+- Attempt / Episode multiplicity是否intentional；
 - weighting是否显式且unit-aligned；
 - criticality是否没有自动变weight或Gate；
 - binary / ordinal / scalar inputs是否scale-compatible；
 - aggregation rule是否足够deterministic；
 - denominator exclusions是否transparent；
+- denominator、coverage与completeness是否与result selection semantics一致；
 - 是否重新组合单一Contract judgment；
 - 是否泄漏Gate、Overall Score、Scorecard或implementation。
 
@@ -1156,6 +1302,7 @@ Metric Population Review至少记录：
 - required population没有semantic gap；
 - exclusion有清楚rationale；
 - pair均有authoritative Grader coverage；
+- result selection与Attempt / Episode multiplicity semantics明确；
 - aggregation unit、multiplicity与weights不会歪曲population；
 - validation通过。
 
@@ -1180,6 +1327,7 @@ Population Review是working artifact，不是Core Object，也不成为membershi
 - empty-denominator issue；
 - contribution-mapping issue；
 - aggregation-unit issue；
+- result-selection / attempt-multiplicity issue；
 - repeat / retry / duplicate issue；
 - Case multiplicity issue；
 - weighting issue；
@@ -1202,7 +1350,7 @@ Target Evidence or Contract semantics unclear
 Expected population or capability dimension unclear
 → Benchmark Definition / Metric Design issue
 
-Population clear but denominator or aggregation unclear
+Population clear but Result selection, denominator or aggregation unclear
 → Metric Specification Design
 
 Metric value clear but blocking consequence unclear
@@ -1239,45 +1387,66 @@ Metric rule clear but executable calculation unknown
 - 删除future-convenience或无关inputs；
 - 不写selector DSL。
 
-### Step 4 — Choose Aggregation Unit
+### Step 4 — Define Result Selection
+
+- 明确每个MetricInput选择all、first、final或其他deterministic subset；
+- duplicate logical Results在selection前必须去重；
+- 明确ordering basis、selected cardinality与missing identity / ordering behavior；
+- 明确selected insufficient / unavailable Result是否禁止fallback；
+- 执行Attempt / Episode Multiplicity Review；
+- 不保存actual Runtime IDs，不写selector implementation。
+
+### Step 5 — Define Eligibility and Contribution
+
+- 对selected Results分开substantive、non-substantive与unavailable；
+- 写contribution mappings；
+- 不改变Grader Result meaning；
+- 不把insufficient自动映射为violation；
+- 不在eligibility阶段回退到earlier unselected Result。
+
+### Step 6 — Choose Aggregation Unit
 
 - 决定per-target、per-contract、per-case或其他可derivable unit；
 - 执行Case Multiplicity Review；
 - 明确新增Case是否改变weight。
 
-### Step 5 — Define Eligibility and Contribution
+### Step 7 — Define Unit Reduction
 
-- 分开substantive、non-substantive与unavailable；
-- 写contribution mappings；
-- 不改变Grader Result meaning；
-- 不把insufficient自动映射为violation。
-
-### Step 6 — Define Unit Reduction and Aggregation
-
-- 处理repeat / retry / duplicates；
-- 写unit-level reduction；
-- 写exact final aggregation rule；
+- 只处理selected eligible contributions；
+- 写exact unit-level reduction；
+- 不重新决定first / final raw attempt；
 - 不引入Metric→Metric graph。
 
-### Step 7 — Define Weighting and Completeness
+### Step 8 — Define Weighting
 
 - 显式写equal / unequal policy；
-- 保持weight与unit对齐；
-- 写minimum input、partial、empty-denominator与transparency policy。
+- 保持weight与unit对齐。
 
-### Step 8 — Write Metric Specifications
+### Step 9 — Define Final Aggregation
+
+- 写exact final aggregation rule；
+- 明确result scale、direction与denominator meaning；
+- 不引入Metric→Metric graph。
+
+### Step 10 — Define Completeness and Interpretation
+
+- 写minimum input、partial、empty-denominator与transparency policy；
+- 确认selection改变的coverage与denominator被诚实报告；
+- 明确unavailable与zero value的区别。
+
+### Step 11 — Write Metric Specifications
 
 - 分配`Mxxx`；
 - 使用Proposed Schema；
 - 不写actual value、Gate、Overall Score或implementation。
 
-### Step 9 — Build Population Review and Audit
+### Step 12 — Build Population Review and Audit
 
 - 记录included / excluded rationale；
-- 记录unit、multiplicity、weight与completeness rationale；
+- 记录Result selection、Case multiplicity、Attempt multiplicity、unit、weight与completeness rationale；
 - 保留downstream concerns。
 
-### Step 10 — Validate and Determine Status
+### Step 13 — Validate and Determine Status
 
 - Structural / Field Validation；
 - Cross-object Validation；
@@ -1307,6 +1476,11 @@ METRICS_BLOCKED
 - 每个Metric具有独立可解释meaning；
 - population explicit且validated；
 - input pairs均解析到authoritative Grader coverage；
+- result selection policy明确且deterministic；
+- Attempt / Episode multiplicity semantics明确；
+- duplicate handling invariant可由future Runtime identity满足；
+- selection → eligibility → contribution → unit reduction processing order唯一；
+- 没有unresolved retry semantics；
 - eligibility与denominator明确；
 - contribution mapping明确；
 - aggregation unit与unit reduction明确；
@@ -1328,11 +1502,15 @@ METRICS_BLOCKED
 - required Metric dimension未定义；
 - population模糊或依赖Runtime discovery；
 - target pair没有authoritative Grader coverage；
+- result selection population、basis、ordering或cardinality不清；
+- duplicate logical Result可能被双计；
+- final raw attempt与final eligible contribution混淆；
+- selection / eligibility / unit reduction顺序不唯一；
 - denominator无法解释；
 - insufficient被自动当FAIL / 0；
 - no Result与insufficient混淆；
 - Case multiplicity产生unintended weighting；
-- unit reduction或repeat policy不清；
+- unit reduction或Attempt / Episode multiplicity policy不清；
 - weights与unit不一致；
 - empty denominator默认0 / 100%；
 - ordinal / scalar scales不兼容；
@@ -1384,6 +1562,8 @@ Future Metric Result在概念上至少需要关联或表达：
 - actual denominator与coverage metadata；
 - comparison compatibility。
 
+为执行duplicate invariant与`result_selection_policy`，future Runtime还必须提供足够actual identity与ordering，以区分same logical Result、duplicate record、distinct Episodes / attempts、attempt order与current Run association。Metric Specification不保存`episode_id`、`attempt_id`、`grader_result_id`、sequence number或timestamp；这些是downstream Runtime evidence，不是Definition identity。
+
 一个Metric Result只对应一个Run与一个Subject。参与该Result的actual Grader Results必须属于同一Run；跨Run比较可以消费多个已有Metric Results，但不得把不同Runs的Grader Results混成一个Metric Result。
 
 这些actual data都不得写入Metric Specification实例。即使没有eligible inputs，也应产生可追踪的future Result state，而不是让Metric静默消失。
@@ -1428,31 +1608,43 @@ Pair与grader ID同时存在会形成双authority。Grader coverage由Cross-obje
 
 Unit必须进入Metric Specification，但不创建AggregationUnit Core Object。当前用deterministic string表达派生规则，不冻结enum。
 
-### 42.4 Unit reduction is distinct from final aggregation
+### 42.4 Result selection is first-class and precedes eligibility
 
-Repeated Results、multi-Case Contract与retry需要先形成unit contribution；只有`aggregation_rule`无法清楚处理Case multiplicity，因此两者都进入Schema。
+`result_selection_policy`在duplicate logical Results去重后、eligibility之前，冻结每个MetricInput选择哪些distinct attempt-level Results。它关闭final raw attempt与final eligible contribution混淆，但不保存Runtime IDs，也不引入selector language。
 
-### 42.5 Eligibility separates substantive, non-substantive and unavailable
+当前真实validation只证明需要一个required deterministic string；没有证据要求nested ResultSelectionPolicy或selection enum。Future implementation evidence若证明string无法稳定执行，再重新评估结构化representation。
+
+### 42.5 Unit reduction is distinct from Result selection and final aggregation
+
+Unit reduction只处理selection、eligibility与contribution mapping之后的selected eligible contributions；它不再选择first / final raw Result。Multi-Case Contract与同unit多contributions需要先形成unit contribution，随后final aggregation形成Metric Result。
+
+### 42.6 Eligibility separates substantive, non-substantive and unavailable
 
 三类inputs具有不同语义，不能靠一个included-status list或全局default处理。
 
-### 42.6 Completeness requires explicit nested policy
+### 42.7 Completeness requires explicit nested policy
 
 Minimum input、partial、empty denominator与transparency共同决定Metric Result是否仍可解释，不能只放Audit。
 
-### 42.7 No aggregation-method enum
+### 42.8 No aggregation-method enum
 
 真实method需要unit reduction + final rule组合。Human-readable exact rule比不成熟enum更忠实；未来implementation validation可重新评估structured formula representation。
 
-### 42.8 Weighting is explicit but not an upstream field
+### 42.9 Weighting is explicit but not an upstream field
 
 每个Metric必须声明weighting policy。Criticality、Case count与failure severity都不自动成为weight。
 
-### 42.9 No Metric-to-Metric inputs
+真实unequal-weight authoring可能需要future structured unit-weight mapping；当前validation subset不依赖它，因此不在本轮扩Schema。
+
+### 42.10 Completeness threshold structure remains future hardening
+
+Strict、eligible-only与简单partial policy可由current nested strings表达。多个threshold units、operators与logical combinations可能需要future structured clauses；当前validation subset不依赖它，因此不是当前generic blocker。
+
+### 42.11 No Metric-to-Metric inputs
 
 Hierarchical needs通过unit reduction表达；跨Metrics汇总留Overall Score，避免metric graph。
 
-### 42.10 No actual Result fields
+### 42.12 No actual Result fields
 
 Actual value、counts、denominator、included IDs与status属于future Metric Result。
 
@@ -1474,22 +1666,24 @@ Actual value、counts、denominator、included IDs与status属于future Metric R
 | 10. empty denominator是否处理？ | 是。Rate/mean undefined；完整population中的count 0可合法。 |
 | 11. aggregation unit是否必要？ | 是。它决定conceptual contribution、multiplicity与weight attachment。 |
 | 12. Case multiplicity是否显式处理？ | 是。每个Metric必须审查Case count是否intentional weight。 |
-| 13. Contract normalization是否可表达？ | 是。per-contract unit reduction + final aggregation，不重判Episode verdict。 |
-| 14. weighting是否与criticality分离？ | 是。Criticality不自动产生weight或Gate。 |
-| 15. weighting unit是否明确？ | 是。Required `weighting_policy`必须与aggregation unit对齐。 |
-| 16. contribution mapping是否清楚？ | 是。Metric-local mapping不改变Grader meaning。 |
-| 17. binary aggregation是否支持？ | 是。支持明确mapping、rate、count、mean、worst-case等semantic rules。 |
-| 18. ordinal/scalar future边界是否清楚？ | 是。必须scale-compatible；当前不增加专用字段。 |
-| 19. shared Grader target membership是否清楚？ | 是。引用target pair，不引用ambiguous shared grader ID。 |
-| 20. Metric是否足够deterministic？ | 是，要求exact population、eligibility、unit、mapping、reduction、weight与rule。 |
-| 21. Metric Result meaning是否清楚？ | 是。Interpretation、direction、scale、denominator四项必填。 |
-| 22. denominator transparency是否要求？ | 是。Future Result必须说明expected、eligible、excluded、insufficient与unavailable。 |
-| 23. Candidate是否需要？ | 当前不需要mandatory Candidate；Working Draft + Audit足够。 |
-| 24. Audit是否需要？ | 需要非Core Audit保存population、multiplicity、weight与completeness rationale。 |
-| 25. Schema最小字段是什么？ | M ID、name、inputs、unit、eligibility、mapping、reduction、aggregation、weighting、completeness与result semantics。 |
-| 26. 是否泄漏Gate？ | 未泄漏。没有threshold、blocking或Benchmark PASS / FAIL。 |
-| 27. 是否泄漏Scorecard？ | 未泄漏。没有Overall Score、Metric-to-Metric graph或presentation。 |
-| 28. 哪些问题必须真实validation？ | Population authoring、unit reduction、multiplicity、partial/empty policy、unequal weights、ordinal/scalar与result transparency。 |
+| 13. Attempt / Episode multiplicity是否显式处理？ | 是。Result Selection在eligibility前冻结all / first / final等distinct Result subset，Review检查ordering、fallback与coverage影响。 |
+| 14. Duplicate处理是否可配置？ | 否。Same logical Result的duplicate record必须在selection前去重，这是evaluation correctness invariant。 |
+| 15. Contract normalization是否可表达？ | 是。per-contract unit reduction + final aggregation，不重判Episode verdict。 |
+| 16. weighting是否与criticality分离？ | 是。Criticality不自动产生weight或Gate。 |
+| 17. weighting unit是否明确？ | 是。Required `weighting_policy`必须与aggregation unit对齐。 |
+| 18. contribution mapping是否清楚？ | 是。Metric-local mapping不改变Grader meaning。 |
+| 19. binary aggregation是否支持？ | 是。支持明确mapping、rate、count、mean、worst-case等semantic rules。 |
+| 20. ordinal/scalar future边界是否清楚？ | 是。必须scale-compatible；当前不增加专用字段。 |
+| 21. shared Grader target membership是否清楚？ | 是。引用target pair，不引用ambiguous shared grader ID。 |
+| 22. Metric是否足够deterministic？ | 是，要求exact population、Result selection、eligibility、unit、mapping、reduction、weight与rule，并固定processing order。 |
+| 23. Metric Result meaning是否清楚？ | 是。Interpretation、direction、scale、denominator四项必填。 |
+| 24. denominator transparency是否要求？ | 是。Future Result必须说明expected、selected、eligible、excluded、insufficient与unavailable。 |
+| 25. Candidate是否需要？ | 当前不需要mandatory Candidate；Working Draft + Audit足够。 |
+| 26. Audit是否需要？ | 需要非Core Audit保存population、Result selection、Case / Attempt multiplicity、weight与completeness rationale。 |
+| 27. Schema最小字段是什么？ | M ID、name、inputs、result selection、unit、eligibility、mapping、reduction、aggregation、weighting、completeness与result semantics。 |
+| 28. 是否泄漏Gate？ | 未泄漏。没有threshold、blocking或Benchmark PASS / FAIL。 |
+| 29. 是否泄漏Scorecard？ | 未泄漏。没有Overall Score、Metric-to-Metric graph或presentation。 |
+| 30. 哪些问题仍需future validation？ | Structured unequal weights、multi-threshold completeness、ordinal/scalar与large-scale implementation determinism。 |
 
 ### 43.1 Self-review corrections incorporated
 
@@ -1498,7 +1692,10 @@ Actual value、counts、denominator、included IDs与status属于future Metric R
 - 为防止Runtime自动纳入全部Results，采用explicit MetricInput population；
 - 为防止shared Grader引用歧义，target pair不存grader ID；
 - 为防止Case count隐式变importance，强制aggregation unit与Multiplicity Review；
-- 为防止repeat / retry重复计分，单独定义unit reduction；
+- 为防止final raw attempt与final eligible contribution混淆，新增required `result_selection_policy`并固定selection-before-eligibility；
+- 为防止duplicate logical Result重复计分，将deduplication冻结为selection前invariant；
+- 为防止Case与Episode multiplicity混淆，分开Case Multiplicity Review与Attempt / Episode Multiplicity Review；
+- 为防止unit reduction重新选择raw attempts，将其限定为selected eligible contributions的reduction；
 - 为防止insufficient变FAIL，分开substantive、non-substantive与unavailable；
 - 为防止no Result与insufficient混淆，单独定义availability handling；
 - 为防止empty denominator伪造0 / 100%，要求explicit policy；
@@ -1514,7 +1711,7 @@ Actual value、counts、denominator、included IDs与status属于future Metric R
 
 - binary per-target compliance rate；
 - per-contract normalization with unequal Case multiplicity；
-- repeated Episodes与retry reduction；
+- additional repeated Episode semantics beyond all / first / final / worst eligible probes；
 - insufficient / not-exercised exclusions；
 - missing Result与partial Metric；
 - empty denominator；
@@ -1559,10 +1756,22 @@ Actual value、counts、denominator、included IDs与status属于future Metric R
 - [ ] Empty denominator没有默认0 / 100%
 - [ ] Exclusions必须透明报告
 
-### Unit、Multiplicity and Weighting
+### Result Selection and Attempt Multiplicity
+
+- [ ] `result_selection_policy`必填、非空且deterministic
+- [ ] Duplicate logical Result records在selection前去重
+- [ ] Selection population、basis、cardinality与ordering basis明确
+- [ ] Selection明确发生在eligibility之前
+- [ ] Selected non-substantive / unavailable Result没有implicit fallback
+- [ ] Attempt / Episode multiplicity semantics与unexpected multiplicity behavior明确
+- [ ] Future Runtime identity / ordering dependency已记录但没有写入Specification IDs
+- [ ] Result selection对denominator、coverage与completeness的影响透明
+
+### Unit、Case Multiplicity and Weighting
 
 - [ ] Aggregation unit可deterministic派生
-- [ ] Unit reduction处理multi-Case、repeat、retry与duplicate
+- [ ] Unit reduction只处理selected eligible contributions，不重新选择raw attempts
+- [ ] Unit reduction处理multi-Case与同unit多contributions
 - [ ] Case multiplicity影响是intentional
 - [ ] Weighting policy显式且与unit对齐
 - [ ] Criticality没有自动变weight或Gate
@@ -1589,6 +1798,8 @@ Actual value、counts、denominator、included IDs与status属于future Metric R
 - [ ] 没有Overall Score、Scorecard layout或presentation
 - [ ] 没有aggregation code、formula parser或library implementation
 - [ ] Structural / Cross-object / Semantic Validation完成
+- [ ] Selection → eligibility → contribution → unit reduction order唯一
+- [ ] 没有unresolved retry semantics
 - [ ] Spec Set、Population Review与Audit一致
 - [ ] 无unresolved Metric Design Issue
 
