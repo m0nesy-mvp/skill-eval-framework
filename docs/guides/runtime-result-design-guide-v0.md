@@ -1,6 +1,6 @@
 # 《Runtime / Result Design Guide v0》
 
-Status: Method and Schema Proposal — Self-Review Only
+Status: RUNTIME_RESULT_DESIGN_METHOD_READY_FOR_REAL_VALIDATION — Authority Integration Hardened
 
 本文定义从已经冻结的 Benchmark Definition 到 Runtime / Result objects 的通用设计方法，并提出以下八个 Core Objects 的最小 pseudo-schema：
 
@@ -9,7 +9,7 @@ Status: Method and Schema Proposal — Self-Review Only
 
 本文适用于 coding agent、tool-use agent、browser agent、conversational agent、research agent、structured-output agent、local skill、remote service 与 model endpoint，不绑定 Android、HarmonyOS、ADB、Git、本机文件系统或任何 concrete evaluator。
 
-本文不修改已经 frozen 的 Requirement Extraction、Final Requirement Finalization、Contract、Test Case、Evidence Specification、Grader Specification、Metric Specification、Gate Specification或Concept Model。本轮不实现 Pydantic、CLI、collector、grader engine、Metric calculator、Gate evaluator、storage、database、UI或packaging。
+本文正式消费`docs/benchmark-definition-schema-design-v0.2.md`已经定义并完成architecture-level controlled validation的Benchmark Definition authority。本轮不修改该Definition schema，也不修改已经frozen的Requirement Extraction、Final Requirement Finalization、Contract、Test Case、Evidence Specification、Grader Specification、Metric Specification、Gate Specification或Concept Model。本轮不进行Runtime real validation，不实现Pydantic、CLI、collector、grader engine、Metric calculator、Overall calculator、Acceptance evaluator、digest generator、storage、database、UI或packaging。
 
 ---
 
@@ -28,31 +28,53 @@ Runtime / Result Design必须让一次Run至少可以回答：
 9. 哪些预期Results缺失以及发生了什么system / evaluator failure；
 10. Scorecard实际组织了哪些Results，哪些final view具有Definition authority。
 
-本轮完成条件仅为：
+本轮authority-integration hardening完成条件仅为：
 
 - 通用方法；
 - 最小pseudo-schema proposal；
 - Structural、Cross-object、Semantic validation rules；
+- frozen Definition authority consumption rules；
+- OverallScoreOutcome与AcceptanceEvaluation nested derived views；
+- focused cross-document consistency review；
 - Schema Findings、Architecture Findings与Method Self-Review。
 
-本轮不进行真实Runtime validation，不声称Schema已validated或frozen。
+本轮不进行真实Runtime validation，不声称Runtime / Result Schema已real-validated或frozen。
 
 ---
 
 ## 2. Frozen Architecture Baseline
 
-Definition-time authority：
+Runtime / Result Design的直接Definition-time authority是：
 
 ```text
-Benchmark Definition
-→ Requirement
-→ Contract
-→ Test Case
-→ Evidence Specification
-→ Grader Specification
-→ Metric Specification
-→ Gate Specification
+docs/benchmark-definition-schema-design-v0.2.md
 ```
+
+它是以下事项的唯一frozen authority：
+
+- full Benchmark Definition composition；
+- `overall_score_policy`；
+- `acceptance_policy`；
+- complete Frozen Definition Closure；
+- semantic resource bindings；
+- canonicalization与definition digest protocol。
+
+Runtime Guide只消费这些authority，不重新定义Definition-time policy、canonical JSON、collection ordering、decimal normalization、Unicode normalization、SHA-256 protocol或resource binding schema。
+
+Definition layer共有8个Definition-time Core Object types：
+
+```text
+BenchmarkDefinition                     root Core Object
+├── requirements                        Requirement collection
+├── contracts                           Contract collection
+├── test_cases                          Test Case collection
+├── evidence_specifications             Evidence Specification collection
+├── grader_specifications               Grader Specification collection
+├── metric_specifications               Metric Specification collection
+└── gate_specifications                 Gate Specification collection
+```
+
+即：1个root Core Object内部包含7类Core Object collections。不得称为“8 nested Core Object collections”。这是terminology clarification，不是Benchmark Definition v0.2 schema change。
 
 Runtime / Result：
 
@@ -84,17 +106,20 @@ Definition objects
 
 ### 3.1 Definition binding is content-specific
 
-`benchmark_id + benchmark_version`只表示human-readable lineage与declared version，不能独立证明同version内容没有漂移。Run必须同时保存不可变的`definition_digest`。
+`benchmark_id + benchmark_version`只表示human-readable lineage与declared version，不能独立证明同version内容没有漂移。Run必须同时保存closure profile与不可变的`definition_digest`。
 
 ```text
 benchmark_id + benchmark_version
 ≠ sufficient frozen-content identity
 
-benchmark_id + benchmark_version + definition_digest
-= minimum Run binding
+benchmark_id
++ benchmark_version
++ definition_closure_profile
++ definition_digest
+= Frozen Definition binding tuple
 ```
 
-`definition_digest`必须由Definition freeze process对authoritative immutable snapshot产生。它是Run引用的content identity；可选`definition_snapshot_ref`只用于检索，不替代digest。
+`definition_digest`必须按Benchmark Definition v0.2冻结的closure profile与canonical digest protocol产生。它是Run引用的content identity；可选`definition_snapshot_ref`只用于检索与audit，不替代digest。
 
 ### 3.2 One Run, one Subject
 
@@ -126,6 +151,12 @@ Metric calculator failure
 
 Gate evaluator failure
 ≠ INDETERMINATE
+
+Overall calculator failure
+≠ Overall unavailable
+
+Acceptance evaluator failure
+≠ BLOCKED / INDETERMINATE
 ```
 
 System / evaluator failure进入Runtime diagnostics。只有对应semantic evaluation成功完成时才创建authoritative Result object。
@@ -170,6 +201,7 @@ Run是Runtime顶层identity与same-Run referential-integrity boundary，不是Be
 FrozenDefinitionRef:
 - benchmark_id: str
 - benchmark_version: str
+- definition_closure_profile: str
 - definition_digest: str
 - definition_snapshot_ref: str?
 ```
@@ -178,10 +210,11 @@ FrozenDefinitionRef:
 
 - `benchmark_id`：required；Definition lineage authority；
 - `benchmark_version`：required；human-visible declared version；
-- `definition_digest`：required；immutable content identity，建议使用self-describing form，例如`sha256:<hex>`；
+- `definition_closure_profile`：required；必须精确等于`skill-eval-frozen-definition-closure-v0`；
+- `definition_digest`：required；immutable complete content identity，格式必须是`sha256:<64 lowercase hexadecimal characters>`；
 - `definition_snapshot_ref`：optional；可检索snapshot的generic locator，不具有content-identity authority。
 
-Run validation必须确认其加载或执行的Definition内容与`definition_digest`一致。仅比较ID与version不足以形成valid Run。
+Run validation必须按Benchmark Definition v0.2 canonical protocol对loaded Definition重新计算digest，并确认ID、version、profile与digest四者全部匹配。仅比较ID与version不足以形成valid Run；snapshot locator匹配也不能替代digest validation。
 
 ### 4.3 SubjectReference
 
@@ -203,6 +236,8 @@ SubjectReference:
 - `identity_metadata`：optional；只保存resolution / audit所需的small scalar claims，不作为隐藏Subject Schema或任意业务data垃圾桶。
 
 Git commit只是一种合法`version_ref`，不是唯一形式。对于无法提供immutable digest的remote subject，Run仍可记录可观察identity，但reproducibility review必须明确其identity strength与限制。
+
+Subject identity与Definition identity必须保持独立：Definition digest表示“考试规则”content identity；Subject reference / digest表示“被评对象”identity。二者都服务Run reproducibility，但不能互相替代或混用。一个Run始终绑定one Frozen Definition + one Subject。
 
 ### 4.4 RuntimeExecutionContext
 
@@ -264,12 +299,45 @@ RunValidityStatus:
 ```
 
 - `pending`：必要identity与integrity validation尚未完成；
-- `valid`：Definition binding、Subject binding、same-Run references与minimum integrity checks通过，可按各Metric completeness policies形成authoritative evaluation Results；
+- `valid`：Definition binding、semantic resource binding、Subject binding、same-Run references与minimum integrity checks通过，可按各Metric completeness policies形成authoritative evaluation Results，并允许应用frozen Overall / Acceptance policies；
 - `invalid`：Definition digest mismatch、cross-Run contamination、identity ambiguity或其他integrity blocker使本Run不能作为authoritative evaluation record。
 
 `valid`不表示execution complete。一个`partial + valid` Run可以合法产生partial/unavailable Metric Results，只要Definition policy允许并完整披露coverage。`completed + invalid`同样可能存在，例如执行结束后发现Definition snapshot与digest不一致。
 
-### 4.7 Run timestamps
+Definition binding或external semantic resource digest mismatch必须：
+
+```text
+Run validity = invalid
++ RuntimeDiagnostic(phase=definition_binding)
+```
+
+不得fallback到ID/version、自动更新digest、自动接受loaded Definition、创建Gate Result或创建Contract violation。Integrity mismatch不是evaluation semantic。
+
+### 4.7 Runtime authority precedence
+
+Runtime processing authority固定为：
+
+```text
+Definition binding / integrity
+↓
+Run validity
+↓
+Result inventory
+↓
+Overall Score policy application
+↓
+Acceptance policy application
+↓
+Scorecard finalization
+```
+
+Authoritative Overall Score与authoritative whole-benchmark Acceptance只允许在`validity_status=valid`时产生。
+
+`invalid` Run允许保留Episodes、Artifacts、Evidence、Grader Results、Metric Results、Gate Results、diagnostics与audit Scorecard inventory，但这些不能发布为authoritative final evaluation view。它必须记录Overall / Acceptance为`not_produced_run_invalid`，而不是将invalid改写为`BLOCKED`、Gate `TRIGGERED`或Metric `unavailable`。
+
+`pending` Run可以具有intermediate Runtime objects与interim Scorecard，但不得形成finalized authoritative Overall / Acceptance，也不得让Scorecard表示evaluation complete。不得假设pending最终一定valid。
+
+### 4.8 Run timestamps
 
 保留最小audit timestamps：
 
@@ -279,7 +347,7 @@ RunValidityStatus:
 
 时间戳不得作为attempt ordering、duplicate identity或Result authority。
 
-### 4.8 Minimal Run schema
+### 4.9 Minimal Run schema
 
 ```text
 Run:
@@ -582,7 +650,7 @@ RuntimeDiagnostic:
 - diagnostic_id: str
 - run_id: str
 - episode_id: str?
-- phase: environment | collection | grading | metric | gate | orchestration
+- phase: definition_binding | environment | collection | grading | metric | gate | scorecard | orchestration
 - code: str
 - message: str
 - related_object_refs: list[ObjectRef]
@@ -598,9 +666,13 @@ RuntimeDiagnostic:
 - Metric calculator failure；
 - Gate evaluator failure；
 - orchestration error；
-- identity / integrity validation concern。
+- Definition / semantic resource binding mismatch；
+- identity / integrity validation concern；
+- Overall / Acceptance production engine failure。
 
 Diagnostic可以被Run、Episode与Scorecard引用，但不能被Metric或Gate偷偷当作Contract semantic input，除非未来Definition明确建立合法execution-status vocabulary与condition authority。
+
+`definition_binding`是Definition与external semantic resource integrity的最小专用phase。`scorecard`覆盖Overall calculator与Acceptance evaluator production；v0不再为每个nested derived view扩展独立phase enum。System failure不得伪装为Overall semantic unavailable或Acceptance semantic。
 
 ---
 
@@ -971,12 +1043,13 @@ GateResult:
 
 ### 12.1 Role
 
-Scorecard是一个Run的Result-layer top-level summary与traceability entrypoint。它组织已有Results，不重新grade、不重新aggregate Metric internals、不重新evaluate Gates。
+Scorecard是一个Run的Result-layer top-level summary与traceability entrypoint。它组织已有Results，并记录由Runtime policy-application layer依据Frozen Benchmark Definition产生的nested derived views；它自身不重新grade、不重新计算Metric internals、不重新evaluate Gates，也不发明或执行隐藏的Overall / Acceptance policy。
 
 ```text
 Scorecard
 ≠ hidden evaluator
 ≠ hidden Overall aggregation policy
+≠ hidden Acceptance policy
 ≠ cross-Run comparison object
 ```
 
@@ -1003,53 +1076,218 @@ Inventory既列出存在的authoritative Results，也明确预期但缺失的ap
 
 Case Summary与Contract Summary可以由这些refs派生或缓存，但不是新的authoritative Core Results，也不能覆盖target-specific Grader Results。
 
-### 12.3 Overall Score boundary
+### 12.3 Frozen policy reference
 
-Overall Score只能在Frozen Benchmark Definition含有明确Overall aggregation policy时出现。最低要求是Scorecard能够保存：
+Overall与Acceptance都通过同一最小nested reference绑定Frozen Definition authority：
 
 ```text
-OverallScoreView:
-- policy_ref: str
-- canonical_value: number
-- included_metric_result_ids: list[str]
-- excluded_metric_result_ids: list[str]
+DefinitionPolicyRef:
+- definition_digest: str
+- policy_path: /overall_score_policy | /acceptance_policy
+```
+
+`definition_digest`必须等于Run的FrozenDefinitionRef digest。`policy_path`是fixed canonical path，不是自由JSON Pointer，也不创建独立OverallScorePolicy或AcceptancePolicy ID。
+
+### 12.4 OverallScoreOutcome
+
+Overall Score不再是裸numeric optional field，而是Scorecard nested derived view：
+
+```text
+OverallEvaluationStatus:
+- disabled
+- available
+- unavailable
+- not_produced_run_pending
+- not_produced_run_invalid
+- production_failed
+
+OverallScoreOutcome:
+- policy_ref: DefinitionPolicyRef
+- evaluation_status: OverallEvaluationStatus
+- canonical_value: decimal?
+- contribution_traces: list[OverallMetricContributionTrace]
+- total_selected_weight: decimal?
+- available_weight: decimal?
+- available_weight_fraction: decimal?
+- minimum_required_weight_fraction: decimal?
+- final_included_denominator: decimal?
+- unavailable_reason: OverallUnavailableReason?
+- explanation: str
+
+OverallMetricContributionTrace:
+- metric_id: str
+- weight: decimal
+- metric_result_id: str?
+- application_state: available | unavailable | missing
+- policy_handling: included | overall_unavailable | exclude_and_renormalize
+- normalized_value: decimal?
+- weighted_contribution: decimal?
+- exclusion_reason: str?
+
+OverallUnavailableReason:
+- participating_metric_unavailable
+- participating_metric_missing
+- available_weight_below_minimum
+- empty_included_set
+```
+
+`OverallScoreOutcome`不是第17个Core Object，没有独立authoritative identity；它由`run_id + policy_ref`确定，并嵌套在Scorecard中。
+
+Conditional rules：
+
+- `disabled`：valid Run且policy mode为disabled；禁止canonical value、weight fields与contribution traces；
+- `available`：valid Run且weighted policy成功产生canonical value；要求complete traces、weight fields与value；
+- `unavailable`：valid Run且policy正常求值得出semantic unavailable；禁止canonical value，要求policy reason、trace与coverage fields；
+- `not_produced_run_pending`：Run pending；没有final authoritative value或semantic unavailable；
+- `not_produced_run_invalid`：Run invalid；没有authoritative Overall semantic；
+- `production_failed`：valid Run进入policy application后，Overall calculator发生system failure；禁止canonical value与semantic unavailable reason，必须关联`RuntimeDiagnostic(phase=scorecard)`。
+
+### 12.5 Overall disabled, available and unavailable
+
+当`overall_score_policy.mode=disabled`时，Scorecard必须显式记录`evaluation_status=disabled`。不得平均所有Metrics、输出0、使用ambiguous null或报告calculator failure。
+
+当`mode=weighted_normalized_mean`时，Runtime只消费Frozen policy显式列出的Metric IDs、actual canonical Metric Result values、normalization、cross-Metric weights、unavailable / missing handling与minimum coverage。
+
+`display_value`、UI percentage与formatted number永远不能参与Overall。Metric内部weighting也不能冒充cross-Metric weight。Runtime引用Benchmark Definition v0.2公式，不在本Guide重新定义formula或rounding protocol。
+
+必须保持：
+
+```text
+MetricResult exists + unavailable
+≠ expected MetricResult missing
+≠ Overall calculator failure
+```
+
+如果frozen policy得出Overall unavailable，`OverallScoreOutcome`仍然存在并使用`evaluation_status=unavailable`，但不含`canonical_value`。不得用0、NaN或ambiguous null表示。
+
+### 12.6 Exclude-and-renormalize trace
+
+使用`exclude_and_renormalize`时，contribution traces与weight fields必须共同证明：selected Metric IDs、available Metric Result IDs、excluded unavailable Metric Result IDs、missing Metric applications、each cross-Metric weight、normalized contributions、available weight fraction、minimum required fraction与final included denominator。
+
+Trace只引用Metric Result ID与必要derived numbers，不复制完整Metric Results。Missing application没有Metric Result ID。
+
+### 12.7 Overall engine failure boundary
+
+```text
+Overall calculator implementation failure
+→ OverallScoreOutcome.evaluation_status = production_failed
++ RuntimeDiagnostic(phase=scorecard)
+→ no authoritative Overall available / unavailable semantic
+```
+
+`scorecard` phase足以覆盖nested Overall production，不增加独立`overall` phase。Engine crash、timeout、bug或invocation failure不能成为Metric unavailable、Overall unavailable或canonical value 0。
+
+### 12.8 AcceptanceEvaluation
+
+Whole-benchmark acceptance不再是裸optional status，而是Scorecard nested derived view：
+
+```text
+AcceptanceEvaluationStatus:
+- disabled
+- produced
+- not_produced_run_pending
+- not_produced_run_invalid
+- production_failed
+
+AcceptanceSemantic:
+- ACCEPTABLE
+- BLOCKED
+- INDETERMINATE
+
+AcceptanceEvaluation:
+- policy_ref: DefinitionPolicyRef
+- evaluation_status: AcceptanceEvaluationStatus
+- acceptance: AcceptanceSemantic?
+- gate_contributions: list[AcceptanceGateContributionTrace]
+- explanation: str
+
+AcceptanceGateContributionTrace:
+- gate_id: str
+- gate_result_id: str?
+- application_state: OPEN | TRIGGERED | INDETERMINATE | MISSING
+- policy_handling: open | actual_triggered | overall_indeterminate | overall_blocked
+- propagation_outcome: no_block | blocked | indeterminate
 - explanation: str
 ```
 
-但当前frozen Definition-time objects中没有独立OverallScoreSpecification，也没有已冻结的Benchmark-level Overall aggregation policy Schema。Metric内部weighting不能冒充跨Metrics的Overall weight。
+`AcceptanceEvaluation`不是Core Object，也没有独立authoritative identity；它由`run_id + policy_ref`确定。`acceptance`只在`evaluation_status=produced`时存在，并且只能是`ACCEPTABLE | BLOCKED | INDETERMINATE`。禁止PASS、FAIL、INVALID或NOT_EVALUABLE。
 
-因此当前规则是：
+Conditional rules：
 
-- 没有可解析frozen `policy_ref` → `overall_score`必须absent；
-- 不允许默认平均所有Metrics；
-- 不允许Metric unavailable时自行re-normalize；
-- 不允许Gate TRIGGERED自动把Overall Score改成0；
-- `overall_score` absent不表示0或计算失败，只表示缺少Definition authority。
+- `disabled`：valid Run且policy mode为disabled；禁止acceptance与gate contributions；
+- `produced`：valid Run且gate-based evaluation完成；要求acceptance与complete gate traces；
+- `not_produced_run_pending`：Run pending；禁止acceptance；
+- `not_produced_run_invalid`：Run invalid；禁止acceptance；
+- `production_failed`：valid Run进入Acceptance application后implementation失败；禁止acceptance，要求`RuntimeDiagnostic(phase=scorecard)`。
 
-### 12.4 Gate and final acceptability boundary
+Acceptance production failure不是BLOCKED或INDETERMINATE semantic，也不得fabricate Gate Result。
 
-Gate Result与Overall Score独立。合法Scorecard可以同时表达：
+### 12.9 Acceptance disabled and gate-based
+
+当`acceptance_policy.mode=disabled`时，valid Run必须显式记录`evaluation_status=disabled`。Valid Run不会自动变成ACCEPTABLE；合法zero-Gate Benchmark也不使用vacuous truth产生ACCEPTABLE。这正式消费Benchmark Definition v0.2删除`validity_only`的决定。
+
+当`mode=gate_based`时，Runtime只消费`participating_gates`显式列出的Gate IDs及其actual Gate Results。不得自动读取all Gates、使用Gate scope或name selector、重新evaluate Gate，或回读Metric、Grader、Evidence来重建Gate semantic。
+
+每个participating Gate application只能分类为`OPEN | TRIGGERED | INDETERMINATE | MISSING`。
+
+### 12.10 Acceptance propagation and scope
+
+对valid Run，传播precedence固定为：
 
 ```text
-Overall Score = high
-Gate Result = TRIGGERED
+any actual TRIGGERED
+→ BLOCKED
+
+otherwise any INDETERMINATE/MISSING mapped to overall_blocked
+→ BLOCKED
+
+otherwise any INDETERMINATE/MISSING mapped to overall_indeterminate
+→ INDETERMINATE
+
+otherwise all participating Gate Results exist and are OPEN
+→ ACCEPTABLE
 ```
 
-`TRIGGERED`使Gate declared scope不可接受并且non-offsettable，但多个scoped Gates如何形成whole-benchmark `acceptable / blocked / indeterminate`尚缺Definition-level aggregation authority。
+Explanation与trace必须区分actual `GateResult=TRIGGERED`导致blocked，以及AcceptancePolicy把INDETERMINATE或MISSING fail-closed映射为blocked。
 
-因此当前Scorecard不得自行添加authoritative`overall_status`或`acceptability_status`。只有未来存在明确frozen acceptance policy时，才允许：
+Missing application只有expected `gate_id`、MISSING state与policy handling，没有`gate_result_id`。不得fabricate `GateResult(INDETERMINATE)`。
+
+`Gate.scope`定义local blocking scope；只有`gate_id ∈ acceptance_policy.participating_gates`时，该Gate才传播到whole Benchmark。Runtime不得看到任意Gate TRIGGERED就自动推导Benchmark BLOCKED。
+
+Gate evaluator failure保持：
 
 ```text
-OverallAcceptabilityView:
-- policy_ref: str
-- status: acceptable | blocked | indeterminate
-- gate_result_ids: list[str]
-- explanation: str
+no GateResult
++ RuntimeDiagnostic(phase=gate)
+→ participating application state = MISSING
+→ apply frozen missing_result_handling
 ```
 
-没有`policy_ref`时，Scorecard只能逐项展示Gate Results及其scope，不能推导whole-benchmark PASS / FAIL。
+这允许AcceptancePolicy对required result absence fail closed，但engine failure本身没有被转换为Gate semantic。
 
-### 12.5 Minimal Scorecard schema
+### 12.11 Overall and Acceptance independence
+
+AcceptancePolicy不消费Overall Score。Runtime不得添加Overall threshold：
+
+```text
+Overall = 0.95
++ participating Gate TRIGGERED
+→ Overall remains 0.95
+→ Acceptance BLOCKED
+
+low Overall
++ all participating Gates OPEN
+→ Acceptance ACCEPTABLE
+```
+
+### 12.12 Scorecard finalization and minimal schema
+
+```text
+ScorecardFinalizationStatus:
+- interim
+- finalized_evaluation
+- finalized_audit
+```
 
 ```text
 Scorecard:
@@ -1059,14 +1297,23 @@ Scorecard:
 - subject_ref: SubjectReference
 - result_inventory: ScorecardResultInventory
 - diagnostic_ids: list[str]
-- overall_score: OverallScoreView?
-- overall_acceptability: OverallAcceptabilityView?
-- finalized_at: datetime
+- overall_score_outcome: OverallScoreOutcome
+- acceptance_evaluation: AcceptanceEvaluation
+- finalization_status: ScorecardFinalizationStatus
+- finalized_at: datetime?
 ```
 
-`definition_ref`与`subject_ref`是Run identity的traceable copy，必须完全等于Run中的authoritative refs，不能成为第二套authority。
+Rules：
 
-在当前architecture下，两个optional overall fields都受Architecture Findings阻塞；Scorecard inventory、diagnostics与per-Result traceability不受阻。
+- pending Run只能使用`interim`，两个nested views分别为`not_produced_run_pending`；
+- valid Run只有在Overall处于`disabled | available | unavailable`且Acceptance处于`disabled | produced`时，才可使用`finalized_evaluation`；
+- valid Run若任一nested view为`production_failed`，可以在保留diagnostics后使用`finalized_audit`，但不能声称final evaluation complete；
+- invalid Run可以使用`finalized_audit`，两个nested views分别为`not_produced_run_invalid`；
+- `finalized_at`只在两个finalized states存在；
+- Scorecard finalized不等于evaluation valid；
+- `definition_ref`与`subject_ref`是Run refs的traceable copy，必须完全相等，不能成为第二套authority。
+
+Scorecard最终只组织Run identity、Frozen Definition identity、Subject identity、Episode inventory、Grader / Metric / Gate Results、missing expected applications、diagnostics、OverallScoreOutcome与AcceptanceEvaluation。它不得regrade、recompute Metric internals、reevaluate Gate、invent policies或cross-Run compare。
 
 ---
 
@@ -1081,6 +1328,10 @@ Scorecard:
 | Metric Result | `(run_id, metric_id)` |
 | Gate Result | `(run_id, gate_id)` |
 | Scorecard | `run_id` |
+| OverallScoreOutcome | nested only；derived by `(run_id, definition_digest, /overall_score_policy)` |
+| AcceptanceEvaluation | nested only；derived by `(run_id, definition_digest, /acceptance_policy)` |
+
+OverallScoreOutcome与AcceptanceEvaluation没有独立ID、独立storage identity或Core Object status。它们随Scorecard保持one-per-Run derived uniqueness。
 
 ### 13.2 Immutable v0 policy
 
@@ -1101,8 +1352,12 @@ Authoritative Runtime / Result objects一旦finalized不得in-place mutate。
 ### 14.1 Run and Definition
 
 - Run只引用一个Frozen Definition；
-- ID、version与digest全部匹配；
+- ID、version、closure profile与digest全部匹配；
+- profile必须是`skill-eval-frozen-definition-closure-v0`；
+- loaded Definition按v0.2 protocol重新计算的digest必须匹配Run ref；
+- external semantic resource content digests必须匹配v0.2 bindings；
 - digest mismatch使Run invalid，即使execution completed；
+- Definition或resource integrity mismatch只产生validity finding + definition-binding diagnostic，不产生Contract、Metric或Gate semantic；
 - Scorecard definition ref必须完全等于Run ref。
 
 ### 14.2 Episode
@@ -1155,7 +1410,11 @@ Authoritative Runtime / Result objects一旦finalized不得in-place mutate。
 - listed Results与Episodes属于same Run；
 - authoritative Result set没有duplicate IDs；
 - expected but missing Result applications显式进入missing inventory；
-- optional overall views必须有可解析frozen policy authority。
+- two policy refs必须使用Run definition digest与fixed canonical path；
+- Overall contribution Metric refs全部属于same Run并匹配explicit policy membership；
+- Acceptance Gate refs全部属于same Run并匹配explicit participating Gates；
+- finalization status与Run validity一致；
+- invalid / pending Run没有authoritative Overall或Acceptance semantic。
 
 ---
 
@@ -1176,13 +1435,19 @@ Authoritative Runtime / Result objects一旦finalized不得in-place mutate。
 - Evidence qualification只有qualified / passed fixed values；
 - Metric available / unavailable field combinations合法；
 - Gate Result / evaluation path / trigger source组合合法；
-- Scorecard optional overall view具有policy ref。
+- FrozenDefinitionRef profile与digest格式合法；
+- RuntimeDiagnostic phase使用bounded enum；
+- Overall evaluation status与conditional value / trace / reason fields一致；
+- Acceptance evaluation status与conditional acceptance / trace fields一致；
+- policy path只允许两个frozen canonical paths；
+- Scorecard finalization status与`finalized_at`组合合法。
 
 ### 15.2 B. Cross-object Validation
 
 至少检查：
 
-- Run Definition ID / version / digest解析与匹配；
+- Run Definition ID / version / profile / digest解析与匹配；
+- external semantic resource digests匹配Definition bindings；
 - exactly one Subject ref；
 - Episode Test Case存在；
 - attempt ordering unique、stable且不由timestamp推导；
@@ -1193,6 +1458,10 @@ Authoritative Runtime / Result objects一旦finalized不得in-place mutate。
 - Metric population、selected Results与same-Run closure；
 - Gate source condition与actual Result refs一致；
 - Scorecard包含全部实际authoritative Results且显式记录expected missing applications；
+- Overall只引用explicit selected Metric Results并使用canonical values；
+- Acceptance只引用explicit participating Gate Results；
+- Overall / Acceptance policy refs解析到Run绑定Definition；
+- invalid / pending Run production status与validity一致；
 - 不存在cross-Run Result aggregation。
 
 ### 15.3 C. Semantic Validation
@@ -1212,8 +1481,17 @@ Authoritative Runtime / Result objects一旦finalized不得in-place mutate。
 - Gate INDETERMINATE与engine failure分开；
 - Gate condition trigger与unavailable-policy trigger可解释；
 - Gate OPEN没有被解释为whole Benchmark PASS；
-- Overall Score没有隐藏aggregation authority；
-- whole-benchmark acceptability没有从scoped Gates被擅自推导；
+- Overall disabled、available、unavailable、run-invalid、run-pending与production failure分开；
+- Metric unavailable、Metric missing与Overall engine failure没有混用；
+- Overall只消费Frozen Definition v0.2 policy，没有隐藏aggregation authority；
+- Acceptance disabled不会把valid Run变成ACCEPTABLE；
+- whole-benchmark acceptance只从explicit participating Gates传播；
+- Gate MISSING没有被伪造成INDETERMINATE Result；
+- actual Gate trigger与policy fail-closed explanation可区分；
+- Overall与Acceptance保持独立；
+- invalid Run没有被解释为BLOCKED；
+- Scorecard finalized没有被解释为Run valid；
+- Definition / resource digest mismatch没有进入evaluation semantics；
 - duplicate identity没有按payload equality判断；
 - cross-Run comparison没有污染单Run Result。
 
@@ -1223,11 +1501,11 @@ Authoritative Runtime / Result objects一旦finalized不得in-place mutate。
 
 ### Step 1 — Verify frozen inputs
 
-确认Concept Model以及Requirement、Contract、Test Case、Evidence、Grader、Metric、Gate Definition designs当前有效。任何upstream concern只记录Finding，不回改frozen Guide。
+确认Benchmark Definition v0.2以及Concept Model、Requirement、Contract、Test Case、Evidence、Grader、Metric、Gate Definition designs当前有效。Runtime只引用Definition authority；任何upstream concern只记录Finding，不回改frozen Guide。
 
 ### Step 2 — Establish Run identity
 
-绑定Definition ID / version / digest与exactly one Subject；定义execution context、status、validity与timestamps。
+绑定Definition ID / version / closure profile / digest与exactly one Subject；验证external semantic resources；定义execution context、status、validity与timestamps。
 
 ### Step 3 — Establish attempt model
 
@@ -1249,13 +1527,13 @@ Authoritative Runtime / Result objects一旦finalized不得in-place mutate。
 
 固定OPEN / TRIGGERED / INDETERMINATE、evaluation path、source refs、condition summary与engine-failure boundary。
 
-### Step 8 — Establish Scorecard inventory
+### Step 8 — Establish Scorecard views
 
-组织Run Results、missing applications与diagnostics；只在存在frozen policy authority时允许Overall或acceptability view。
+组织Run Results、missing applications与diagnostics；按Run validity与Frozen policies形成status-aware OverallScoreOutcome、AcceptanceEvaluation和evaluation/audit finalization。
 
 ### Step 9 — Validate
 
-执行Structural、Cross-object、Semantic三层validation，建立real validation subset，记录Schema / Architecture Findings。
+执行Structural、Cross-object、Semantic三层method checks与focused consistency review，记录Schema / Architecture Findings；本轮不执行real validation subset。
 
 ### Step 10 — Determine status and stop
 
@@ -1265,25 +1543,28 @@ Authoritative Runtime / Result objects一旦finalized不得in-place mutate。
 
 ## 17. Design Status
 
-Production method status只允许：
+当前method-stage status只允许：
 
 ```text
-RUNTIME_RESULT_DESIGN_READY
 RUNTIME_RESULT_DESIGN_BLOCKED
+RUNTIME_RESULT_DESIGN_METHOD_READY_FOR_REAL_VALIDATION
 ```
 
-### 17.1 RUNTIME_RESULT_DESIGN_READY
+### 17.1 RUNTIME_RESULT_DESIGN_METHOD_READY_FOR_REAL_VALIDATION
 
 只有以下条件全部满足才允许：
 
-- eight Core Object schemas与nested records通过三层validation；
-- immutable Definition binding协议可执行；
+- eight Core Object schemas与nested records完成method-level三层consistency review；
+- immutable Definition binding protocol已被Runtime Design完整消费；
 - Subject identity足以审计；
 - all execution / semantic failure boundaries稳定；
 - Result uniqueness与same-Run integrity稳定；
 - Scorecard所有authoritative final views都有frozen Definition authority；
-- no unresolved blocking Schema or Architecture Finding；
-- 至少一个representative real validation subset通过。
+- Architecture Findings的authority已被Runtime Design消费；
+- no unresolved generic method blocker；
+- representative real validation coverage已经明确。
+
+该status表示method已经适合进入下一阶段真实validation，不表示真实validation通过、implementation ready或design frozen。
 
 ### 17.2 RUNTIME_RESULT_DESIGN_BLOCKED
 
@@ -1298,7 +1579,7 @@ RUNTIME_RESULT_DESIGN_BLOCKED
 - Scorecard被要求产生whole-benchmark acceptability但无acceptance authority；
 - two conforming implementations可能产生不同authoritative Result。
 
-### 17.3 Validation subset wording
+### 17.3 Reserved post-validation wording
 
 只有真实subset validation通过时才可写：
 
@@ -1310,21 +1591,17 @@ RUNTIME_RESULT_DESIGN_READY for validation subset
 
 ### 17.4 Current v0 status
 
-本轮只完成method + Schema Proposal + Self-Review，没有执行真实Runtime validation，因此不声明READY或freeze。
+本轮完成Definition authority integration、nested Scorecard views、focused consistency review与Self-Review，没有执行真实Runtime validation，因此不声明`RUNTIME_RESULT_DESIGN_READY`或freeze。
 
-对于“完整八对象设计可否进入freeze”的当前结论是：
+当前结论是：
 
 ```text
-RUNTIME_RESULT_DESIGN_BLOCKED
+RUNTIME_RESULT_DESIGN_METHOD_READY_FOR_REAL_VALIDATION
 ```
 
-blocking scope仅为：
+原有Overall authority、Acceptance authority与canonical digest protocol三个generic blockers已经由Benchmark Definition v0.2提供authority，并被本Guide正式消费。本轮未发现新的generic method blocker。
 
-- Scorecard Overall Score authority；
-- Scorecard whole-benchmark acceptability authority；
-- Definition digest production / verification protocol仍需真实validation。
-
-这些finding不阻止Run、Episode、Artifact、Evidence、GraderResult、MetricResult、GateResult以及Scorecard result-inventory部分进入后续validation subset；但在findings关闭前，不得把完整Runtime / Result v0称为frozen。
+仍未完成：Runtime real validation、digest implementation conformance validation、Runtime binding validation、calculator / evaluator implementation validation。因此本Guide仍不是`RUNTIME_RESULT_DESIGN_READY`，也不是`RUNTIME_RESULT_DESIGN_FROZEN`。
 
 ---
 
@@ -1332,7 +1609,7 @@ blocking scope仅为：
 
 ### SF-RR-001 — Definition digest is required
 
-`benchmark_id + version`不足以防止same-version content drift。Run必须保存required `definition_digest`；snapshot locator只能辅助检索。
+`benchmark_id + version`不足以防止same-version content drift。Run必须保存required closure profile与`definition_digest`；snapshot locator只能辅助检索。Runtime必须conform to Benchmark Definition v0.2 protocol，不在本Guide复制canonical rules。
 
 ### SF-RR-002 — Subject is a nested hybrid reference
 
@@ -1394,97 +1671,122 @@ Expected、raw、distinct、selected、eligible、NE、insufficient、unavailabl
 
 当前不增加revision / supersession fields。Regrade-without-reexecution作为future validation limitation记录，不提前设计event sourcing。
 
+### SF-RR-017 — Overall is a status-aware nested derived view
+
+裸optional numeric无法区分disabled、semantic unavailable、Run invalid/pending与production failure。OverallScoreOutcome显式保存production state、canonical value条件、policy ref与bounded contribution trace，但不成为新Core Object。
+
+### SF-RR-018 — Acceptance is separate from Run validity
+
+AcceptanceEvaluation只消费Frozen AcceptancePolicy与explicit participating Gate Results。Disabled不会让valid Run自动ACCEPTABLE；invalid Run也不会变成BLOCKED。
+
+### SF-RR-019 — Missing and engine failure remain non-semantic facts
+
+Missing Metric / Gate application使用absence + trace表达；calculator / evaluator crash使用RuntimeDiagnostic表达。Policy可以对absence fail closed，但不能fabricate Result semantic。
+
+### SF-RR-020 — Scorecard finalization has evaluation and audit forms
+
+`finalized_evaluation`与`finalized_audit`分开，使invalid Run可以产生完整audit inventory，同时禁止authoritative Overall / Acceptance。Scorecard finalized不再被误解为Run valid。
+
+### SF-RR-021 — Two derived views reuse digest plus canonical path
+
+`definition_digest + /overall_score_policy`或`definition_digest + /acceptance_policy`已经足以绑定authority，无需增加独立policy ID、Overall Core Object或Acceptance Core Object。
+
 ---
 
 ## 19. Architecture Findings
 
-### AF-RR-001 — Overall Score lacks frozen Definition-time authority
-
-当前Concept Model把Overall Score定义为Scorecard中的derived value，并提到Overall Aggregation Policy；但已冻结Definition-time object schemas没有独立OverallScoreSpecification，也没有已经冻结的Benchmark-level aggregation policy Schema。
-
-因此无法权威决定：
-
-- 哪些Metric Results进入Overall；
-- cross-Metric weights；
-- scale与precision；
-- unavailable Metric处理；
-- re-normalization；
-- Overall disabled semantics。
-
-Classification：`ARCHITECTURE_GAP`。
-
-Impact：blocks OverallScoreView freeze and complete eight-object Runtime / Result freeze；does not block Runtime core、individual Results或Scorecard inventory validation。
-
-禁止临时修复：平均全部Metrics、复用Metric内部weighting、Gate触发后置零、把display score当authority。
-
-### AF-RR-002 — Whole-benchmark acceptance lacks aggregation authority
-
-Gate Result只声明某个Gate scope的non-offsettable acceptability。当前没有冻结policy说明多个scoped Gates如何形成whole-benchmark：
+### AF-RR-001 — Overall Score authority consumption
 
 ```text
-acceptable | blocked | indeterminate
+Status:
+ARCHITECTURE_AUTHORITY_CONSUMED_BY_RUNTIME_DESIGN
+
+Upstream authority:
+BenchmarkDefinition.overall_score_policy
+
+Runtime consumption:
+OverallScoreOutcome
 ```
 
-特别是以下问题没有authority：
+Runtime Design现在显式消费disabled / weighted policy、Metric membership、normalization、cross-Metric weights、unavailable / missing handling、coverage、canonical scale与precision。它不重新定义formula，不使用display value，也不让Gate改变Overall。
 
-- any TRIGGERED是否总是阻断whole benchmark，还是只阻断declared sub-scope；
-- INDETERMINATE如何影响final acceptance；
-- 没有Gate时是否自动acceptable；
-- partial / invalid Run能否有acceptance status；
-- Gate与Run validity的precedence。
+Not CLOSED：仍需Runtime real validation与Overall calculator conformance validation。
 
-Classification：`ARCHITECTURE_GAP`。
+### AF-RR-002 — Whole-benchmark Acceptance authority consumption
 
-Impact：blocks authoritative `overall_acceptability` / PASS-FAIL view and complete Scorecard freeze；does not block individual GateResult semantics。
+```text
+Status:
+ARCHITECTURE_AUTHORITY_CONSUMED_BY_RUNTIME_DESIGN
 
-禁止临时修复：`any triggered → benchmark_failed=true`、`all open → PASS`、`invalid Run → Gate triggered`。
+Upstream authority:
+BenchmarkDefinition.acceptance_policy
 
-### AF-RR-003 — Definition digest production protocol is not yet frozen
+Runtime consumption:
+AcceptanceEvaluation
+```
 
-Runtime Schema已经证明需要`definition_digest`，但digest所覆盖的authoritative snapshot bytes、canonicalization与freeze-time production / verification procedure尚未在upstream Definition schema中冻结。
+Runtime Design现在只从explicit participating Gates传播actual TRIGGERED、INDETERMINATE与MISSING，并保持disabled、zero-Gate、Run validity precedence和scope propagation。它不读取Overall、Metric、Grader或Evidence来发明Acceptance。
 
-Classification：`UPSTREAM INTEGRATION FINDING`。
+Not CLOSED：仍需Runtime real validation与Acceptance evaluator conformance validation。
 
-Impact：不阻止method schema proposal；blocks implementation与real reproducibility validation，直到freeze process能提供稳定self-describing digest。
+### AF-RR-003 — Frozen Definition digest authority consumption
 
-本Guide只记录finding，不修改upstream Guide。
+```text
+Status:
+ARCHITECTURE_AUTHORITY_CONSUMED_BY_RUNTIME_DESIGN
+
+Upstream authority:
+complete Frozen Definition Closure
++ skill-eval-frozen-definition-closure-v0
++ canonical digest protocol
+
+Runtime consumption:
+FrozenDefinitionRef
++ pre-execution binding validation
+```
+
+Runtime Design现在要求ID、version、profile与digest四者匹配，并把Definition / semantic resource mismatch稳定映射为Run invalid + definition-binding diagnostic。Runtime只要求implementation conform，不复制canonicalization protocol。
+
+Not CLOSED：仍需digest implementation independent conformance validation与Runtime binding real validation。
+
+### Combined status
+
+三个finding都已从`ARCHITECTURE_AUTHORITY_DEFINED_AND_VALIDATED`提升为：
+
+```text
+ARCHITECTURE_AUTHORITY_CONSUMED_BY_RUNTIME_DESIGN
+```
+
+它们仍不是`CLOSED`，也没有因此开始implementation。
 
 ---
 
 ## 20. Method Self-Review
 
-| # | Question | v0 finding |
+| # | Question | Authority-integration finding |
 |---:|---|---|
-| 1 | Run identity是否足够？ | Schema层足够：Run ID + Definition ID/version/digest + one Subject。Digest production仍需validation。 |
-| 2 | Frozen Benchmark identity是否可复现？ | 设计上可；必须验证authoritative snapshot digest协议，ID+version单独不够。 |
-| 3 | Subject不作为Core Object是否仍可定位？ | 可以。Opaque stable ref + kind/version/digest claims支持generic subjects；remote identity strength需披露。 |
-| 4 | Run execution state vs validity是否分开？ | 是。允许completed+invalid与partial+valid。 |
-| 5 | Episode identity是否稳定？ | 是。`episode_id`定义logical identity，tuple约束保证attempt uniqueness。 |
-| 6 | attempt ordering是否deterministic？ | 是。`attempt_index`是唯一ordering authority，timestamps只审计。 |
-| 7 | duplicate Episode / Result能否区分？ | 是。相同ID是duplicate serialization；不同ID是distinct logical attempts / results。 |
-| 8 | Artifact / Evidence边界是否稳定？ | 是。Artifact是persistent runtime object；Evidence只在qualification通过后存在。 |
-| 9 | Evidence能否服务shared targets？ | 可以。`qualified_targets`支持一个same-Episode Evidence服务多个targets。 |
-| 10 | Evidence是否被Episode隔离？ | 是。Evidence exactly one Episode，target Test Case必须匹配Episode。 |
-| 11 | capture failure放在哪里？ | RuntimeDiagnostic；captured-but-unqualified保留source + qualification diagnostic，不伪造Evidence。 |
-| 12 | GraderResult最小aggregatable identity是否清楚？ | 是。Run + Episode + Grader + Test Case + Contract。 |
-| 13 | grader engine failure是否不会变insufficient？ | 是。no Result + grading diagnostic。 |
-| 14 | MetricResult available / unavailable / missing是否分开？ | 是。status两值加object absence。 |
-| 15 | canonical Metric value是否明确？ | 是。available numeric `canonical_value`是唯一authority；display不参与Gate。 |
-| 16 | Metric transparency metadata是否足够？ | Proposal覆盖expected/raw/distinct/selected/eligible/non-substantive/unavailable/unit/denominator/coverage；需real validation。 |
-| 17 | metric engine failure是否不会变unavailable？ | 是。no Result + metric diagnostic。 |
-| 18 | Gate OPEN / TRIGGERED / INDETERMINATE是否稳定？ | 是，直接继承frozen Gate semantics。 |
-| 19 | Gate engine failure是否不会变INDETERMINATE？ | 是。no Result + gate diagnostic。 |
-| 20 | Gate trigger reason是否可解释？ | 是。evaluation path区分condition与unavailable-policy trigger。 |
-| 21 | Scorecard是否只组织Results？ | 是。Inventory与refs不重新grade / aggregate / evaluate。 |
-| 22 | Overall Score authority是否存在gap？ | 是，AF-RR-001；阻塞Overall view freeze。 |
-| 23 | overall acceptance authority是否存在gap？ | 是，AF-RR-002；阻塞whole-benchmark status freeze。 |
-| 24 | Gate与Overall Score是否独立？ | 是。Gate不置零或删除Overall；两者并列显示。 |
-| 25 | Result uniqueness是否明确？ | 是。Grader per attempt+target+grader；Metric per run+metric；Gate per run+gate；Scorecard per run。 |
-| 26 | all Result refs是否same Run？ | 是，作为Framework-wide cross-object invariant。 |
-| 27 | Runtime diagnostics是否有位置？ | 是，nested RuntimeDiagnostic，不新增Core Object。 |
-| 28 | 是否新增不必要Core Object？ | 否。Subject、Trace、Diagnostic、ResultSelection、Comparison均保持nested / external / derived。 |
-| 29 | Schema最小字段是什么？ | 本Guide第4–12节给出八对象与必要nested structures。 |
-| 30 | 哪些问题必须真实validation？ | Definition digest、remote Subject identity、Episode creation/status transitions、shared Artifact、Evidence qualification rejection、Rubric output、Metric coverage counts、Result selection、Gate missing inputs、Scorecard completeness、regrade policy与两项Architecture Gaps。 |
+| 1 | Runtime是否只consume Definition authority？ | 是。v0.2是composition、Overall、Acceptance、closure与digest唯一authority；Runtime不重定义。 |
+| 2 | FrozenDefinitionRef是否完整？ | 是。包含ID、version、closure profile、digest与optional retrieval-only snapshot ref。 |
+| 3 | digest mismatch是否稳定进入Run validity？ | 是。Run invalid + definition-binding diagnostic；没有fallback或semantic conversion。 |
+| 4 | Definition resource mismatch是否不会进入evaluation semantics？ | 是。它是integrity concern，不是Artifact、Evidence、Contract或Gate semantic。 |
+| 5 | Overall disabled/available/unavailable是否分开？ | 是，分别使用独立evaluation statuses与conditional fields。 |
+| 6 | missing Metric是否与unavailable分开？ | 是。Missing没有MetricResult ID；unavailable引用actual Result。 |
+| 7 | Overall engine failure是否与semantic unavailable分开？ | 是。`production_failed + scorecard diagnostic`，不使用OverallUnavailableReason。 |
+| 8 | canonical Metric values是否唯一authority？ | 是。display/UI/formatted values禁止参与Overall。 |
+| 9 | Overall trace是否足够？ | Method层足够：membership、Result IDs/absence、weights、normalization contributions、coverage、threshold与denominator全部可追踪；仍需real validation。 |
+| 10 | Acceptance disabled是否稳定？ | 是。显式disabled，不产生acceptance semantic。 |
+| 11 | zero-Gate valid Run是否不会自动ACCEPTABLE？ | 是。使用disabled，不使用vacuous truth或validity_only。 |
+| 12 | Gate TRIGGERED是否只在explicit membership下传播？ | 是。非participating Gate不会自动影响whole Benchmark。 |
+| 13 | Gate INDETERMINATE是否按policy处理？ | 是，映射到overall indeterminate或fail-closed blocked。 |
+| 14 | missing Gate Result是否按missing policy处理？ | 是，MISSING独立于INDETERMINATE。 |
+| 15 | Gate evaluator failure是否不会变INDETERMINATE？ | 是。no GateResult + gate diagnostic；Acceptance看到MISSING。 |
+| 16 | policy fail-closed与actual Gate trigger是否可解释区分？ | 是。trace的application state、policy handling与explanation分开。 |
+| 17 | invalid Run是否不会变BLOCKED？ | 是。使用not-produced statuses与audit Scorecard。 |
+| 18 | Overall与Acceptance是否独立？ | 是。Acceptance不消费Overall；Gate也不修改Overall。 |
+| 19 | Scorecard是否仍只是Result organizer？ | 是。它组织Results与policy-application outputs，不执行隐藏计算、不重算Metric/Gate内部semantic或发明authority。 |
+| 20 | 是否出现新的Architecture gap？ | 否。Focused consistency review没有发现new generic blocker。 |
+| 21 | 是否需要新Core Object？ | 否。OverallScoreOutcome与AcceptanceEvaluation都是Scorecard nested derived views。 |
+| 22 | 是否已经适合进入real Runtime validation？ | 是，状态为`RUNTIME_RESULT_DESIGN_METHOD_READY_FOR_REAL_VALIDATION`；不表示validation已完成。 |
 
 ### 20.1 Self-review corrections incorporated
 
@@ -1505,24 +1807,54 @@ Impact：不阻止method schema proposal；blocks implementation与real reproduc
 - 为防Metric audit metadata垃圾桶化，定义bounded Coverage Summary；
 - 为防Gate trigger reason丢失，加入evaluation path；
 - 为防Scorecard隐藏missing Results，加入missing inventory；
-- 为防Scorecard创造authority，Overall与acceptability均要求frozen policy ref；
+- 为防Scorecard创造authority，Overall与Acceptance均使用definition digest + canonical policy path；
+- 为防裸optional numeric混淆，Overall改为status-aware nested outcome；
+- 为防validity_only回流，Acceptance disabled不产生ACCEPTABLE；
+- 为防scope自动扩大，只有explicit participating Gates传播到whole Benchmark；
+- 为防invalid Run变成performance verdict，引入evaluation / audit finalization区分；
+- 为防Definition integrity进入evaluation semantics，引入definition-binding diagnostic phase；
+- 为防Overall engine crash冒充semantic unavailable，引入production_failed state；
 - 为防过早复杂化，v0不设计revision graph、event sourcing、comparison object或storage。
 
 ### 20.2 Current self-review conclusion
 
-Run、Episode、Artifact、Evidence、GraderResult、MetricResult、GateResult以及Scorecard inventory已经形成一致的method / Schema Proposal，未发现需要第17个Core Object的理由。
+Run、Episode、Artifact、Evidence、GraderResult、MetricResult、GateResult、Scorecard以及两个nested derived views已经形成一致的method / Schema Proposal，未发现需要第17个Core Object的理由。
 
-完整Runtime / Result v0仍有三项真实blocker：
+Benchmark Definition v0.2已经提供Overall、Acceptance与canonical digest authority；本Guide已经正式消费它们。A–J focused consistency review全部通过，未发现新的generic method blocker。
 
-1. Overall Score Definition authority；
-2. whole-benchmark acceptance authority；
-3. Definition digest production / verification real validation。
-
-因此本Guide不宣称validated、READY或frozen。下一阶段应只建立representative validation subset并验证上述proposal；不得直接进入Pydantic implementation。
+因此当前status提升为`RUNTIME_RESULT_DESIGN_METHOD_READY_FOR_REAL_VALIDATION`，但不宣称Runtime real validation通过、implementation READY或design frozen。下一阶段只能建立representative real validation subset；在该阶段明确授权前不得开始Pydantic implementation。
 
 ---
 
-## 21. Future Real Validation Coverage
+## 21. Focused Cross-Document Consistency Review
+
+本轮只做Benchmark Definition v0.2与Runtime / Result method的paper consistency execution，不创建Run fixture、不运行calculator / evaluator / digest implementation。`PASS`表示两个设计文档对scenario给出同一唯一结论，不表示Runtime real validation PASS。
+
+| Scenario | Definition authority consumed | Runtime / Result conclusion | Result |
+|---|---|---|---|
+| A Overall disabled | `overall_score_policy.mode=disabled` | OverallScoreOutcome=`disabled`；no value；no calculator failure | PASS |
+| B Metric unavailable | contribution unavailable handling | actual unavailable MetricResult按policy处理；不等于calculator crash | PASS |
+| C Metric missing | contribution missing handling | absence按missing policy处理；不伪造unavailable MetricResult | PASS |
+| D high Overall + Gate TRIGGERED | Overall / Acceptance independent | Overall保持原值；explicit participating trigger使Acceptance BLOCKED | PASS |
+| E Acceptance disabled | `acceptance_policy.mode=disabled` | valid Run不自动ACCEPTABLE；zero-Gate合法 | PASS |
+| F Gate INDETERMINATE | explicit indeterminate handling | 映射为INDETERMINATE或policy fail-closed BLOCKED | PASS |
+| G Gate missing | explicit missing handling | trace MISSING；不伪造INDETERMINATE GateResult | PASS |
+| H invalid Run | Run validity precedence | no authoritative Overall / Acceptance；audit inventory可保留 | PASS |
+| I Definition digest mismatch | closure profile + digest protocol | Run invalid + diagnostic；不转Gate | PASS |
+| J semantic resource digest mismatch | resource binding integrity | Run validity concern；不转Artifact/Evidence/Contract/Gate semantic | PASS |
+
+Focused consistency decision：
+
+```text
+A–J: PASS
+new generic architecture blocker: NONE
+new Core Object required: NO
+Runtime real validation executed: NO
+```
+
+---
+
+## 22. Future Real Validation Coverage
 
 后续至少需要覆盖：
 
@@ -1544,19 +1876,25 @@ Run、Episode、Artifact、Evidence、GraderResult、MetricResult、GateResult�
 16. Gate INDETERMINATE vs evaluator crash；
 17. Scorecard existing / missing Result inventory completeness；
 18. high Overall + TRIGGERED Gate并列表达；
-19. no Overall policy时禁止Overall value；
-20. no acceptance policy时禁止whole-benchmark PASS / FAIL；
-21. cross-Run Result contamination rejection；
-22. regrade-without-reexecution need analysis。
+19. Overall disabled / available / unavailable / production failed四类boundary；
+20. Acceptance disabled、zero-Gate与valid Run不自动ACCEPTABLE；
+21. Gate missing vs INDETERMINATE与policy fail-closed trace；
+22. pending / invalid Run的not-produced nested views；
+23. finalized evaluation vs finalized audit Scorecard；
+24. Definition / external resource digest mismatch binding validation；
+25. canonical digest implementation independent conformance；
+26. cross-Run Result contamination rejection；
+27. regrade-without-reexecution need analysis。
 
 ---
 
-## 22. Final Decision Checklist
+## 23. Final Decision Checklist
 
 ### Run and identity
 
-- [ ] Run binds one Definition ID / version / digest
-- [ ] Digest matches authoritative frozen snapshot
+- [ ] Run binds one Definition ID / version / closure profile / digest
+- [ ] Digest matches v0.2 canonical Frozen Definition closure
+- [ ] Semantic external resource digests match bindings
 - [ ] Run has exactly one Subject ref
 - [ ] Subject identity strength and limits are auditable
 - [ ] Execution and validity statuses are separate
@@ -1615,8 +1953,17 @@ Run、Episode、Artifact、Evidence、GraderResult、MetricResult、GateResult�
 - [ ] Scorecard only organizes same-Run objects
 - [ ] Existing and expected-missing Results are both visible
 - [ ] Diagnostics remain operational facts
-- [ ] Overall Score appears only with frozen policy ref
-- [ ] Overall acceptability appears only with frozen policy ref
+- [ ] Overall policy ref uses Definition digest + canonical path
+- [ ] Overall disabled / available / unavailable / production failure are distinct
+- [ ] Missing and unavailable Metric applications are distinct
+- [ ] Overall trace covers weights, normalization, coverage and denominator
+- [ ] Acceptance policy ref uses Definition digest + canonical path
+- [ ] Acceptance disabled does not produce ACCEPTABLE
+- [ ] Only explicit participating Gates propagate
+- [ ] Missing Gate is not fabricated as INDETERMINATE Result
+- [ ] Actual trigger and policy fail-closed remain explainable
+- [ ] Invalid / pending Run produces no authoritative final views
+- [ ] Evaluation and audit Scorecard finalization remain distinct
 - [ ] Gate Result remains independent from Overall Score
 - [ ] Case / Contract summaries remain derived views
 - [ ] No cross-Run comparison object is introduced
@@ -1626,18 +1973,22 @@ Run、Episode、Artifact、Evidence、GraderResult、MetricResult、GateResult�
 - [ ] Structural validation completed
 - [ ] Cross-object validation completed
 - [ ] Semantic validation completed
-- [ ] Representative real validation subset completed
-- [ ] Architecture Findings closed or scope explicitly blocked
+- [ ] Focused A–J consistency review completed
+- [ ] Architecture authority consumed by Runtime Design
+- [ ] Representative real validation subset completed before READY claim
+- [ ] Architecture Findings closed only after required real validation
 - [ ] No Pydantic / CLI / engine / storage / UI implementation started
 
-只有全部required checks通过且没有blocking finding时，才允许：
+本轮method-level checks通过且没有generic blocker时，允许：
+
+```text
+RUNTIME_RESULT_DESIGN_METHOD_READY_FOR_REAL_VALIDATION
+```
+
+只有representative real validation与required conformance checks完成后，future review才可以考虑：
 
 ```text
 RUNTIME_RESULT_DESIGN_READY
 ```
 
-否则：
-
-```text
-RUNTIME_RESULT_DESIGN_BLOCKED
-```
+本轮不满足后一个条件，也不声明frozen。
