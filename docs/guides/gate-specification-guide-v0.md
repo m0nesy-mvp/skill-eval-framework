@@ -245,7 +245,7 @@ GATES_READY for validation subset
 - 不把validation-only Gate写成production acceptance policy；
 - 不声称整个Target或Benchmark `GATES_READY`。
 
-本文第一版只定义方法与future real method validation plan，不执行真实Gate validation，也不为当前Target声明Gate Set status。
+本文第一版先定义方法，随后使用明确validation subset完成real method validation与focused re-validation。Validation-only Results不代表Target真实performance，不保存为Runtime Results，也不为完整Target声明production Gate Set status。
 
 ---
 
@@ -456,7 +456,50 @@ trigger_result_semantics: [violated]
 
 `insufficient_evidence`与`not_exercised`不得因criticality或risk concern自动加入该list。如果Benchmark需要阻断judgment insufficiency或exercise gap，应使用独立Metric与Gate，或在有明确独立blocking rationale时建立另一个atomic Gate。
 
-### 11.4 Quantifier
+### 11.4 Per-input condition contribution
+
+Direct Grader Result Gate必须先按以下顺序形成required selected Result observations：
+
+```text
+resolve explicit GateTargets
+→ associate current-Run Grader Results
+→ deduplicate duplicate logical Results
+→ apply result_selection_policy
+→ classify every required selected Result observation
+```
+
+每个required contribution只能是：
+
+```text
+MATCH | NON_MATCH | UNKNOWN
+```
+
+定义：
+
+- `MATCH`：selected Result存在、可唯一解析、semantic vocabulary兼容，且meaning属于`trigger_result_semantics`；
+- `NON_MATCH`：selected Result存在、可唯一解析、semantic vocabulary兼容，但meaning不属于`trigger_result_semantics`；
+- `UNKNOWN`：required contribution无法形成，例如没有required selected Result、Result identity无法解析、selection无法完成、required attempt ordering不可用、semantic vocabulary不兼容或direct source association不可用。
+
+对于：
+
+```text
+trigger_result_semantics: [violated]
+```
+
+必须固定：
+
+| Selected Result state | Contribution |
+|---|---|
+| `violated` | `MATCH` |
+| `satisfied` | `NON_MATCH` |
+| `insufficient_evidence` | `NON_MATCH` |
+| `not_exercised` | `NON_MATCH` |
+| missing Result | `UNKNOWN` |
+| selection / identity / ordering unresolved | `UNKNOWN` |
+
+`insufficient_evidence`与`not_exercised`是已经存在且semantic meaning已知的Results；只要它们不在trigger list中，就必须是`NON_MATCH`，不能因为risk或criticality被改成`UNKNOWN`。
+
+### 11.5 Quantifier domain
 
 v0结构化支持：
 
@@ -464,14 +507,62 @@ v0结构化支持：
 quantifier: any | all
 ```
 
-Quantifier应用于去重和result selection之后的selected Result observations：
+一个Gate-level quantifier只作用于membership、deduplication与result selection后形成的全部required selected Result contributions：
 
-- `any`：至少一个selected Result的semantic meaning匹配trigger list；
-- `all`：每一个required selected Result observation都匹配trigger list。
+```text
+GateTargets
+→ per-target Result association
+→ deduplication
+→ result selection
+→ selected Result observations
+→ MATCH / NON_MATCH / UNKNOWN
+→ one Gate-level quantifier
+```
 
-空selected population不能使用vacuous truth让`all`自动trigger，也不能让`any`自动OPEN；它进入`unavailable_handling`。
+同一个`quantifier`不得被解释成hidden two-level quantification，例如per-target `any`后再cross-target `all`，或per-target `all`后再cross-target `any`。需要“all targets have any violated attempt”、至少N个violations、violation rate或normalized Contract performance时，优先形成具有独立meaning的Metric，再由Metric threshold Gate引用。当前v0不增加`target_quantifier`、`result_quantifier`、count operator或boolean DSL。
 
-Count threshold、比例或跨Case normalization不进入Grader Result Gate。需要“至少N个violations”或“Contract across Cases低于比例”时，优先设计具有独立meaning的Metric，再由Metric threshold Gate引用。
+Result selection后required quantifier domain为空时，condition固定为`UNKNOWN`。v0继续禁止vacuous truth：
+
+```text
+ANY([]) ≠ FALSE
+ALL([]) ≠ TRUE
+
+empty required domain
+→ UNKNOWN
+→ unavailable_handling
+```
+
+### 11.6 Three-valued `any` / `all`
+
+`any`使用Framework-wide frozen rules：
+
+1. 至少一个`MATCH`时，condition为`TRUE`，即使同时存在`UNKNOWN`；
+2. 没有`MATCH`但至少一个`UNKNOWN`时，condition为`UNKNOWN`；
+3. 否则condition为`FALSE`。
+
+| ANY contributions | Condition |
+|---|---|
+| `MATCH + UNKNOWN` | `TRUE` |
+| `MATCH + NON_MATCH` | `TRUE` |
+| `NON_MATCH + UNKNOWN` | `UNKNOWN` |
+| `NON_MATCH + NON_MATCH` | `FALSE` |
+| `UNKNOWN + UNKNOWN` | `UNKNOWN` |
+
+`all`使用Framework-wide frozen rules：
+
+1. 至少一个`NON_MATCH`时，condition为`FALSE`，即使同时存在`UNKNOWN`；
+2. 没有`NON_MATCH`但至少一个`UNKNOWN`时，condition为`UNKNOWN`；
+3. 否则condition为`TRUE`。
+
+| ALL contributions | Condition |
+|---|---|
+| `MATCH + UNKNOWN` | `UNKNOWN` |
+| `NON_MATCH + UNKNOWN` | `FALSE` |
+| `MATCH + MATCH` | `TRUE` |
+| `MATCH + NON_MATCH` | `FALSE` |
+| `UNKNOWN + UNKNOWN` | `UNKNOWN` |
+
+这是semantic short-circuit：后续`UNKNOWN`不能改变`ANY`已经由`MATCH`确定的`TRUE`，也不能改变`ALL`已经由`NON_MATCH`确定的`FALSE`。Runtime是否为性能实际停止读取剩余data不属于Definition semantics。
 
 ---
 
@@ -572,6 +663,44 @@ Trigger iff actual Metric value < 0.90
 - 在Gate里重新计算Metric denominator；
 - 在Gate里把多个Metric Results加权平均。
 
+### 13.3 Canonical Metric Result value authority
+
+Metric threshold comparison必须使用referenced Metric Result的canonical comparable numeric value。以下presentation-only representations不得成为Gate comparison authority：
+
+- display-rounded value；
+- UI percentage；
+- formatted text；
+- truncated representation；
+- report-only or presentation-only value。
+
+例如：
+
+```text
+canonical value: 0.8995
+display value:   0.90
+Gate:            actual < 0.90
+
+0.8995 < 0.90
+→ TRUE
+→ TRIGGERED
+```
+
+Evaluator不得根据display `0.90`把该Gate改成OPEN。
+
+`eq`与`neq`只允许引用定义了exactly comparable canonical numeric domain的Metric。Canonical precision未定义、value是approximate、只有display precision或tolerance未声明时，Gate Definition invalid；Evaluator不得自行发明epsilon、rounding或tolerance。当前不增加precision字段。
+
+### 13.4 Discrete Metric threshold
+
+Integer、count等离散Metric的`threshold_value`不一定必须是实际可取得值，但必须同时满足：
+
+- numeric unit compatible；
+- cut point deterministic；
+- Benchmark acceptance meaning explicit；
+- no implicit normalization；
+- no hidden rate conversion。
+
+例如`count < 0.5`可以数学上唯一表达`count = 0`，但Semantic Review仍必须确认`0.5`这个cut point具有明确Benchmark policy meaning。Gate不得把count自动归一化成rate。
+
 ---
 
 ## 14. Metric Availability Gate Condition
@@ -590,6 +719,14 @@ MetricAvailabilityGateCondition:
 ```
 
 `trigger_on`在v0固定为`unavailable`。它不是完整Metric Result lifecycle enum，只引用Metric Specification已声明的future unavailable / undefined semantics。
+
+Metric availability condition contribution固定为：
+
+| Actual Metric Result state | Condition contribution |
+|---|---|
+| Result exists且semantic state为unavailable / undefined | `MATCH` → `TRUE` → `TRIGGERED` |
+| Result exists且有available interpretable value | `NON_MATCH` → `FALSE` → `OPEN` |
+| No Metric Result exists | `UNKNOWN` → `unavailable_handling` |
 
 为什么与threshold Gate分开：
 
@@ -613,7 +750,22 @@ unavailable_handling:
   indeterminate | triggered
 ```
 
-它适用于Gate无法取得评估condition所需的required direct input，例如：
+它只在整个atomic Gate condition完成semantic match、comparison或quantifier evaluation后仍为`UNKNOWN`时应用。Framework-wide mapping固定为：
+
+```text
+condition TRUE
+→ TRIGGERED
+
+condition FALSE
+→ OPEN
+
+condition UNKNOWN
+→ apply unavailable_handling
+```
+
+如果`unavailable_handling: indeterminate`，则`UNKNOWN → INDETERMINATE`；如果`unavailable_handling: triggered`，则`UNKNOWN → TRIGGERED`，且explanation必须区分condition-triggered与unavailable-policy-triggered。
+
+`UNKNOWN`可能来自Gate无法取得评估condition所需的required direct input，例如：
 
 - required Grader Result missing；
 - required target没有selected Result；
@@ -621,6 +773,23 @@ unavailable_handling:
 - Metric threshold Gate收到unavailable Metric Result；
 - required Result identity或attempt order不足，无法执行selection；
 - actual Result与Definition reference无法可靠关联。
+
+禁止发现任一`UNKNOWN` contribution就立即套用`unavailable_handling`。正确顺序是：
+
+```text
+resolve required inputs
+→ MATCH / NON_MATCH / UNKNOWN contributions
+→ evaluate atomic condition or ANY / ALL
+→ TRUE / FALSE / UNKNOWN
+→ only UNKNOWN applies unavailable_handling
+```
+
+因此：
+
+- `ANY(MATCH, UNKNOWN) = TRUE`，不适用unavailable handling；
+- `ALL(NON_MATCH, UNKNOWN) = FALSE`，不适用unavailable handling；
+- `ANY(NON_MATCH, UNKNOWN) = UNKNOWN`，适用unavailable handling；
+- `ALL(MATCH, UNKNOWN) = UNKNOWN`，适用unavailable handling。
 
 ### `indeterminate`
 
@@ -1092,12 +1261,15 @@ same current Benchmark Definition
 2. Resolve condition variant；
 3. Resolve Definition-level source references；
 4. Locate actual Results for the current Run；
-5. Deduplicate and select direct Grader Results where applicable；
-6. Apply semantic match / availability predicate / comparator；
-7. Apply quantifier where applicable；
-8. Apply unavailable handling if required direct input cannot be evaluated；
-9. Derive OPEN / TRIGGERED / INDETERMINATE；
-10. Verify blocking effect and explanation requirements。
+5. Deduplicate duplicate logical direct Grader Results where applicable；
+6. Apply direct Grader `result_selection_policy` where applicable；
+7. Classify every required selected Grader Result observation as`MATCH / NON_MATCH / UNKNOWN`；
+8. Apply the frozen three-valued`any / all`over the complete required contribution domain；
+9. For Metric threshold, compare the canonical comparable numeric value；for Metric availability, classify exists-available / exists-unavailable / missing；
+10. Derive condition`TRUE / FALSE / UNKNOWN`；
+11. Apply`unavailable_handling`only when the overall atomic condition is`UNKNOWN`；
+12. Map`TRUE → TRIGGERED`and`FALSE → OPEN`；
+13. Verify blocking effect and explanation requirements。
 
 不允许：
 
@@ -1107,6 +1279,10 @@ same current Benchmark Definition
 - `use best judgment`；
 - 未声明的numeric tolerance；
 - 未声明的Result selection；
+- 把known`insufficient_evidence`或`not_exercised`Result当成`UNKNOWN`；
+- 发现任一`UNKNOWN`contribution就立即应用`unavailable_handling`；
+- 把一个`quantifier`解释成hidden per-target + cross-target双层量化；
+- 使用display-rounded、formatted或presentation-only Metric value进行threshold comparison；
 - 依赖Scorecard presentation推断condition。
 
 ---
@@ -1171,11 +1347,20 @@ same current Benchmark Definition
 - direct Grader Result selection是否deterministic；
 - Case / Episode multiplicity是否intentional；
 - semantic match与quantifier是否符合policy；
+- 每个required selected Grader contribution是否唯一分类为`MATCH / NON_MATCH / UNKNOWN`；
+- quantifier domain是否在membership、deduplication与selection后显式确定；
+- `any`是否使用frozen three-valued semantics；
+- `all`是否使用frozen three-valued semantics；
+- empty required quantifier domain是否固定为`UNKNOWN`；
+- partial`UNKNOWN`是否不会覆盖`ANY`已确定的`TRUE`或`ALL`已确定的`FALSE`；
 - insufficient是否没有偷换成violation；
 - not-exercised是否没有偷换成failure；
 - threshold direction与boundary是否正确；
+- Metric threshold是否只使用canonical comparable numeric value；
+- `eq / neq`是否只用于exactly comparable canonical numeric domain；
 - Metric unavailable与Metric value threshold是否分开；
 - required input unavailable handling是否honest；
+- unavailable handling是否只在overall condition为`UNKNOWN`后应用；
 - missing input是否没有默认OPEN；
 - OPEN是否没有被解释成whole Benchmark PASS；
 - TRIGGERED是否没有被其他分数offset；
@@ -1287,19 +1472,28 @@ Gate policy clear but executable Result location unknown
 ### Step 7 — Define Result Selection and Quantifier
 
 - Direct Grader Gate定义deduplication invariant与selection intent；
-- 明确`any`或`all`；
-- 处理empty selected population；
+- 明确membership、deduplication与selection后形成的required contribution domain；
+- 每个required selected Result observation分类为`MATCH / NON_MATCH / UNKNOWN`；
+- 明确一个Gate-level`any`或`all`，不发明hidden two-level quantification；
+- 使用frozen three-valued truth rules；
+- empty required domain固定为`UNKNOWN`；
 - 不在Gate内做count/rate aggregation。
 
 ### Step 8 — Define Threshold or Availability Predicate
 
 - Threshold Gate写comparator与numeric value；
 - 验证Metric scale、direction、range、unit与precision；
+- 只使用canonical Metric Result value作为comparison authority；
+- `eq / neq`只用于exactly comparable canonical numeric domain；
+- 离散Metric cut point必须unit-compatible、deterministic且没有implicit normalization；
 - Availability Gate只检查declared unavailable semantics。
 
 ### Step 9 — Define Unavailable Handling
 
-- required input unavailable时选择`indeterminate`或explicit `triggered`；
+- 先把整个atomic condition计算为`TRUE / FALSE / UNKNOWN`；
+- 只有overall`UNKNOWN`才应用`unavailable_handling`；
+- required condition无法确定时选择`indeterminate`或explicit `triggered`；
+- explanation区分condition-triggered与unavailable-policy-triggered；
 - missing不默认OPEN；
 - 不猜Runtime root cause。
 
@@ -1355,9 +1549,14 @@ GATES_BLOCKED
 - source references valid；
 - Grader target membership explicit；
 - result selection与quantifier明确；
+- contribution classification与quantifier domain deterministic；
+- partial-information`any / all`使用frozen three-valued semantics；
+- empty required quantifier domain固定为`UNKNOWN`；
 - Metric comparator、threshold与scale兼容；
+- Metric threshold使用canonical comparable numeric value；
+- `eq / neq`具有exact-comparison compatibility；
 - Metric availability semantics兼容；
-- unavailable handling明确；
+- unavailable handling只在overall condition为`UNKNOWN`后应用；
 - criticality没有自动变Gate；
 - insufficient / not-exercised没有偷换；
 - OPEN / TRIGGERED / INDETERMINATE semantics清楚；
@@ -1379,9 +1578,14 @@ GATES_BLOCKED
 - target membership依赖grader ID或Runtime selector；
 - referenced target或Metric不存在/stale；
 - result selection或quantifier不清；
+- required contribution classification或quantifier domain不清；
+- partial-information`any / all`可被不同implementers求得不同truth value；
+- 任一`UNKNOWN`contribution被错误地直接套用unavailable handling；
 - threshold写成模糊text；
 - comparator direction与Metric meaning相反；
 - threshold与Metric scale/unit不兼容；
+- threshold使用display-rounded或presentation-only value；
+- `eq / neq`依赖undeclared precision、rounding、epsilon或tolerance；
 - required input missing默认OPEN；
 - insufficient或not-exercised被自动当violation；
 - criticality被自动当Gate；
@@ -1520,6 +1724,22 @@ Concept Model允许future predefined execution-state condition，但当前缺少
 
 Working Draft + Audit足够。Episode/attempt/Result IDs与actual matches属于Runtime Gate Result evidence，不进入Gate Specification。
 
+### 36.13 Three-valued logic is a Framework invariant, not a field
+
+Real method validation发现partial-information`any / all`与unavailable handling作用阶段存在generic ambiguity。Focused hardening通过Framework-wide`MATCH / NON_MATCH / UNKNOWN → TRUE / FALSE / UNKNOWN → Gate Result`规则关闭该问题，不增加`three_valued_logic_policy`、`short_circuit_policy`或`unknown_policy`字段。允许每个Gate自行配置truth rules会破坏cross-Gate determinism。
+
+### 36.14 One Gate-level quantifier remains sufficient
+
+`quantifier: any | all`只作用于selection后全部required Result contributions。当前不增加`target_quantifier`或`result_quantifier`。需要双层量化、至少N个targets或violation rate时，优先通过Metric形成独立measure，再由Metric Gate引用。
+
+### 36.15 Canonical Metric value authority needs no precision field
+
+Threshold Gate只比较canonical comparable numeric value；display-rounded、formatted或presentation-only value不具有authority。`eq / neq`需要referenced Metric提供exactly comparable canonical numeric domain。当前finding要求normative method rule与Definition validation，不证明需要新增precision、epsilon或tolerance字段。
+
+### 36.16 Missing Metric Result remains Gate-level unavailable input
+
+Existing unavailable Metric Result由Metric availability condition直接匹配；No Metric Result使condition为`UNKNOWN`并进入`unavailable_handling`。当前validation没有出现需要独立missing-result condition variant的blocking policy。
+
 ---
 
 ## 37. Method Self-Review
@@ -1533,13 +1753,13 @@ Working Draft + Audit足够。Episode/attempt/Result IDs与actual matches属于R
 | 5. criticality是否与Gate分开？ | 是。Criticality只是rationale signal，不自动trigger或生成Gate。 |
 | 6. non-offsettable semantics是否清楚？ | 是。Triggered Gate不被其他Metrics、Contracts或Overall Score抵消。 |
 | 7. membership authority是否单一？ | 是。Direct Grader Gate使用target pair；Metric Gate使用metric ID。 |
-| 8. Grader target condition是否deterministic？ | 是。Explicit targets、Result selection、semantic match与quantifier均required。 |
-| 9. Metric threshold是否deterministic？ | 是。Comparator enum + numeric threshold。 |
-| 10. threshold compatibility是否可验证？ | 是。Cross-object检查scale、direction、range、unit与precision。 |
-| 11. unavailable handling是否明确？ | 是。只允许indeterminate或explicit triggered，不默认OPEN。 |
+| 8. Grader target condition是否deterministic？ | 是。Explicit targets、deduplication、Result selection、per-input contribution、one Gate-level quantifier与three-valued truth rules全部required。 |
+| 9. Metric threshold是否deterministic？ | 是。Comparator enum + numeric threshold，并只比较canonical Metric Result value。 |
+| 10. threshold compatibility是否可验证？ | 是。Cross-object检查scale、direction、range、unit与precision；`eq / neq`额外要求exactly comparable canonical domain。 |
+| 11. unavailable handling是否明确？ | 是。只在overall condition为`UNKNOWN`后使用indeterminate或explicit triggered，不默认OPEN，也不由单个UNKNOWN立即触发。 |
 | 12. insufficient是否不会偷换violation？ | 是。只有显式trigger semantics匹配；建议独立Sufficiency Metric/Gate。 |
 | 13. not-exercised是否不会偷换failure？ | 是。Exercise gap建议独立Metric/Gate。 |
-| 14. quantifier是否需要？ | 需要最小`any | all`，用于atomic multi-target matching。 |
+| 14. quantifier是否需要？ | 需要最小`any | all`，用于selection后全部required contributions的一层atomic matching；双层量化与count/rate返回Metric。 |
 | 15. atomicity是否可执行？ | 是。使用source/reason/remediation/scope/unavailable/explanation test。 |
 | 16. multi-condition composition是否需要？ | 当前不需要。独立conditions拆Gates；不引入boolean DSL。 |
 | 17. Gate weight是否明确禁止？ | 是。Gate不平均、不加权、不offset。 |
@@ -1552,7 +1772,7 @@ Working Draft + Audit足够。Episode/attempt/Result IDs与actual matches属于R
 | 24. Schema最小字段是什么？ | ID、name、scope、condition union、unavailable handling、result semantics、explanation requirements。 |
 | 25. 是否泄漏Scorecard？ | 未泄漏。没有layout、Overall、Gate weighting或final presentation。 |
 | 26. 是否泄漏Runtime implementation？ | 未泄漏。没有actual IDs、values、evaluator code、CLI或serialization。 |
-| 27. 哪些问题必须真实validation？ | Critical violation、insufficient、threshold、unavailable、NE、ANY、atomic split与criticality negative check。 |
+| 27. real validation暴露并关闭了什么？ | 暴露partial-information ANY/ALL与unavailable handling阶段歧义；通过统一三值贡献、truth rules与canonical Metric authority完成focused hardening。 |
 
 ### 37.1 Self-review corrections incorporated
 
@@ -1567,6 +1787,11 @@ Working Draft + Audit足够。Episode/attempt/Result IDs与actual matches属于R
 - 为防止threshold方向错误，结构化comparator与numeric value；
 - 为防止unavailable与threshold miss混淆，增加独立Metric availability condition；
 - 为防止missing默认pass，unavailable handling不支持implicit OPEN；
+- 为防止partial UNKNOWN产生多种Gate Result，冻结`MATCH / NON_MATCH / UNKNOWN`与three-valued`any / all`；
+- 为防止UNKNOWN覆盖已确定truth，unavailable handling只在overall condition为UNKNOWN后应用；
+- 为防止hidden dual quantification，一个`quantifier`只作用于selection后完整required contribution domain；
+- 为防止rounded display改变threshold结果，comparison authority固定为canonical Metric Result value；
+- 为防止equality实现自行发明precision，`eq / neq`要求exactly comparable canonical domain；
 - 为防止insufficient / NE偷换violation，明确semantic non-equivalence；
 - 为防止Gate变Metric，禁止weight、severity averaging与offset；
 - 为防止Run status leakage，execution-state variant延后至合法status model；
@@ -1574,72 +1799,159 @@ Working Draft + Audit足够。Episode/attempt/Result IDs与actual matches属于R
 
 ### 37.2 Current method conclusion
 
-第一版Schema与method self-review未发现必须在real validation前继续扩Schema的generic blocker。当前结论是：
+第一版method随后完成real validation。该validation保留完整Target`TRACE_BLOCKED`边界，并曾因partial-information quantifier semantics不唯一得到：
 
 ```text
-GATE_SPEC_DESIGN_V0_METHOD_READY_FOR_REAL_VALIDATION
+GATES_BLOCKED for validation subset
 ```
 
-它不是`GATES_READY`，也不是任何Benchmark、Run或Target的acceptance status。没有真实Gate Set、Gate Result或Runtime execution被创建。
+该历史结论不被改写。Focused hardening把原始`ISSUE-GATE-001`分类为`EVALUATION_DESIGN_GAP`，并通过Framework-wide三值contribution model、one Gate-level quantifier、truth rules与unavailable-handling phase修复。Focused re-validation没有发现新的generic blocker，因此当前method结论是：
+
+```text
+GATE_SPEC_DESIGN_V0_FREEZE_READY: YES
+```
+
+它不是production`GATES_READY`，不改变完整Target`TRACE_BLOCKED`，也不代表真实Run、Gate Result、Target performance、Scorecard或Overall Score已经产生。
 
 ---
 
-## 38. Future Real Method Validation Plan
+## 38. Real Method Validation Hardening and Focused Re-validation
 
-Freeze GateSpecification method前，至少执行以下controlled validation cases：
+本节记录real method validation暴露的generic finding及修复后的focused regression。它不重跑完整Gate validation，不保存Runtime Results，也不把controlled Results解释为Target真实performance。
 
-### A. Critical target violated Gate
+### 38.1 ISSUE-GATE-001
 
-- explicit critical target pair；
-- authoritative Result = violated；
-- `quantifier: any`；
-- expected `TRIGGERED`。
+原始finding：
 
-### B. Same critical target insufficient
+```text
+partial-information ANY / ALL
++ unavailable_handling phase ambiguity
+→ two conforming implementers can derive different Gate Results
+```
 
-- same target；
-- Result = insufficient_evidence；
-- violation condition不得trigger；
-- 验证是否需要独立Sufficiency Metric/Gate。
+Classification：`EVALUATION_DESIGN_GAP`。Root cause不是缺少per-Gate field，而是Framework没有冻结per-input contribution、one Gate-level quantifier、three-valued truth rules与unavailable handling作用阶段。
 
-### C. Metric threshold Gate
+Resolution：
 
-- Metric scale `0..1`, higher is better；
-- comparator `lt`；
-- threshold `0.90`；
-- 验证boundary `0.89`、`0.90`、`0.91`。
+```text
+resolve inputs
+→ deduplicate
+→ result selection
+→ MATCH / NON_MATCH / UNKNOWN
+→ ANY / ALL
+→ TRUE / FALSE / UNKNOWN
+→ only UNKNOWN applies unavailable_handling
+→ OPEN / TRIGGERED / INDETERMINATE
+```
 
-### D. Metric unavailable Gate input
+### 38.2 Focused regression — `unavailable_handling: indeterminate`
 
-- threshold Gate收到unavailable Metric；
-- 验证`indeterminate` policy；
-- 独立Metric availability Gate验证`TRIGGERED`。
+| Quantifier | Contributions | Condition | Gate Result | Result |
+|---|---|---|---|---|
+| ANY | `MATCH + UNKNOWN` | `TRUE` | `TRIGGERED` | PASS |
+| ANY | `NON_MATCH + UNKNOWN` | `UNKNOWN` | `INDETERMINATE` | PASS |
+| ANY | `NON_MATCH + NON_MATCH` | `FALSE` | `OPEN` | PASS |
+| ANY | `MATCH + NON_MATCH` | `TRUE` | `TRIGGERED` | PASS |
+| ALL | `MATCH + UNKNOWN` | `UNKNOWN` | `INDETERMINATE` | PASS |
+| ALL | `NON_MATCH + UNKNOWN` | `FALSE` | `OPEN` | PASS |
+| ALL | `MATCH + MATCH` | `TRUE` | `TRIGGERED` | PASS |
+| ALL | `MATCH + NON_MATCH` | `FALSE` | `OPEN` | PASS |
 
-### E. Not-exercised critical target
+### 38.3 Focused regression — `unavailable_handling: triggered`
 
-- NE不得匹配violated condition；
-- 验证exercise gap通过独立Metric/Gate处理。
+| Quantifier | Contributions | Condition | Gate Result | Reason | Result |
+|---|---|---|---|---|---|
+| ANY | `MATCH + UNKNOWN` | `TRUE` | `TRIGGERED` | condition-triggered | PASS |
+| ANY | `NON_MATCH + UNKNOWN` | `UNKNOWN` | `TRIGGERED` | unavailable-policy-triggered | PASS |
+| ALL | `MATCH + UNKNOWN` | `UNKNOWN` | `TRIGGERED` | unavailable-policy-triggered | PASS |
+| ALL | `NON_MATCH + UNKNOWN` | `FALSE` | `OPEN` | condition determinately false | PASS |
 
-### F. Multiple critical targets ANY semantics
+最后一行证明：存在`UNKNOWN`不能覆盖`ALL`已经由`NON_MATCH`确定的`FALSE`。
 
-- explicit targets至少两个；
-- 一个violated、一个satisfied；
-- `any`应trigger；
-- duplicate和missing behavior可追踪。
+### 38.4 Semantic Result and domain regression
 
-### G. Atomic split vs mega Gate
+对于`trigger_result_semantics: [violated]`：
 
-- critical violation与workflow threshold具有不同source/remediation；
-- 验证必须拆为两个Gates；
-- 不创建OR graph。
+| Selected state | Contribution | Result |
+|---|---|---|
+| `violated` | `MATCH` | PASS |
+| `satisfied` | `NON_MATCH` | PASS |
+| `insufficient_evidence` | `NON_MATCH` | PASS |
+| `not_exercised` | `NON_MATCH` | PASS |
+| missing Result | `UNKNOWN` | PASS |
+| selection / ordering unresolved | `UNKNOWN` | PASS |
 
-### H. Criticality negative check
+Empty required quantifier domain固定为`UNKNOWN → unavailable_handling`，不使用`ANY([]) = FALSE`或`ALL([]) = TRUE`。一个`quantifier`只处理selection后全部required contributions；hidden per-target/cross-target dual quantification被拒绝。
 
-- critical Contract但没有authoritative blocking intent；
-- 不得自动生成Gate；
-- Coverage Review保留rationale。
+### 38.5 Metric regression
 
-每个case都要执行Independent Decision Test，并记录两个实现者是否得到相同OPEN/TRIGGERED/INDETERMINATE meaning。
+Canonical threshold：
+
+```text
+canonical value: 0.8995
+display value:   0.90
+comparator:      lt
+threshold:       0.90
+
+0.8995 < 0.90
+→ TRUE
+→ TRIGGERED
+```
+
+`eq 0.90`只在exact canonical equality semantics valid时执行；对canonical`0.8995`结果为FALSE / OPEN，不能根据display value变成TRUE。Canonical precision undefined、approximate-only或tolerance unspecified时，`eq / neq`Gate Definition invalid。
+
+| Metric actual state | Threshold condition | Availability condition | Result |
+|---|---|---|---|
+| exists + available canonical numeric value | comparator TRUE/FALSE | `NON_MATCH → OPEN` | PASS |
+| exists + unavailable / undefined | `UNKNOWN → unavailable_handling` | `MATCH → TRIGGERED` | PASS |
+| no Metric Result | `UNKNOWN → unavailable_handling` | `UNKNOWN → unavailable_handling` | PASS |
+
+Exists-but-unavailable与missing继续保持不同source semantics；threshold Gate不把unavailable转换成numeric zero。
+
+### 38.6 Atomicity and expressiveness regression
+
+Authorization violation、workflow Metric threshold与workflow Metric availability仍是三个独立atomic Gates，因为source family、diagnosis、remediation与explanation不同。Three-valued logic没有引入mega Gate、nested boolean expression或Gate-to-Gate reference。
+
+当前`any / all`不直接表达：
+
+- all targets have any violated attempt；
+- at least N targets violated；
+- violation rate greater than X。
+
+这些需求优先进入Metric，再由Metric Gate引用。它们是future extension，不是当前blocker，因为validation-local Required Gate Set不依赖这些表达。
+
+### 38.7 Focused freeze decision
+
+| Freeze requirement | Result |
+|---|---|
+| ISSUE-GATE-001 closed | PASS |
+| ANY partial UNKNOWN deterministic | PASS |
+| ALL partial UNKNOWN deterministic | PASS |
+| unavailable handling phase deterministic | PASS |
+| contribution model stable | PASS |
+| insufficient / not-exercised classification stable | PASS |
+| empty domain deterministic | PASS |
+| canonical Metric value authority stable | PASS |
+| `eq / neq`precision boundary stable | PASS |
+| Metric unavailable / missing separation stable | PASS |
+| atomicity unchanged | PASS |
+| no Schema extension required | PASS |
+| no Runtime / Scorecard leakage | PASS |
+| new generic blocker | NONE |
+
+Final focused status：
+
+```text
+ISSUE-GATE-001: CLOSED
+GATE_SPEC_DESIGN_V0_FREEZE_READY: YES
+```
+
+Remaining nonblocking future limitations：
+
+- large-scale result-selection string auditability；
+- discrete-domain cut-point policy examples；
+- advanced/double quantifier needs；
+- concrete implementation validation。
 
 ---
 
@@ -1675,14 +1987,23 @@ Freeze GateSpecification method前，至少执行以下controlled validation cas
 - [ ] Result selection与duplicate invariant明确
 - [ ] Trigger semantics与Grader vocabulary兼容
 - [ ] Quantifier为明确`any`或`all`
-- [ ] Empty selected population不使用vacuous truth
+- [ ] Membership、deduplication与selection后的required quantifier domain明确
+- [ ] 每个required selected Result observation唯一分类为`MATCH / NON_MATCH / UNKNOWN`
+- [ ] `any / all`使用Framework-wide frozen three-valued semantics
+- [ ] Partial`UNKNOWN`不覆盖`ANY`已确定的`TRUE`或`ALL`已确定的`FALSE`
+- [ ] Empty selected population固定为`UNKNOWN`，不使用vacuous truth
 - [ ] Case / Episode multiplicity处理清楚
-- [ ] Insufficient与not-exercised没有偷换violation
+- [ ] Known insufficient与not-exercised Result是`NON_MATCH`而不是`UNKNOWN`，除非它们显式进入trigger list
 
 ### Metric Conditions
 
 - [ ] Metric ref存在且validated
 - [ ] Comparator、threshold与Metric scale/direction/range/unit兼容
+- [ ] Threshold只比较canonical Metric Result value
+- [ ] Display-rounded、formatted或presentation-only value不具有comparison authority
+- [ ] `eq / neq`只用于exactly comparable canonical numeric domain
+- [ ] Evaluator没有自行发明epsilon、rounding或tolerance
+- [ ] Discrete Metric cut point deterministic、unit-compatible且没有implicit normalization
 - [ ] Threshold没有写回Metric Specification
 - [ ] Metric unavailable与numeric threshold condition分开
 - [ ] Gate没有重新计算Metric aggregation
@@ -1691,6 +2012,8 @@ Freeze GateSpecification method前，至少执行以下controlled validation cas
 
 - [ ] Missing required input不默认OPEN
 - [ ] Unavailable handling明确为indeterminate或triggered
+- [ ] Unavailable handling只在overall atomic condition为`UNKNOWN`后应用
+- [ ] Condition-triggered与unavailable-policy-triggered在explanation中可区分
 - [ ] OPEN不等于whole Benchmark PASS
 - [ ] TRIGGERED scope与blocking effect清楚
 - [ ] INDETERMINATE不会被隐藏
@@ -1706,6 +2029,8 @@ Freeze GateSpecification method前，至少执行以下controlled validation cas
 - [ ] 没有Gate-to-Gate、Scorecard或Overall refs
 - [ ] 没有Runtime、CLI、Pydantic或evaluator implementation
 - [ ] Structural / Cross-object / Semantic Validation完成
+- [ ] Partial-information ANY / ALL focused regression通过
+- [ ] Canonical threshold与Metric unavailable / missing regression通过
 - [ ] Gate Set、Coverage Review与Audit一致
 - [ ] 无unresolved Gate Design Issue
 
