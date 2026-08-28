@@ -1,4 +1,4 @@
-"""Deterministic runtime orchestration services for the frozen v0 schemas."""
+"""Deterministic runtime orchestration for frozen Definition v0.2 and v0.3 schemas."""
 
 from .applications import (
     create_episode_for_slot,

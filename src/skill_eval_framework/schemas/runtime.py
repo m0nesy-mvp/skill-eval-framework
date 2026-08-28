@@ -35,6 +35,13 @@ class ObjectType(StrEnum):
     SUBJECT = "subject"
 
 
+class DefinitionClosureProfile(StrEnum):
+    """Closed Runtime vocabulary for supported Definition closure profiles."""
+
+    V0 = "skill-eval-frozen-definition-closure-v0"
+    V1 = "skill-eval-frozen-definition-closure-v1"
+
+
 class ObjectRef(SchemaModel):
     object_type: ObjectType
     object_ref: NonEmptyStr
@@ -43,7 +50,7 @@ class ObjectRef(SchemaModel):
 class FrozenDefinitionRef(SchemaModel):
     benchmark_id: BenchmarkId
     benchmark_version: NonEmptyStr
-    definition_closure_profile: Literal["skill-eval-frozen-definition-closure-v0"]
+    definition_closure_profile: DefinitionClosureProfile
     definition_digest: Digest
     definition_snapshot_ref: NonEmptyStr | None = None
 

@@ -13,6 +13,7 @@ from .runtime import (
     derive_expected_grader_applications,
     derive_expected_metric_applications,
     derive_missing_applications,
+    validate_run_definition_binding,
     validate_run_graph,
 )
 
@@ -28,5 +29,6 @@ __all__ = [
     "validate_benchmark_definition",
     "validate_benchmark_definition_v02",
     "validate_benchmark_definition_v03",
+    "validate_run_definition_binding",
     "validate_run_graph",
 ]

@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime
 
-from skill_eval_framework.schemas.definition import BenchmarkDefinition
 from skill_eval_framework.schemas.results import (
     GateResult,
     GraderResult,
@@ -30,7 +29,12 @@ from skill_eval_framework.schemas.runtime import (
     ValidityFinding,
     ValidityStage,
 )
-from skill_eval_framework.validation import validate_benchmark_definition, validate_run_graph
+from skill_eval_framework.validation import (
+    validate_benchmark_definition,
+    validate_run_definition_binding,
+    validate_run_graph,
+)
+from skill_eval_framework.validation.definition import SupportedBenchmarkDefinition
 
 from .errors import IntegrityFinalizationError, InvalidTransitionError
 from .planning import is_execution_plan_sealed
@@ -65,7 +69,7 @@ def create_run(
 
 
 def prevalidate_run(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     *,
     episodes: Sequence[Episode] = (),
@@ -82,6 +86,7 @@ def prevalidate_run(
     if RunValidityStatus(run.validity_status) != RunValidityStatus.PENDING:
         raise InvalidTransitionError("preflight is only valid for a pending Run")
     definition_report = validate_benchmark_definition(benchmark)
+    binding_report = validate_run_definition_binding(benchmark, run)
     graph_report = validate_run_graph(
         benchmark,
         run,
@@ -94,7 +99,7 @@ def prevalidate_run(
         diagnostics,
         scorecard,
     )
-    issues = (*definition_report.issues, *graph_report.issues)
+    issues = (*definition_report.issues, *binding_report.issues, *graph_report.issues)
     if not issues:
         return run.model_copy(
             update={
@@ -211,7 +216,7 @@ def transition_episode(
 
 
 def finalize_run_validity(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     *,
     episodes: Sequence[Episode],
@@ -229,6 +234,8 @@ def finalize_run_validity(
         raise IntegrityFinalizationError("Run validity has already been finalized")
     if not is_execution_plan_sealed(run):
         raise IntegrityFinalizationError("final integrity requires a terminal Run")
+    definition_report = validate_benchmark_definition(benchmark)
+    binding_report = validate_run_definition_binding(benchmark, run)
     validation_scorecard = scorecard.model_copy(update={"finalization_status": "finalized_audit"})
     report = validate_run_graph(
         benchmark,
@@ -242,7 +249,8 @@ def finalize_run_validity(
         diagnostics,
         validation_scorecard,
     )
-    if report.issues:
+    issues = (*definition_report.issues, *binding_report.issues, *report.issues)
+    if issues:
         findings = [
             ValidityFinding(
                 code=issue.code,
@@ -250,7 +258,7 @@ def finalize_run_validity(
                 message=issue.message,
                 related_object_refs=_refs_from_issue(issue.path),
             )
-            for issue in report.issues
+            for issue in sorted(set(issues), key=lambda item: (item.code, item.path, item.message))
         ]
         return run.model_copy(
             update={

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from conftest import NOW, make_definition_data, make_run_data, make_scorecard_data
 
+from skill_eval_framework.digest import compute_definition_digest
 from skill_eval_framework.schemas.definition import BenchmarkDefinition
 from skill_eval_framework.schemas.results import (
     GateResult,
@@ -55,7 +56,9 @@ def complete_definition() -> BenchmarkDefinition:
 
 def complete_runtime_graph() -> RuntimeGraph:
     benchmark = complete_definition()
+    definition_digest = compute_definition_digest(benchmark)
     run_data = make_run_data()
+    run_data["definition_ref"]["definition_digest"] = definition_digest
     run_data.update(
         {
             "execution_status": "completed",
@@ -255,6 +258,9 @@ def complete_runtime_graph() -> RuntimeGraph:
             "finalized_at": NOW,
         }
     )
+    scorecard_data["definition_ref"]["definition_digest"] = definition_digest
+    scorecard_data["overall_score_outcome"]["policy_ref"]["definition_digest"] = definition_digest
+    scorecard_data["acceptance_evaluation"]["policy_ref"]["definition_digest"] = definition_digest
     scorecard = Scorecard.model_validate(scorecard_data)
     return RuntimeGraph(
         benchmark=benchmark,

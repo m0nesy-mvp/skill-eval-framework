@@ -6,8 +6,8 @@ from collections import defaultdict
 from collections.abc import Callable, Hashable, Sequence
 from typing import Protocol
 
+from skill_eval_framework.digest import verify_definition_digest
 from skill_eval_framework.schemas.definition import (
-    BenchmarkDefinition,
     DisabledAcceptancePolicy,
     DisabledOverallScorePolicy,
     GateBasedAcceptancePolicy,
@@ -16,6 +16,7 @@ from skill_eval_framework.schemas.definition import (
     MetricThresholdGateCondition,
     WeightedNormalizedMeanOverallScorePolicy,
 )
+from skill_eval_framework.schemas.definition_v03 import GraderResultGateConditionV03
 from skill_eval_framework.schemas.results import (
     AcceptanceEvaluationStatus,
     ExpectedApplicationRef,
@@ -46,7 +47,12 @@ from skill_eval_framework.schemas.runtime import (
 )
 
 from .common import IssueCollector, ValidationReport, group_by, unique_items
-from .definition import AssertionKey, DefinitionIndex, build_definition_index
+from .definition import (
+    AssertionKey,
+    DefinitionIndex,
+    SupportedBenchmarkDefinition,
+    build_definition_index,
+)
 
 
 class _RunOwned(Protocol):
@@ -86,7 +92,7 @@ def derive_expected_episode_applications(run: Run) -> tuple[ExpectedEpisodeAppli
 
 
 def derive_expected_grader_applications(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     episodes: Sequence[Episode],
 ) -> tuple[ExpectedGraderApplicationRef, ...]:
     """Derive completed-Episode Grader identities from authoritative Definition coverage."""
@@ -116,7 +122,7 @@ def derive_expected_grader_applications(
 
 
 def derive_expected_metric_applications(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
 ) -> tuple[ExpectedMetricApplicationRef, ...]:
     """Derive one expected application for every Frozen MetricSpecification."""
 
@@ -128,7 +134,7 @@ def derive_expected_metric_applications(
 
 
 def derive_expected_gate_applications(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
 ) -> tuple[ExpectedGateApplicationRef, ...]:
     """Derive all Gate applications independently of Acceptance participation."""
 
@@ -140,7 +146,7 @@ def derive_expected_gate_applications(
 
 
 def derive_expected_applications(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     episodes: Sequence[Episode],
 ) -> tuple[ExpectedApplicationRef, ...]:
@@ -250,7 +256,7 @@ def _report_duplicate_logical_keys[T](
 
 
 def validate_run_graph(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     episodes: Sequence[Episode] = (),
     artifacts: Sequence[Artifact] = (),
@@ -308,6 +314,22 @@ def validate_run_graph(
             scorecard,
             collector,
         )
+    return collector.report()
+
+
+def validate_run_definition_binding(
+    benchmark: SupportedBenchmarkDefinition,
+    run: Run,
+) -> ValidationReport:
+    """Validate the immutable Definition identity bound into a Run.
+
+    Digest verification is delegated to the version-aware Digest API.  The Runtime
+    layer only compares the non-canonical identity fields and reports deterministic
+    findings; it never opens snapshot or semantic-resource references implicitly.
+    """
+
+    collector = IssueCollector()
+    _validate_definition_binding(benchmark, run, collector)
     return collector.report()
 
 
@@ -433,9 +455,18 @@ def _validate_runtime_identity_uniqueness(
 
 
 def _validate_run_binding_and_plan(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     episodes: Sequence[Episode],
+    collector: IssueCollector,
+) -> None:
+    _validate_definition_binding(benchmark, run, collector)
+    _validate_run_plan_binding(benchmark, run, episodes, collector)
+
+
+def _validate_definition_binding(
+    benchmark: SupportedBenchmarkDefinition,
+    run: Run,
     collector: IssueCollector,
 ) -> None:
     if run.definition_ref.benchmark_id != benchmark.benchmark_id:
@@ -450,6 +481,28 @@ def _validate_run_binding_and_plan(
             "Run benchmark_version does not match the supplied BenchmarkDefinition.",
             "run.definition_ref.benchmark_version",
         )
+    try:
+        digest_matches = verify_definition_digest(
+            benchmark,
+            run.definition_ref.definition_digest,
+            closure_profile=str(run.definition_ref.definition_closure_profile),
+        )
+    except (TypeError, ValueError):
+        digest_matches = False
+    if not digest_matches:
+        collector.add(
+            "RUN_DEFINITION_DIGEST_MISMATCH",
+            "Run definition_digest does not match the supplied Definition and closure profile.",
+            "run.definition_ref.definition_digest",
+        )
+
+
+def _validate_run_plan_binding(
+    benchmark: SupportedBenchmarkDefinition,
+    run: Run,
+    episodes: Sequence[Episode],
+    collector: IssueCollector,
+) -> None:
     definition_test_case_ids = {item.test_case_id for item in benchmark.test_cases}
     plan_groups = group_by(
         run.execution_plan.test_cases,
@@ -874,7 +927,7 @@ def _validate_gate_results(
             )
             continue
         condition = gate.condition
-        if isinstance(condition, GraderResultGateCondition):
+        if isinstance(condition, (GraderResultGateCondition, GraderResultGateConditionV03)):
             if result.input_summary.condition_type != "grader_result":
                 collector.add(
                     "RUN_GATE_SOURCE_TYPE_MISMATCH",
@@ -1143,7 +1196,7 @@ def _validate_validity_finding_refs(
 
 
 def _validate_scorecard(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     episodes: Sequence[Episode],
     grader_results: Sequence[GraderResult],
@@ -1256,7 +1309,7 @@ def _validate_inventory_field[T: _RunOwned](
 
 
 def _validate_scorecard_finalization(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     scorecard: Scorecard,
     collector: IssueCollector,
@@ -1299,7 +1352,7 @@ def _validate_scorecard_finalization(
 
 
 def _validate_overall_refs(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     scorecard: Scorecard,
     groups: _RuntimeGroups,
@@ -1381,7 +1434,7 @@ def _validate_overall_refs(
 
 
 def _validate_acceptance_refs(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     scorecard: Scorecard,
     groups: _RuntimeGroups,
@@ -1500,7 +1553,7 @@ def _validate_production_diagnostics(
 
 
 def _validate_final_inventory_closure(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     episodes: Sequence[Episode],
     grader_results: Sequence[GraderResult],

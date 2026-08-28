@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Callable, Hashable, Mapping, Sequence
 from datetime import datetime
 
-from skill_eval_framework.schemas.definition import BenchmarkDefinition
 from skill_eval_framework.schemas.results import (
     AcceptanceEvaluation,
     GateResult,
@@ -27,13 +26,14 @@ from skill_eval_framework.validation import (
     derive_expected_applications,
     derive_missing_applications,
 )
+from skill_eval_framework.validation.definition import SupportedBenchmarkDefinition
 
 from .errors import IntegrityFinalizationError, InvalidTransitionError, RuntimeServiceError
 from .planning import is_execution_plan_sealed
 
 
 def build_scorecard_inventory(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     *,
     episodes: Sequence[Episode],
@@ -106,7 +106,7 @@ def build_scorecard_inventory(
 
 
 def build_interim_inventory(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     *,
     episodes: Sequence[Episode],
@@ -130,7 +130,7 @@ def build_interim_inventory(
 
 
 def build_final_inventory(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     *,
     episodes: Sequence[Episode],
@@ -158,7 +158,7 @@ def build_final_inventory(
 def create_interim_scorecard(
     *,
     scorecard_id: str,
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     episodes: Sequence[Episode],
     grader_results: Sequence[GraderResult],
@@ -195,7 +195,7 @@ def create_interim_scorecard(
 def finalize_scorecard(
     *,
     scorecard: Scorecard,
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     episodes: Sequence[Episode],
     artifacts: Sequence[Artifact],

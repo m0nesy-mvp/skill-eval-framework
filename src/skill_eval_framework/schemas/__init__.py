@@ -53,7 +53,14 @@ from .results import (
     OverallScoreOutcome,
     Scorecard,
 )
-from .runtime import Artifact, Episode, Evidence, Run, RuntimeDiagnostic
+from .runtime import (
+    Artifact,
+    DefinitionClosureProfile,
+    Episode,
+    Evidence,
+    Run,
+    RuntimeDiagnostic,
+)
 
 __all__ = [
     "AcceptanceEvaluation",
@@ -71,6 +78,7 @@ __all__ = [
     "ContributionRule",
     "ContributionUnit",
     "DirectGraderGatePolicy",
+    "DefinitionClosureProfile",
     "Episode",
     "Evidence",
     "EvidenceSpecification",

@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime
 
-from skill_eval_framework.schemas.definition import BenchmarkDefinition
 from skill_eval_framework.schemas.results import (
     ExpectedApplicationRef,
     GateResult,
@@ -26,6 +25,7 @@ from skill_eval_framework.validation import (
     derive_expected_applications,
     derive_missing_applications,
 )
+from skill_eval_framework.validation.definition import SupportedBenchmarkDefinition
 
 from .errors import ExecutionPlanError, RuntimeServiceError
 from .planning import is_execution_plan_sealed
@@ -87,7 +87,7 @@ def create_episode_for_slot(
 
 
 def expected_applications_for_run(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     episodes: Sequence[Episode],
 ) -> tuple[ExpectedApplicationRef, ...]:
@@ -97,7 +97,7 @@ def expected_applications_for_run(
 
 
 def missing_applications_for_final_inventory(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     run: Run,
     *,
     episodes: Sequence[Episode],
