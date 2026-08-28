@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "skill-eval-framework"
+version = "0.1.0"
+description = "Executable schemas for frozen skill evaluation definitions and results"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.13,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.17,<2",
+    "pytest>=8,<10",
+    "ruff>=0.12,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/skill_eval_framework"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
+
+[tool.mypy]
+files = ["src"]
+plugins = ["pydantic.mypy"]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
