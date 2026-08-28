@@ -1,5 +1,5 @@
 """Skill evaluation framework schema package."""
 
-from . import schemas
+from . import schemas, validation
 
-__all__ = ["schemas"]
+__all__ = ["schemas", "validation"]
