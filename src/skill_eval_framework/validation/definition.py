@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from typing import cast
 
+from skill_eval_framework.schemas.common import ResultSemantic
 from skill_eval_framework.schemas.definition import (
     BenchmarkDefinition,
     Contract,
@@ -22,10 +24,19 @@ from skill_eval_framework.schemas.definition import (
     TestCase,
     WeightedNormalizedMeanOverallScorePolicy,
 )
+from skill_eval_framework.schemas.definition_v03 import (
+    BenchmarkDefinitionV03,
+    GateSpecificationV03,
+    GraderResultGateConditionV03,
+    MetricSpecificationV03,
+)
 
 from .common import IssueCollector, ValidationReport, group_by, unique_items
 
 type AssertionKey = tuple[str, str]
+type SupportedBenchmarkDefinition = BenchmarkDefinition | BenchmarkDefinitionV03
+type SupportedMetricSpecification = MetricSpecification | MetricSpecificationV03
+type SupportedGateSpecification = GateSpecification | GateSpecificationV03
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,8 +58,8 @@ class DefinitionIndex:
     evidence_specifications: dict[str, EvidenceSpecification]
     grader_specifications: dict[str, GraderSpecification]
     grader_targets: dict[AssertionKey, tuple[AuthoritativeGraderTarget, ...]]
-    metric_specifications: dict[str, MetricSpecification]
-    gate_specifications: dict[str, GateSpecification]
+    metric_specifications: dict[str, SupportedMetricSpecification]
+    gate_specifications: dict[str, SupportedGateSpecification]
 
 
 def _stable_pair(test_case_id: str, contract_id: str) -> str:
@@ -73,7 +84,7 @@ def _report_namespace_duplicates[T](
             )
 
 
-def build_definition_index(benchmark: BenchmarkDefinition) -> DefinitionIndex:
+def build_definition_index(benchmark: SupportedBenchmarkDefinition) -> DefinitionIndex:
     """Build unambiguous graph lookups without validating or mutating the Definition."""
 
     requirements = unique_items(group_by(benchmark.requirements, lambda item: item.requirement_id))
@@ -85,12 +96,10 @@ def build_definition_index(benchmark: BenchmarkDefinition) -> DefinitionIndex:
     grader_specifications = unique_items(
         group_by(benchmark.grader_specifications, lambda item: item.grader_id)
     )
-    metric_specifications = unique_items(
-        group_by(benchmark.metric_specifications, lambda item: item.metric_id)
-    )
-    gate_specifications = unique_items(
-        group_by(benchmark.gate_specifications, lambda item: item.gate_id)
-    )
+    metric_items = cast(Sequence[SupportedMetricSpecification], benchmark.metric_specifications)
+    gate_items = cast(Sequence[SupportedGateSpecification], benchmark.gate_specifications)
+    metric_specifications = unique_items(group_by(metric_items, lambda item: item.metric_id))
+    gate_specifications = unique_items(group_by(gate_items, lambda item: item.gate_id))
 
     assertion_pairs = frozenset(
         (test_case.test_case_id, assertion.contract_id)
@@ -117,7 +126,7 @@ def build_definition_index(benchmark: BenchmarkDefinition) -> DefinitionIndex:
     )
 
 
-def validate_benchmark_definition(benchmark: BenchmarkDefinition) -> ValidationReport:
+def _validate_definition_graph(benchmark: SupportedBenchmarkDefinition) -> ValidationReport:
     """Validate deterministic references, coverage, and namespace integrity."""
 
     collector = IssueCollector()
@@ -134,7 +143,38 @@ def validate_benchmark_definition(benchmark: BenchmarkDefinition) -> ValidationR
     return collector.report()
 
 
-def _validate_namespaces(benchmark: BenchmarkDefinition, collector: IssueCollector) -> None:
+def validate_benchmark_definition_v02(benchmark: BenchmarkDefinition) -> ValidationReport:
+    """Validate an explicitly selected historical v0.2 Definition."""
+
+    if not isinstance(benchmark, BenchmarkDefinition):
+        raise TypeError("validate_benchmark_definition_v02 requires a v0.2 Definition")
+    return _validate_definition_graph(benchmark)
+
+
+def validate_benchmark_definition_v03(benchmark: BenchmarkDefinitionV03) -> ValidationReport:
+    """Validate an explicitly selected executable-policy v0.3 Definition."""
+
+    if not isinstance(benchmark, BenchmarkDefinitionV03):
+        raise TypeError("validate_benchmark_definition_v03 requires a v0.3 Definition")
+    return _validate_definition_graph(benchmark)
+
+
+def validate_benchmark_definition(benchmark: SupportedBenchmarkDefinition) -> ValidationReport:
+    """Dispatch explicitly by the concrete versioned Definition model."""
+
+    if isinstance(benchmark, BenchmarkDefinitionV03):
+        return validate_benchmark_definition_v03(benchmark)
+    if isinstance(benchmark, BenchmarkDefinition):
+        return validate_benchmark_definition_v02(benchmark)
+    raise TypeError("benchmark must be an explicit v0.2 or v0.3 BenchmarkDefinition")
+
+
+def _validate_namespaces(
+    benchmark: SupportedBenchmarkDefinition,
+    collector: IssueCollector,
+) -> None:
+    metric_items = cast(Sequence[SupportedMetricSpecification], benchmark.metric_specifications)
+    gate_items = cast(Sequence[SupportedGateSpecification], benchmark.gate_specifications)
     _report_namespace_duplicates(
         collector,
         benchmark.requirements,
@@ -177,7 +217,7 @@ def _validate_namespaces(benchmark: BenchmarkDefinition, collector: IssueCollect
     )
     _report_namespace_duplicates(
         collector,
-        benchmark.metric_specifications,
+        metric_items,
         lambda item: item.metric_id,
         code="DEF_DUPLICATE_METRIC_ID",
         path_prefix="metric_specifications",
@@ -185,7 +225,7 @@ def _validate_namespaces(benchmark: BenchmarkDefinition, collector: IssueCollect
     )
     _report_namespace_duplicates(
         collector,
-        benchmark.gate_specifications,
+        gate_items,
         lambda item: item.gate_id,
         code="DEF_DUPLICATE_GATE_ID",
         path_prefix="gate_specifications",
@@ -194,7 +234,7 @@ def _validate_namespaces(benchmark: BenchmarkDefinition, collector: IssueCollect
 
 
 def _validate_contracts(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     index: DefinitionIndex,
     collector: IssueCollector,
 ) -> None:
@@ -232,7 +272,7 @@ def _validate_contracts(
 
 
 def _validate_test_cases(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     index: DefinitionIndex,
     collector: IssueCollector,
 ) -> None:
@@ -259,7 +299,7 @@ def _validate_test_cases(
 
 
 def _validate_evidence(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     index: DefinitionIndex,
     collector: IssueCollector,
 ) -> None:
@@ -289,7 +329,7 @@ def _validate_evidence(
 
 
 def _validate_graders(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     index: DefinitionIndex,
     collector: IssueCollector,
 ) -> None:
@@ -344,7 +384,7 @@ def _validate_graders(
 
 
 def _validate_metrics(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     index: DefinitionIndex,
     collector: IssueCollector,
 ) -> None:
@@ -368,16 +408,64 @@ def _validate_metrics(
                     "exactly one is required.",
                     path,
                 )
+            elif isinstance(metric, MetricSpecificationV03):
+                _validate_v03_metric_semantics(metric, owners, collector)
+
+
+def _supported_result_semantics(grader: GraderSpecification) -> frozenset[ResultSemantic]:
+    """Return canonical semantics that the Grader can actually emit."""
+
+    supported = {
+        ResultSemantic.SATISFIED,
+        ResultSemantic.VIOLATED,
+        ResultSemantic.INSUFFICIENT_EVIDENCE,
+    }
+    if grader.result_semantics.not_exercised is not None:
+        supported.add(ResultSemantic.NOT_EXERCISED)
+    return frozenset(supported)
+
+
+def _validate_v03_metric_semantics(
+    metric: MetricSpecificationV03,
+    owners: tuple[AuthoritativeGraderTarget, ...],
+    collector: IssueCollector,
+) -> None:
+    declared = metric.execution_policy.eligibility.eligible_semantics
+    mapped = metric.execution_policy.contribution_mapping
+    for owner in owners:
+        supported = _supported_result_semantics(owner.grader)
+        for semantic in declared:
+            if semantic not in supported:
+                collector.add(
+                    "DEF_V03_METRIC_SEMANTIC_INCOMPATIBLE",
+                    f"Metric {metric.metric_id!r} declares eligible semantic "
+                    f"{semantic.value!r} not supported by authoritative Grader "
+                    f"{owner.grader.grader_id!r}.",
+                    f"metric_specifications[{metric.metric_id}].execution_policy"
+                    f".eligibility.eligible_semantics[{semantic.value}]",
+                    (f"metric:{metric.metric_id}", f"grader:{owner.grader.grader_id}"),
+                )
+        for rule in mapped:
+            if rule.source_semantic not in supported:
+                collector.add(
+                    "DEF_V03_METRIC_SEMANTIC_INCOMPATIBLE",
+                    f"Metric {metric.metric_id!r} maps semantic "
+                    f"{rule.source_semantic.value!r} not supported by authoritative "
+                    f"Grader {owner.grader.grader_id!r}.",
+                    f"metric_specifications[{metric.metric_id}].execution_policy"
+                    f".contribution_mapping[{rule.source_semantic.value}]",
+                    (f"metric:{metric.metric_id}", f"grader:{owner.grader.grader_id}"),
+                )
 
 
 def _validate_gates(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     index: DefinitionIndex,
     collector: IssueCollector,
 ) -> None:
     for gate in benchmark.gate_specifications:
         condition = gate.condition
-        if isinstance(condition, GraderResultGateCondition):
+        if isinstance(condition, (GraderResultGateCondition, GraderResultGateConditionV03)):
             for target in condition.targets:
                 key = (target.test_case_id, target.contract_id)
                 pair = _stable_pair(*key)
@@ -394,6 +482,8 @@ def _validate_gates(
                         f"Gate target {pair!r} does not resolve to exactly one GraderTarget.",
                         path,
                     )
+                elif isinstance(condition, GraderResultGateConditionV03):
+                    _validate_v03_gate_semantics(gate, condition, key, index, collector)
         elif (
             isinstance(
                 condition,
@@ -409,8 +499,31 @@ def _validate_gates(
             )
 
 
+def _validate_v03_gate_semantics(
+    gate: SupportedGateSpecification,
+    condition: GraderResultGateConditionV03,
+    key: AssertionKey,
+    index: DefinitionIndex,
+    collector: IssueCollector,
+) -> None:
+    owners = index.grader_targets.get(key, ())
+    if len(owners) != 1:
+        return
+    supported = _supported_result_semantics(owners[0].grader)
+    for semantic in condition.trigger_result_semantics:
+        if semantic not in supported:
+            collector.add(
+                "DEF_V03_GATE_TRIGGER_SEMANTIC_INCOMPATIBLE",
+                f"Gate {gate.gate_id!r} triggers on semantic {semantic.value!r} not "
+                f"supported by authoritative Grader {owners[0].grader.grader_id!r}.",
+                f"gate_specifications[{gate.gate_id}].condition"
+                f".trigger_result_semantics[{semantic.value}]",
+                (f"gate:{gate.gate_id}", f"grader:{owners[0].grader.grader_id}"),
+            )
+
+
 def _validate_policies(
-    benchmark: BenchmarkDefinition,
+    benchmark: SupportedBenchmarkDefinition,
     index: DefinitionIndex,
     collector: IssueCollector,
 ) -> None:
@@ -436,7 +549,10 @@ def _validate_policies(
                 )
 
 
-def _validate_resources(benchmark: BenchmarkDefinition, collector: IssueCollector) -> None:
+def _validate_resources(
+    benchmark: SupportedBenchmarkDefinition,
+    collector: IssueCollector,
+) -> None:
     groups = group_by(
         benchmark.semantic_resource_bindings,
         lambda binding: str(binding.resource_ref),
