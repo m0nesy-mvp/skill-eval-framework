@@ -16,6 +16,7 @@ from .common import (
     NonEmptyStr,
     NonNegativeInt,
     PositiveInt,
+    ResultSemantic,
     SchemaModel,
     TestCaseId,
     UnitInterval,
@@ -23,12 +24,8 @@ from .common import (
 )
 from .runtime import EvidenceTargetRef, FrozenDefinitionRef, SubjectReference
 
-
-class GraderJudgment(StrEnum):
-    SATISFIED = "satisfied"
-    VIOLATED = "violated"
-    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
-    NOT_EXERCISED = "not_exercised"
+# Backward-compatible public name; Definition v0.3 and Runtime use the same enum.
+GraderJudgment = ResultSemantic
 
 
 class EvidenceContribution(SchemaModel):

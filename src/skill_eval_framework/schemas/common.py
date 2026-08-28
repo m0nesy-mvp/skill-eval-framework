@@ -2,6 +2,7 @@
 
 from collections.abc import Hashable, Sequence
 from decimal import Decimal
+from enum import StrEnum
 from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
@@ -52,3 +53,12 @@ class SchemaModel(BaseModel):
     """Base model for all strict frozen-schema records."""
 
     model_config = ConfigDict(extra="forbid", validate_default=True)
+
+
+class ResultSemantic(StrEnum):
+    """Canonical semantic vocabulary shared by Definition and Runtime schemas."""
+
+    SATISFIED = "satisfied"
+    VIOLATED = "violated"
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+    NOT_EXERCISED = "not_exercised"
