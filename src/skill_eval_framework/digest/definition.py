@@ -8,9 +8,15 @@ from dataclasses import dataclass
 from hmac import compare_digest
 
 from skill_eval_framework.schemas.definition import BenchmarkDefinition, DefinitionResourceBinding
+from skill_eval_framework.schemas.definition_v03 import BenchmarkDefinitionV03
 from skill_eval_framework.schemas.runtime import FrozenDefinitionRef
 
-from .canonical import CLOSURE_PROFILE, canonicalize_frozen_definition
+from .canonical import (
+    CLOSURE_PROFILE,
+    CLOSURE_PROFILE_V1,
+    canonicalize_frozen_definition_v02,
+    canonicalize_frozen_definition_v03,
+)
 from .errors import (
     DigestMismatchError,
     SemanticResourceDigestMismatchError,
@@ -38,36 +44,126 @@ def _sha256(content: bytes) -> str:
     return f"sha256:{hashlib.sha256(content).hexdigest()}"
 
 
-def compute_definition_digest(
+def compute_definition_digest_v02(
     benchmark: BenchmarkDefinition,
     *,
     closure_profile: str = CLOSURE_PROFILE,
 ) -> str:
-    """Compute the content-identity digest of a complete Frozen Definition."""
+    """Compute the historical v0 digest for a v0.2 Definition."""
 
     _check_profile(closure_profile)
-    return _sha256(canonicalize_frozen_definition(benchmark, closure_profile=closure_profile))
+    return _sha256(canonicalize_frozen_definition_v02(benchmark, closure_profile=closure_profile))
 
 
-def verify_definition_digest(
+def compute_definition_digest_v03(
+    benchmark: BenchmarkDefinitionV03,
+    *,
+    closure_profile: str = CLOSURE_PROFILE_V1,
+) -> str:
+    """Compute the v1 digest for an executable-policy v0.3 Definition."""
+
+    if closure_profile != CLOSURE_PROFILE_V1:
+        raise UnsupportedClosureProfileError(f"unsupported closure profile: {closure_profile!r}")
+    return _sha256(canonicalize_frozen_definition_v03(benchmark, closure_profile=closure_profile))
+
+
+def compute_definition_digest(
+    benchmark: BenchmarkDefinition | BenchmarkDefinitionV03,
+    *,
+    closure_profile: str | None = None,
+) -> str:
+    """Dispatch to the digest protocol selected by the concrete Definition root type."""
+
+    if isinstance(benchmark, BenchmarkDefinitionV03):
+        profile = CLOSURE_PROFILE_V1 if closure_profile is None else closure_profile
+        return compute_definition_digest_v03(benchmark, closure_profile=profile)
+    if isinstance(benchmark, BenchmarkDefinition):
+        profile = CLOSURE_PROFILE if closure_profile is None else closure_profile
+        return compute_definition_digest_v02(benchmark, closure_profile=profile)
+    raise TypeError("benchmark must be an explicit v0.2 or v0.3 Definition")
+
+
+def verify_definition_digest_v02(
     benchmark: BenchmarkDefinition,
     expected_digest: str,
     *,
     closure_profile: str = CLOSURE_PROFILE,
 ) -> bool:
-    """Return whether ``expected_digest`` matches the computed Definition digest."""
+    """Verify a v0 digest against a v0.2 Definition."""
 
-    computed = compute_definition_digest(benchmark, closure_profile=closure_profile)
+    computed = compute_definition_digest_v02(benchmark, closure_profile=closure_profile)
     return compare_digest(computed, expected_digest)
 
 
+def verify_definition_digest_v03(
+    benchmark: BenchmarkDefinitionV03,
+    expected_digest: str,
+    *,
+    closure_profile: str = CLOSURE_PROFILE_V1,
+) -> bool:
+    """Verify a v1 digest against a v0.3 Definition."""
+
+    computed = compute_definition_digest_v03(benchmark, closure_profile=closure_profile)
+    return compare_digest(computed, expected_digest)
+
+
+def verify_definition_identity_v03(
+    benchmark: BenchmarkDefinitionV03,
+    expected_digest: str,
+) -> bool:
+    """Verify v0.3 Definition identity without changing Runtime binding rules."""
+
+    return verify_definition_digest_v03(benchmark, expected_digest)
+
+
+def verify_definition_digest(
+    benchmark: BenchmarkDefinition | BenchmarkDefinitionV03,
+    expected_digest: str,
+    *,
+    closure_profile: str | None = None,
+) -> bool:
+    """Dispatch digest verification by concrete Definition root type."""
+
+    if isinstance(benchmark, BenchmarkDefinitionV03):
+        profile = CLOSURE_PROFILE_V1 if closure_profile is None else closure_profile
+        return verify_definition_digest_v03(benchmark, expected_digest, closure_profile=profile)
+    if isinstance(benchmark, BenchmarkDefinition):
+        profile = CLOSURE_PROFILE if closure_profile is None else closure_profile
+        return verify_definition_digest_v02(benchmark, expected_digest, closure_profile=profile)
+    raise TypeError("benchmark must be an explicit v0.2 or v0.3 Definition")
+
+
 def verify_definition_digest_result(
+    benchmark: BenchmarkDefinition | BenchmarkDefinitionV03,
+    expected_digest: str,
+    *,
+    closure_profile: str | None = None,
+) -> DigestVerificationResult:
+    computed = compute_definition_digest(benchmark, closure_profile=closure_profile)
+    return DigestVerificationResult(
+        expected_digest, computed, compare_digest(computed, expected_digest)
+    )
+
+
+def verify_definition_digest_result_v02(
     benchmark: BenchmarkDefinition,
     expected_digest: str,
     *,
     closure_profile: str = CLOSURE_PROFILE,
 ) -> DigestVerificationResult:
-    computed = compute_definition_digest(benchmark, closure_profile=closure_profile)
+    computed = compute_definition_digest_v02(benchmark, closure_profile=closure_profile)
+    return DigestVerificationResult(
+        expected_digest, computed, compare_digest(computed, expected_digest)
+    )
+
+
+def verify_definition_digest_result_v03(
+    benchmark: BenchmarkDefinitionV03,
+    expected_digest: str,
+    *,
+    closure_profile: str = CLOSURE_PROFILE_V1,
+) -> DigestVerificationResult:
+    computed = compute_definition_digest_v03(benchmark, closure_profile=closure_profile)
     return DigestVerificationResult(
         expected_digest, computed, compare_digest(computed, expected_digest)
     )
@@ -138,11 +234,35 @@ def detect_same_version_drift(
     return expected_ref.definition_digest != computed_digest
 
 
-def assert_definition_digest(
+def assert_definition_digest_v02(
     benchmark: BenchmarkDefinition,
     expected_digest: str,
     *,
     closure_profile: str = CLOSURE_PROFILE,
+) -> None:
+    if not verify_definition_digest_v02(
+        benchmark, expected_digest, closure_profile=closure_profile
+    ):
+        raise DigestMismatchError(f"Definition digest mismatch: expected {expected_digest!r}")
+
+
+def assert_definition_digest_v03(
+    benchmark: BenchmarkDefinitionV03,
+    expected_digest: str,
+    *,
+    closure_profile: str = CLOSURE_PROFILE_V1,
+) -> None:
+    if not verify_definition_digest_v03(
+        benchmark, expected_digest, closure_profile=closure_profile
+    ):
+        raise DigestMismatchError(f"Definition digest mismatch: expected {expected_digest!r}")
+
+
+def assert_definition_digest(
+    benchmark: BenchmarkDefinition | BenchmarkDefinitionV03,
+    expected_digest: str,
+    *,
+    closure_profile: str | None = None,
 ) -> None:
     if not verify_definition_digest(benchmark, expected_digest, closure_profile=closure_profile):
         raise DigestMismatchError(f"Definition digest mismatch: expected {expected_digest!r}")
@@ -152,12 +272,21 @@ __all__ = [
     "DigestVerificationResult",
     "ResourceResolver",
     "assert_definition_digest",
+    "assert_definition_digest_v02",
+    "assert_definition_digest_v03",
     "assert_semantic_resource",
     "compute_definition_digest",
+    "compute_definition_digest_v02",
+    "compute_definition_digest_v03",
     "compute_semantic_resource_digest",
     "detect_same_version_drift",
     "verify_definition_digest",
+    "verify_definition_digest_v02",
+    "verify_definition_digest_v03",
     "verify_definition_digest_result",
+    "verify_definition_digest_result_v02",
+    "verify_definition_digest_result_v03",
+    "verify_definition_identity_v03",
     "verify_run_definition_binding",
     "verify_semantic_resource",
 ]

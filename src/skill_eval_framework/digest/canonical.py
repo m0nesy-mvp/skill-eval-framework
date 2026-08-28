@@ -12,10 +12,13 @@ from unicodedata import normalize
 from pydantic import BaseModel
 
 from skill_eval_framework.schemas.definition import BenchmarkDefinition
+from skill_eval_framework.schemas.definition_v03 import BenchmarkDefinitionV03
 
 from .errors import CanonicalizationError, UnsupportedClosureProfileError
 
 CLOSURE_PROFILE = "skill-eval-frozen-definition-closure-v0"
+CLOSURE_PROFILE_V02 = CLOSURE_PROFILE
+CLOSURE_PROFILE_V1 = "skill-eval-frozen-definition-closure-v1"
 
 
 def normalize_canonical_string(value: str) -> str:
@@ -170,6 +173,88 @@ def _canonical_nested(value: Any, path: tuple[str, ...]) -> Any:
     raise CanonicalizationError(f"unsupported canonical value type: {type(value).__name__}")
 
 
+_V1_IDENTIFIED_COLLECTIONS = _IDENTIFIED_COLLECTIONS
+_V1_PAIR_COLLECTIONS = _PAIR_COLLECTIONS
+_V1_STRING_COLLECTIONS = _STRING_COLLECTIONS | {
+    "eligible_semantics",
+    "trigger_result_semantics",
+}
+
+
+def _v1_list_key(field_name: str, item: Any) -> Any | None:
+    if field_name in _V1_IDENTIFIED_COLLECTIONS:
+        id_field = _V1_IDENTIFIED_COLLECTIONS[field_name]
+        return normalize_canonical_string(str(getattr(item, id_field)))
+    if field_name in _V1_PAIR_COLLECTIONS:
+        return (
+            normalize_canonical_string(str(item.test_case_id)),
+            normalize_canonical_string(str(item.contract_id)),
+        )
+    if field_name in _TARGET_COLLECTIONS:
+        return normalize_canonical_string(str(item.contract_id))
+    if field_name in _MAPPING_COLLECTIONS:
+        source_semantic = getattr(item, "source_semantic", None)
+        if source_semantic is None:
+            source_semantic = getattr(item, "source_semantics", None)
+        return normalize_canonical_string(str(getattr(source_semantic, "value", source_semantic)))
+    if field_name in _V1_STRING_COLLECTIONS:
+        if isinstance(item, Enum):
+            item = item.value
+        if not isinstance(item, str):
+            raise CanonicalizationError(f"{field_name} must contain strings or enum values")
+        return normalize_canonical_string(item)
+    return None
+
+
+def _canonical_model_v1(value: BaseModel, path: tuple[str, ...] = ()) -> Any:
+    if value.model_extra:
+        raise CanonicalizationError("unknown fields cannot enter the Frozen Definition closure")
+    output: dict[str, Any] = {}
+    for field_name in type(value).model_fields:
+        field_value = getattr(value, field_name)
+        if field_value is None:
+            continue
+        if isinstance(field_value, list):
+            keys = [_v1_list_key(field_name, item) for item in field_value]
+            if any(key is not None for key in keys):
+                if any(key is None for key in keys):
+                    raise CanonicalizationError(f"mixed canonical collection semantics: {path}")
+                if _duplicate_keys(keys):
+                    raise CanonicalizationError(
+                        f"duplicate values in set-like collection: {path + (field_name,)}"
+                    )
+                field_value = _sort_collection(keys, field_value)
+        output[field_name] = _canonical_nested_v1(field_value, path + (field_name,))
+    return output
+
+
+def _canonical_nested_v1(value: Any, path: tuple[str, ...]) -> Any:
+    if isinstance(value, BaseModel):
+        return _canonical_model_v1(value, path)
+    if isinstance(value, Enum):
+        return _canonical_nested_v1(value.value, path)
+    if isinstance(value, str):
+        return normalize_canonical_string(value)
+    if isinstance(value, Decimal):
+        return _DecimalToken(canonical_decimal(value))
+    if isinstance(value, (bool, int)):
+        return value
+    if isinstance(value, list):
+        keys = [_v1_list_key(path[-1], item) for item in value]
+        if any(key is not None for key in keys):
+            if any(key is None for key in keys):
+                raise CanonicalizationError(f"mixed canonical collection semantics: {path}")
+            if _duplicate_keys(keys):
+                raise CanonicalizationError(f"duplicate values in set-like collection: {path}")
+            value = _sort_collection(keys, value)
+        return [_canonical_nested_v1(item, path) for item in value]
+    if value is None:
+        raise CanonicalizationError("null is not authorized by the v1 Definition schema")
+    if isinstance(value, (dict, tuple, set)):
+        raise CanonicalizationError("arbitrary containers cannot bypass the Pydantic schema")
+    raise CanonicalizationError(f"unsupported canonical value type: {type(value).__name__}")
+
+
 def _encode(value: Any) -> bytes:
     if isinstance(value, dict):
         members = []
@@ -195,16 +280,34 @@ def _encode(value: Any) -> bytes:
 
 
 def canonicalize_frozen_definition(
+    benchmark: BenchmarkDefinition | BenchmarkDefinitionV03,
+    *,
+    closure_profile: str | None = None,
+) -> bytes:
+    """Dispatch to the explicit v0 or v1 Definition canonicalization protocol."""
+
+    if isinstance(benchmark, BenchmarkDefinitionV03):
+        profile = CLOSURE_PROFILE_V1 if closure_profile is None else closure_profile
+        return canonicalize_frozen_definition_v03(benchmark, closure_profile=profile)
+    if isinstance(benchmark, BenchmarkDefinition):
+        profile = CLOSURE_PROFILE_V02 if closure_profile is None else closure_profile
+        return canonicalize_frozen_definition_v02(benchmark, closure_profile=profile)
+    raise CanonicalizationError("canonicalization requires an explicit v0.2 or v0.3 Definition")
+
+
+def canonicalize_frozen_definition_v02(
     benchmark: BenchmarkDefinition,
     *,
-    closure_profile: str = CLOSURE_PROFILE,
+    closure_profile: str = CLOSURE_PROFILE_V02,
 ) -> bytes:
-    """Build the canonical envelope and return its deterministic UTF-8 bytes."""
+    """Build historical v0 canonical bytes without changing the v0 protocol."""
 
-    if closure_profile != CLOSURE_PROFILE:
+    if closure_profile != CLOSURE_PROFILE_V02:
         raise UnsupportedClosureProfileError(f"unsupported closure profile: {closure_profile!r}")
     if not isinstance(benchmark, BenchmarkDefinition):
-        raise CanonicalizationError("canonicalization requires a BenchmarkDefinition instance")
+        raise CanonicalizationError(
+            "v0 canonicalization requires a BenchmarkDefinition v0.2 instance"
+        )
     envelope = {
         "closure_profile": closure_profile,
         "benchmark_definition": _canonical_model(benchmark),
@@ -212,9 +315,33 @@ def canonicalize_frozen_definition(
     return _encode(envelope)
 
 
+def canonicalize_frozen_definition_v03(
+    benchmark: BenchmarkDefinitionV03,
+    *,
+    closure_profile: str = CLOSURE_PROFILE_V1,
+) -> bytes:
+    """Build v1 canonical bytes for the executable-policy Definition schema."""
+
+    if closure_profile != CLOSURE_PROFILE_V1:
+        raise UnsupportedClosureProfileError(f"unsupported closure profile: {closure_profile!r}")
+    if not isinstance(benchmark, BenchmarkDefinitionV03):
+        raise CanonicalizationError(
+            "v1 canonicalization requires a BenchmarkDefinitionV03 instance"
+        )
+    envelope = {
+        "closure_profile": closure_profile,
+        "benchmark_definition": _canonical_model_v1(benchmark),
+    }
+    return _encode(envelope)
+
+
 __all__ = [
     "CLOSURE_PROFILE",
+    "CLOSURE_PROFILE_V02",
+    "CLOSURE_PROFILE_V1",
     "canonical_decimal",
     "canonicalize_frozen_definition",
+    "canonicalize_frozen_definition_v02",
+    "canonicalize_frozen_definition_v03",
     "normalize_canonical_string",
 ]

@@ -2,8 +2,12 @@
 
 from .canonical import (
     CLOSURE_PROFILE,
+    CLOSURE_PROFILE_V02,
+    CLOSURE_PROFILE_V1,
     canonical_decimal,
     canonicalize_frozen_definition,
+    canonicalize_frozen_definition_v02,
+    canonicalize_frozen_definition_v03,
     normalize_canonical_string,
 )
 from .definition import (
@@ -12,10 +16,17 @@ from .definition import (
     assert_definition_digest,
     assert_semantic_resource,
     compute_definition_digest,
+    compute_definition_digest_v02,
+    compute_definition_digest_v03,
     compute_semantic_resource_digest,
     detect_same_version_drift,
     verify_definition_digest,
     verify_definition_digest_result,
+    verify_definition_digest_result_v02,
+    verify_definition_digest_result_v03,
+    verify_definition_digest_v02,
+    verify_definition_digest_v03,
+    verify_definition_identity_v03,
     verify_run_definition_binding,
     verify_semantic_resource,
 )
@@ -29,6 +40,8 @@ from .errors import (
 
 __all__ = [
     "CLOSURE_PROFILE",
+    "CLOSURE_PROFILE_V02",
+    "CLOSURE_PROFILE_V1",
     "CanonicalizationError",
     "DigestError",
     "DigestMismatchError",
@@ -40,12 +53,21 @@ __all__ = [
     "assert_semantic_resource",
     "canonical_decimal",
     "canonicalize_frozen_definition",
+    "canonicalize_frozen_definition_v02",
+    "canonicalize_frozen_definition_v03",
     "compute_definition_digest",
+    "compute_definition_digest_v02",
+    "compute_definition_digest_v03",
     "compute_semantic_resource_digest",
     "detect_same_version_drift",
     "normalize_canonical_string",
     "verify_definition_digest",
+    "verify_definition_digest_v02",
+    "verify_definition_digest_v03",
     "verify_definition_digest_result",
+    "verify_definition_digest_result_v02",
+    "verify_definition_digest_result_v03",
+    "verify_definition_identity_v03",
     "verify_run_definition_binding",
     "verify_semantic_resource",
 ]
