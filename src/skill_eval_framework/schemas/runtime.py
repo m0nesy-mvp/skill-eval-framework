@@ -14,7 +14,7 @@ from .common import (
     JsonScalar,
     NonEmptyStr,
     PositiveInt,
-    SchemaModel,
+    RuntimeResultModel,
     TestCaseId,
     ensure_unique,
 )
@@ -42,12 +42,12 @@ class DefinitionClosureProfile(StrEnum):
     V1 = "skill-eval-frozen-definition-closure-v1"
 
 
-class ObjectRef(SchemaModel):
+class ObjectRef(RuntimeResultModel):
     object_type: ObjectType
     object_ref: NonEmptyStr
 
 
-class FrozenDefinitionRef(SchemaModel):
+class FrozenDefinitionRef(RuntimeResultModel):
     benchmark_id: BenchmarkId
     benchmark_version: NonEmptyStr
     definition_closure_profile: DefinitionClosureProfile
@@ -55,7 +55,7 @@ class FrozenDefinitionRef(SchemaModel):
     definition_snapshot_ref: NonEmptyStr | None = None
 
 
-class SubjectReference(SchemaModel):
+class SubjectReference(RuntimeResultModel):
     subject_ref: NonEmptyStr
     subject_kind: NonEmptyStr
     version_ref: NonEmptyStr | None = None
@@ -63,7 +63,7 @@ class SubjectReference(SchemaModel):
     identity_metadata: dict[NonEmptyStr, JsonScalar] | None = None
 
 
-class RuntimeExecutionContext(SchemaModel):
+class RuntimeExecutionContext(RuntimeResultModel):
     execution_context_id: NonEmptyStr
     orchestrator: NonEmptyStr
     environment_ref: NonEmptyStr | None = None
@@ -72,7 +72,7 @@ class RuntimeExecutionContext(SchemaModel):
     context_metadata: dict[NonEmptyStr, JsonScalar] | None = None
 
 
-class PlannedAttemptSlot(SchemaModel):
+class PlannedAttemptSlot(RuntimeResultModel):
     attempt_index: PositiveInt
 
 
@@ -81,7 +81,7 @@ class RunTestCaseDisposition(StrEnum):
     INTENTIONALLY_NOT_SCHEDULED = "intentionally_not_scheduled"
 
 
-class RunTestCasePlan(SchemaModel):
+class RunTestCasePlan(RuntimeResultModel):
     test_case_id: TestCaseId
     disposition: RunTestCaseDisposition
     attempt_slots: list[PlannedAttemptSlot]
@@ -110,7 +110,7 @@ class RunTestCasePlan(SchemaModel):
         return self
 
 
-class RunExecutionPlan(SchemaModel):
+class RunExecutionPlan(RuntimeResultModel):
     test_cases: list[RunTestCasePlan]
 
     @model_validator(mode="after")
@@ -140,14 +140,14 @@ class ValidityStage(StrEnum):
     FINAL_INTEGRITY = "final_integrity"
 
 
-class ValidityFinding(SchemaModel):
+class ValidityFinding(RuntimeResultModel):
     code: NonEmptyStr
     stage: ValidityStage
     message: NonEmptyStr
     related_object_refs: list[ObjectRef]
 
 
-class Run(SchemaModel):
+class Run(RuntimeResultModel):
     run_id: NonEmptyStr
     definition_ref: FrozenDefinitionRef
     subject_ref: SubjectReference
@@ -209,7 +209,7 @@ class EpisodeExecutionStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
-class TraceEvent(SchemaModel):
+class TraceEvent(RuntimeResultModel):
     trace_event_id: NonEmptyStr
     event_index: PositiveInt
     actor: NonEmptyStr
@@ -228,7 +228,7 @@ class TraceEvent(SchemaModel):
         return self
 
 
-class Episode(SchemaModel):
+class Episode(RuntimeResultModel):
     episode_id: NonEmptyStr
     run_id: NonEmptyStr
     test_case_id: TestCaseId
@@ -285,7 +285,7 @@ class ArtifactRelationType(StrEnum):
     OBSERVED = "observed"
 
 
-class ArtifactRelation(SchemaModel):
+class ArtifactRelation(RuntimeResultModel):
     relation: ArtifactRelationType
     episode_id: NonEmptyStr | None = None
     trace_event_id: NonEmptyStr | None = None
@@ -298,7 +298,7 @@ class ArtifactRelation(SchemaModel):
         return self
 
 
-class Artifact(SchemaModel):
+class Artifact(RuntimeResultModel):
     artifact_id: NonEmptyStr
     run_id: NonEmptyStr
     artifact_kind: NonEmptyStr
@@ -314,7 +314,7 @@ class Artifact(SchemaModel):
         return self.artifact_id
 
 
-class EvidenceTargetRef(SchemaModel):
+class EvidenceTargetRef(RuntimeResultModel):
     test_case_id: TestCaseId
     contract_id: ContractId
 
@@ -326,25 +326,25 @@ class EvidenceSourceType(StrEnum):
     RUNTIME_OUTPUT = "runtime_output"
 
 
-class EvidenceSourceRef(SchemaModel):
+class EvidenceSourceRef(RuntimeResultModel):
     source_type: EvidenceSourceType
     source_id: NonEmptyStr
     locator: NonEmptyStr | None = None
     portion_ref: NonEmptyStr | None = None
 
 
-class EvidenceObservation(SchemaModel):
+class EvidenceObservation(RuntimeResultModel):
     summary: NonEmptyStr
     content_ref: NonEmptyStr | None = None
 
 
-class EvidenceProvenance(SchemaModel):
+class EvidenceProvenance(RuntimeResultModel):
     source_refs: Annotated[list[EvidenceSourceRef], Field(min_length=1)]
     collector: NonEmptyStr
     observed_from: NonEmptyStr
 
 
-class EvidenceContext(SchemaModel):
+class EvidenceContext(RuntimeResultModel):
     context_summary: NonEmptyStr
     related_trace_event_ids: list[NonEmptyStr]
 
@@ -354,20 +354,20 @@ class EvidenceContext(SchemaModel):
         return self
 
 
-class QualificationCheck(SchemaModel):
+class QualificationCheck(RuntimeResultModel):
     requirement: NonEmptyStr
     outcome: Literal["passed"]
     detail: NonEmptyStr
 
 
-class EvidenceQualification(SchemaModel):
+class EvidenceQualification(RuntimeResultModel):
     status: Literal["qualified"]
     checks: Annotated[list[QualificationCheck], Field(min_length=1)]
     qualified_by: NonEmptyStr
     qualified_at: datetime
 
 
-class Evidence(SchemaModel):
+class Evidence(RuntimeResultModel):
     evidence_id: NonEmptyStr
     run_id: NonEmptyStr
     episode_id: NonEmptyStr
@@ -402,7 +402,7 @@ class DiagnosticPhase(StrEnum):
     ORCHESTRATION = "orchestration"
 
 
-class RuntimeDiagnostic(SchemaModel):
+class RuntimeDiagnostic(RuntimeResultModel):
     diagnostic_id: NonEmptyStr
     run_id: NonEmptyStr
     episode_id: NonEmptyStr | None = None

@@ -17,7 +17,7 @@ from .common import (
     NonNegativeInt,
     PositiveInt,
     ResultSemantic,
-    SchemaModel,
+    RuntimeResultModel,
     TestCaseId,
     UnitInterval,
     ensure_unique,
@@ -28,12 +28,12 @@ from .runtime import EvidenceTargetRef, FrozenDefinitionRef, SubjectReference
 GraderJudgment = ResultSemantic
 
 
-class EvidenceContribution(SchemaModel):
+class EvidenceContribution(RuntimeResultModel):
     evidence_id: NonEmptyStr
     contribution: NonEmptyStr
 
 
-class GraderExplanation(SchemaModel):
+class GraderExplanation(RuntimeResultModel):
     evidence_contributions: list[EvidenceContribution]
     observed_facts: list[NonEmptyStr]
     semantic_basis: NonEmptyStr
@@ -43,19 +43,19 @@ class GraderExplanation(SchemaModel):
     inference_notes: list[NonEmptyStr]
 
 
-class RubricDimensionResult(SchemaModel):
+class RubricDimensionResult(RuntimeResultModel):
     dimension_name: NonEmptyStr
     selected_anchor_label: NonEmptyStr | None = None
     local_value: FiniteDecimal | None = None
     explanation: NonEmptyStr
 
 
-class RubricResult(SchemaModel):
+class RubricResult(RuntimeResultModel):
     dimensions: list[RubricDimensionResult]
     overall_interpretation: NonEmptyStr | None = None
 
 
-class GraderResult(SchemaModel):
+class GraderResult(RuntimeResultModel):
     grader_result_id: NonEmptyStr
     run_id: NonEmptyStr
     episode_id: NonEmptyStr
@@ -110,14 +110,14 @@ class MetricValueKind(StrEnum):
     SCALAR = "scalar"
 
 
-class MetricValue(SchemaModel):
+class MetricValue(RuntimeResultModel):
     value_kind: MetricValueKind
     canonical_value: FiniteDecimal
     unit: NonEmptyStr | None = None
     display_value: NonEmptyStr | None = None
 
 
-class MetricCoverageSummary(SchemaModel):
+class MetricCoverageSummary(RuntimeResultModel):
     expected_input_count: NonNegativeInt
     available_raw_result_count: NonNegativeInt
     distinct_result_count: NonNegativeInt
@@ -137,7 +137,7 @@ class MetricInputDisposition(StrEnum):
     EXCLUDED = "excluded"
 
 
-class MetricInputTrace(SchemaModel):
+class MetricInputTrace(RuntimeResultModel):
     grader_result_id: NonEmptyStr
     disposition: MetricInputDisposition
     reason: NonEmptyStr
@@ -145,7 +145,7 @@ class MetricInputTrace(SchemaModel):
     contribution_value: FiniteDecimal | None = None
 
 
-class MissingMetricInput(SchemaModel):
+class MissingMetricInput(RuntimeResultModel):
     test_case_id: TestCaseId
     contract_id: ContractId
     reason: NonEmptyStr
@@ -158,7 +158,7 @@ class MetricUnavailableReason(StrEnum):
     INCOMPATIBLE_INPUT_VALUES = "incompatible_input_values"
 
 
-class MetricResult(SchemaModel):
+class MetricResult(RuntimeResultModel):
     metric_result_id: NonEmptyStr
     run_id: NonEmptyStr
     metric_id: MetricSpecificationId
@@ -213,14 +213,14 @@ class GateTriggerSource(StrEnum):
     UNAVAILABLE_HANDLING = "unavailable_handling"
 
 
-class GateGraderContribution(SchemaModel):
+class GateGraderContribution(RuntimeResultModel):
     grader_result_id: NonEmptyStr | None = None
     target: EvidenceTargetRef
     contribution: Literal["MATCH", "NON_MATCH", "UNKNOWN"]
     detail: NonEmptyStr
 
 
-class GateInputSummary(SchemaModel):
+class GateInputSummary(RuntimeResultModel):
     condition_type: Literal["grader_result", "metric_threshold", "metric_availability"]
     grader_contributions: list[GateGraderContribution]
     metric_result_id: NonEmptyStr | None = None
@@ -257,7 +257,7 @@ class GateInputSummary(SchemaModel):
         return self
 
 
-class GateResult(SchemaModel):
+class GateResult(RuntimeResultModel):
     gate_result_id: NonEmptyStr
     run_id: NonEmptyStr
     gate_id: GateSpecificationId
@@ -299,7 +299,7 @@ class GateResult(SchemaModel):
         return self
 
 
-class ExpectedEpisodeApplicationRef(SchemaModel):
+class ExpectedEpisodeApplicationRef(RuntimeResultModel):
     application_type: Literal["episode"]
     test_case_id: TestCaseId
     attempt_index: PositiveInt
@@ -309,7 +309,7 @@ class ExpectedEpisodeApplicationRef(SchemaModel):
         return (self.application_type, self.test_case_id, self.attempt_index)
 
 
-class ExpectedGraderApplicationRef(SchemaModel):
+class ExpectedGraderApplicationRef(RuntimeResultModel):
     application_type: Literal["grader_result"]
     episode_id: NonEmptyStr
     grader_id: GraderSpecificationId
@@ -327,7 +327,7 @@ class ExpectedGraderApplicationRef(SchemaModel):
         )
 
 
-class ExpectedMetricApplicationRef(SchemaModel):
+class ExpectedMetricApplicationRef(RuntimeResultModel):
     application_type: Literal["metric_result"]
     metric_id: MetricSpecificationId
 
@@ -336,7 +336,7 @@ class ExpectedMetricApplicationRef(SchemaModel):
         return (self.application_type, self.metric_id)
 
 
-class ExpectedGateApplicationRef(SchemaModel):
+class ExpectedGateApplicationRef(RuntimeResultModel):
     application_type: Literal["gate_result"]
     gate_id: GateSpecificationId
 
@@ -354,13 +354,13 @@ type ExpectedApplicationRef = Annotated[
 ]
 
 
-class MissingApplicationRecord(SchemaModel):
+class MissingApplicationRecord(RuntimeResultModel):
     application_ref: ExpectedApplicationRef
     diagnostic_ids: list[NonEmptyStr]
     explanation: NonEmptyStr
 
 
-class ScorecardResultInventory(SchemaModel):
+class ScorecardResultInventory(RuntimeResultModel):
     episode_ids: list[NonEmptyStr]
     grader_result_ids: list[NonEmptyStr]
     metric_result_ids: list[NonEmptyStr]
@@ -380,7 +380,7 @@ class ScorecardResultInventory(SchemaModel):
         return self
 
 
-class DefinitionPolicyRef(SchemaModel):
+class DefinitionPolicyRef(RuntimeResultModel):
     definition_digest: Digest
     policy_path: Literal["/overall_score_policy", "/acceptance_policy"]
 
@@ -401,7 +401,7 @@ class OverallUnavailableReason(StrEnum):
     EMPTY_INCLUDED_SET = "empty_included_set"
 
 
-class OverallMetricContributionTrace(SchemaModel):
+class OverallMetricContributionTrace(RuntimeResultModel):
     metric_id: MetricSpecificationId
     weight: FiniteDecimal
     metric_result_id: NonEmptyStr | None = None
@@ -412,7 +412,7 @@ class OverallMetricContributionTrace(SchemaModel):
     exclusion_reason: NonEmptyStr | None = None
 
 
-class OverallScoreOutcome(SchemaModel):
+class OverallScoreOutcome(RuntimeResultModel):
     policy_ref: DefinitionPolicyRef
     evaluation_status: OverallEvaluationStatus
     canonical_value: FiniteDecimal | None = None
@@ -478,7 +478,7 @@ class AcceptanceSemantic(StrEnum):
     INDETERMINATE = "INDETERMINATE"
 
 
-class AcceptanceGateContributionTrace(SchemaModel):
+class AcceptanceGateContributionTrace(RuntimeResultModel):
     gate_id: GateSpecificationId
     gate_result_id: NonEmptyStr | None = None
     application_state: Literal["OPEN", "TRIGGERED", "INDETERMINATE", "MISSING"]
@@ -487,7 +487,7 @@ class AcceptanceGateContributionTrace(SchemaModel):
     explanation: NonEmptyStr
 
 
-class AcceptanceEvaluation(SchemaModel):
+class AcceptanceEvaluation(RuntimeResultModel):
     policy_ref: DefinitionPolicyRef
     evaluation_status: AcceptanceEvaluationStatus
     acceptance: AcceptanceSemantic | None = None
@@ -523,7 +523,7 @@ class ScorecardFinalizationStatus(StrEnum):
     FINALIZED_AUDIT = "finalized_audit"
 
 
-class Scorecard(SchemaModel):
+class Scorecard(RuntimeResultModel):
     scorecard_id: NonEmptyStr
     run_id: NonEmptyStr
     definition_ref: FrozenDefinitionRef

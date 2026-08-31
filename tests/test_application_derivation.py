@@ -21,11 +21,18 @@ def test_expected_episode_applications_follow_scheduled_slots() -> None:
 
 def test_intentionally_unscheduled_case_has_no_episode_application() -> None:
     graph = complete_runtime_graph()
-    graph.run.execution_plan.test_cases[0] = graph.run.execution_plan.test_cases[0].model_copy(
+    test_case = graph.run.execution_plan.test_cases[0].model_copy(
         update={
             "disposition": RunTestCaseDisposition.INTENTIONALLY_NOT_SCHEDULED,
             "attempt_slots": [],
             "reason": "Not in this run.",
+        }
+    )
+    graph.run = graph.run.model_copy(
+        update={
+            "execution_plan": graph.run.execution_plan.model_copy(
+                update={"test_cases": [test_case]}
+            )
         }
     )
     assert derive_expected_episode_applications(graph.run) == ()
@@ -41,14 +48,21 @@ def test_completed_episode_derives_authoritative_grader_application() -> None:
 
 def test_failed_episode_does_not_require_grader_application() -> None:
     graph = complete_runtime_graph()
-    graph.episodes[0].execution_status = "failed"
+    graph.episodes[0] = graph.episodes[0].model_copy(update={"execution_status": "failed"})
     assert derive_expected_grader_applications(graph.benchmark, graph.episodes) == ()
 
 
 def test_repeated_episode_slots_produce_distinct_expected_applications() -> None:
     graph = complete_runtime_graph()
     plan = graph.run.execution_plan.test_cases[0]
-    plan.attempt_slots.append(PlannedAttemptSlot(attempt_index=2))
+    plan = plan.model_copy(
+        update={"attempt_slots": [*plan.attempt_slots, PlannedAttemptSlot(attempt_index=2)]}
+    )
+    graph.run = graph.run.model_copy(
+        update={
+            "execution_plan": graph.run.execution_plan.model_copy(update={"test_cases": [plan]})
+        }
+    )
     expected = derive_expected_episode_applications(graph.run)
     assert [item.logical_key for item in expected] == [
         ("episode", "TC001", 1),
@@ -97,7 +111,22 @@ def test_missing_application_derivation_is_pure_and_typed() -> None:
 
 def test_expected_application_order_is_stable_when_episodes_are_shuffled() -> None:
     graph = complete_runtime_graph()
-    graph.run.execution_plan.test_cases[0].attempt_slots.append(PlannedAttemptSlot(attempt_index=2))
+    test_case = graph.run.execution_plan.test_cases[0]
+    test_case = test_case.model_copy(
+        update={
+            "attempt_slots": [
+                *test_case.attempt_slots,
+                PlannedAttemptSlot(attempt_index=2),
+            ]
+        }
+    )
+    graph.run = graph.run.model_copy(
+        update={
+            "execution_plan": graph.run.execution_plan.model_copy(
+                update={"test_cases": [test_case]}
+            )
+        }
+    )
     graph.episodes.append(
         graph.episodes[0].model_copy(update={"episode_id": "E002", "attempt_index": 2})
     )

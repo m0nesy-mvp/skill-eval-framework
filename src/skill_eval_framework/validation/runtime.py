@@ -56,7 +56,8 @@ from .definition import (
 
 
 class _RunOwned(Protocol):
-    run_id: str
+    @property
+    def run_id(self) -> str: ...
 
 
 def _application_sort_key(application: ExpectedApplicationRef) -> tuple[str, ...]:

@@ -225,8 +225,22 @@ def test_admit_retry_appends_next_attempt_without_mutating_plan() -> None:
 
 def test_admit_retry_uses_next_max_index_without_reuse() -> None:
     graph = complete_runtime_graph()
-    graph.run.execution_plan.test_cases[0].attempt_slots.append(PlannedAttemptSlot(attempt_index=2))
-    updated = admit_retry_attempt(graph.run.execution_plan, "TC001")
+    test_case = graph.run.execution_plan.test_cases[0]
+    plan = graph.run.execution_plan.model_copy(
+        update={
+            "test_cases": [
+                test_case.model_copy(
+                    update={
+                        "attempt_slots": [
+                            *test_case.attempt_slots,
+                            PlannedAttemptSlot(attempt_index=2),
+                        ]
+                    }
+                )
+            ]
+        }
+    )
+    updated = admit_retry_attempt(plan, "TC001")
     assert [slot.attempt_index for slot in updated.test_cases[0].attempt_slots] == [1, 2, 3]
 
 
@@ -238,14 +252,20 @@ def test_admit_retry_unknown_test_case_fails() -> None:
 
 def test_admit_retry_intentionally_unscheduled_fails() -> None:
     graph = complete_runtime_graph()
-    graph.run.execution_plan.test_cases[0] = RunTestCasePlan(
-        test_case_id="TC001",
-        disposition=RunTestCaseDisposition.INTENTIONALLY_NOT_SCHEDULED,
-        attempt_slots=[],
-        reason="Excluded for this run.",
+    plan = graph.run.execution_plan.model_copy(
+        update={
+            "test_cases": [
+                RunTestCasePlan(
+                    test_case_id="TC001",
+                    disposition=RunTestCaseDisposition.INTENTIONALLY_NOT_SCHEDULED,
+                    attempt_slots=[],
+                    reason="Excluded for this run.",
+                )
+            ]
+        }
     )
     with pytest.raises(ExecutionPlanError):
-        admit_retry_attempt(graph.run.execution_plan, "TC001")
+        admit_retry_attempt(plan, "TC001")
 
 
 def test_sealed_run_rejects_retry_admission() -> None:
@@ -637,7 +657,7 @@ def test_finalize_scorecard_rejects_invalid_graph() -> None:
         overall_score_outcome=graph.scorecard.overall_score_outcome,
         acceptance_evaluation=graph.scorecard.acceptance_evaluation,
     )
-    graph.evidence[0].episode_id = "E999"
+    graph.evidence[0] = graph.evidence[0].model_copy(update={"episode_id": "E999"})
     with pytest.raises(IntegrityFinalizationError):
         finalize_scorecard(
             scorecard=interim,
@@ -683,7 +703,7 @@ def test_final_integrity_cross_run_contamination_becomes_invalid() -> None:
     pending = graph.run.model_copy(
         update={"validity_status": RunValidityStatus.PENDING, "validity_findings": []}
     )
-    graph.artifacts[0].run_id = "OTHER"
+    graph.artifacts[0] = graph.artifacts[0].model_copy(update={"run_id": "OTHER"})
     finalized = finalize_run_validity(
         graph.benchmark,
         pending,
