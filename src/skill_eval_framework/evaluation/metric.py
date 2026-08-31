@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 
@@ -76,6 +77,34 @@ def _unit_key(unit: AggregationUnit, test_case_id: str, contract_id: str) -> str
     return test_case_id
 
 
+@dataclass(frozen=True, slots=True)
+class _EligibleContribution:
+    input_key: tuple[str, str]
+    unit_key: str
+    attempt: AttemptResult
+    value: Decimal
+
+
+@dataclass(frozen=True, slots=True)
+class _TraceRecord:
+    input_key: tuple[str, str]
+    unit_key: str
+    attempt_index: int
+    grader_result_id: str
+    disposition: MetricInputDisposition
+    reason: str
+    contribution_value: Decimal | None
+
+    def to_schema(self) -> MetricInputTrace:
+        return MetricInputTrace(
+            grader_result_id=self.grader_result_id,
+            disposition=self.disposition,
+            reason=self.reason,
+            aggregation_unit_key=self.unit_key,
+            contribution_value=self.contribution_value,
+        )
+
+
 def calculate_metric_result(
     specification: MetricSpecificationV03,
     *,
@@ -93,8 +122,9 @@ def calculate_metric_result(
     candidates_by_input = _result_candidates(specification, run_id, grader_results, episodes)
     policy = specification.execution_policy
     mapping = {rule.source_semantic: rule.numeric_value for rule in policy.contribution_mapping}
-    selected_by_input: dict[tuple[str, str], tuple[AttemptResult, ...]] = {}
-    traces: list[MetricInputTrace] = []
+    input_keys = sorted((item.test_case_id, item.contract_id) for item in specification.inputs)
+    eligible_by_unit: dict[str, list[_EligibleContribution]] = defaultdict(list)
+    trace_records: list[_TraceRecord] = []
     missing_inputs: list[MissingMetricInput] = []
     selected_count = 0
     distinct_count = 0
@@ -104,8 +134,7 @@ def calculate_metric_result(
     insufficient_count = 0
     unavailable_input_count = 0
 
-    for metric_input in specification.inputs:
-        input_key = (metric_input.test_case_id, metric_input.contract_id)
+    for input_key in input_keys:
         candidates = tuple(
             sorted(candidates_by_input.get(input_key, ()), key=lambda item: item.attempt_index)
         )
@@ -115,45 +144,59 @@ def calculate_metric_result(
             selected = select_attempt_results(candidates, policy.selection)
         except AttemptSelectionError as exc:
             raise MetricEvaluationError(str(exc)) from exc
-        selected_by_input[input_key] = selected
         selected_count += len(selected)
-        if not selected:
+        if not candidates:
             unavailable_input_count += 1
             missing_inputs.append(
                 MissingMetricInput(
-                    test_case_id=metric_input.test_case_id,
-                    contract_id=metric_input.contract_id,
+                    test_case_id=input_key[0],
+                    contract_id=input_key[1],
                     reason="No same-Run GraderResult was available for this Metric input.",
                 )
             )
-        for selected_item in selected:
-            result = selected_item.result
+        selected_attempt_indexes = {item.attempt_index for item in selected}
+        unit_key = _unit_key(policy.aggregation_unit, *input_key)
+        for candidate in candidates:
+            result = candidate.result
+            if candidate.attempt_index not in selected_attempt_indexes:
+                trace_records.append(
+                    _TraceRecord(
+                        input_key=input_key,
+                        unit_key=unit_key,
+                        attempt_index=candidate.attempt_index,
+                        grader_result_id=result.grader_result_id,
+                        disposition=MetricInputDisposition.EXCLUDED,
+                        reason=(f"Excluded by {policy.selection.mode.value} attempt selection."),
+                        contribution_value=None,
+                    )
+                )
+                continue
             semantic = ResultSemantic(result.judgment)
             contribution = mapping.get(semantic)
-            unit_key = _unit_key(policy.aggregation_unit, *input_key)
             if contribution is None:
                 if semantic == ResultSemantic.NOT_EXERCISED:
                     not_exercised_count += 1
                 elif semantic == ResultSemantic.INSUFFICIENT_EVIDENCE:
                     insufficient_count += 1
-                traces.append(
-                    MetricInputTrace(
+                trace_records.append(
+                    _TraceRecord(
+                        input_key=input_key,
+                        unit_key=unit_key,
+                        attempt_index=candidate.attempt_index,
                         grader_result_id=result.grader_result_id,
                         disposition=MetricInputDisposition.EXCLUDED,
                         reason=f"Judgment {semantic.value} is not eligible under the policy.",
-                        aggregation_unit_key=unit_key,
                         contribution_value=None,
                     )
                 )
             else:
                 eligible_count += 1
-                traces.append(
-                    MetricInputTrace(
-                        grader_result_id=result.grader_result_id,
-                        disposition=MetricInputDisposition.INCLUDED,
-                        reason=f"Judgment {semantic.value} mapped by the typed policy.",
-                        aggregation_unit_key=unit_key,
-                        contribution_value=contribution,
+                eligible_by_unit[unit_key].append(
+                    _EligibleContribution(
+                        input_key=input_key,
+                        unit_key=unit_key,
+                        attempt=candidate,
+                        value=contribution,
                     )
                 )
 
@@ -164,27 +207,20 @@ def calculate_metric_result(
                 f"Metric input {input_key!r} resolves to multiple Grader authorities"
             )
 
-    eligible_by_unit: dict[str, list[tuple[int, Decimal]]] = defaultdict(list)
-    for metric_input in specification.inputs:
-        input_key = (metric_input.test_case_id, metric_input.contract_id)
-        unit_key = _unit_key(policy.aggregation_unit, *input_key)
-        selected = selected_by_input[input_key]
-        contributions = [
-            (item.attempt_index, mapping[ResultSemantic(item.result.judgment)])
-            for item in selected
-            if ResultSemantic(item.result.judgment) in mapping
-        ]
-        if policy.unit_reduction.mode == UnitReductionMode.FINAL_ELIGIBLE:
-            contributions = contributions[-1:]
-        eligible_by_unit[unit_key].extend(contributions)
-
     expected_units = {
-        _unit_key(policy.aggregation_unit, item.test_case_id, item.contract_id)
-        for item in specification.inputs
+        _unit_key(policy.aggregation_unit, test_case_id, contract_id)
+        for test_case_id, contract_id in input_keys
     }
     reduced: dict[str, Decimal] = {}
     for unit_key in sorted(expected_units):
-        contributions = eligible_by_unit.get(unit_key, [])
+        contributions = sorted(
+            eligible_by_unit.get(unit_key, []),
+            key=lambda item: (
+                item.input_key[0],
+                item.input_key[1],
+                item.attempt.attempt_index,
+            ),
+        )
         if not contributions:
             continue
         if policy.unit_reduction.mode == UnitReductionMode.SINGLE:
@@ -192,17 +228,52 @@ def calculate_metric_result(
                 raise MetricEvaluationError(
                     f"single reduction requires one eligible contribution for unit {unit_key!r}"
                 )
-            reduced[unit_key] = contributions[0][1]
+            included_ids = {contributions[0].attempt.result.grader_result_id}
+            reduced[unit_key] = contributions[0].value
         elif policy.unit_reduction.mode == UnitReductionMode.MEAN:
-            reduced[unit_key] = sum((value for _, value in contributions), Decimal("0")) / len(
-                contributions
-            )
+            included_ids = {
+                contribution.attempt.result.grader_result_id for contribution in contributions
+            }
+            reduced[unit_key] = sum(
+                (contribution.value for contribution in contributions), Decimal("0")
+            ) / len(contributions)
         else:
-            if len(contributions) > 1:
+            if len({contribution.input_key for contribution in contributions}) > 1:
                 raise MetricEvaluationError(
                     "final_eligible cannot merge multiple MetricInputs into one aggregation unit"
                 )
-            reduced[unit_key] = contributions[-1][1]
+            included_ids = {contributions[-1].attempt.result.grader_result_id}
+            reduced[unit_key] = contributions[-1].value
+
+        for unit_contribution in contributions:
+            grader_result_id = unit_contribution.attempt.result.grader_result_id
+            is_included = grader_result_id in included_ids
+            if is_included:
+                reason = (
+                    "Included as the final eligible contribution by unit reduction."
+                    if policy.unit_reduction.mode == UnitReductionMode.FINAL_ELIGIBLE
+                    else f"Included by {policy.unit_reduction.mode.value} unit reduction."
+                )
+            else:
+                reason = (
+                    "Excluded by final_eligible unit reduction because a later eligible "
+                    "contribution exists."
+                )
+            trace_records.append(
+                _TraceRecord(
+                    input_key=unit_contribution.input_key,
+                    unit_key=unit_contribution.unit_key,
+                    attempt_index=unit_contribution.attempt.attempt_index,
+                    grader_result_id=grader_result_id,
+                    disposition=(
+                        MetricInputDisposition.INCLUDED
+                        if is_included
+                        else MetricInputDisposition.EXCLUDED
+                    ),
+                    reason=reason,
+                    contribution_value=unit_contribution.value,
+                )
+            )
 
     contributing_units = len(reduced)
     denominator = Decimal(contributing_units)
@@ -219,13 +290,18 @@ def calculate_metric_result(
             else MetricUnavailableReason.COMPLETENESS_FAILED
         )
 
-    ordered_traces = sorted(
-        traces,
-        key=lambda item: (
-            item.aggregation_unit_key or "",
-            item.grader_result_id,
-        ),
-    )
+    ordered_traces = [
+        record.to_schema()
+        for record in sorted(
+            trace_records,
+            key=lambda item: (
+                item.unit_key,
+                item.input_key[0],
+                item.input_key[1],
+                item.attempt_index,
+            ),
+        )
+    ]
     coverage = MetricCoverageSummary(
         expected_input_count=len(specification.inputs),
         available_raw_result_count=available_raw_count,

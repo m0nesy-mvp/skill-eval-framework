@@ -9,6 +9,7 @@ import pytest
 from conftest import DIGEST, NOW, make_definition_data
 from validation_helpers import complete_runtime_graph
 
+from skill_eval_framework.digest import compute_definition_digest_v03
 from skill_eval_framework.evaluation import (
     AcceptanceEvaluationError,
     GateEvaluationError,
@@ -32,6 +33,7 @@ from skill_eval_framework.schemas.definition_v03 import (
     MetricSpecificationV03,
 )
 from skill_eval_framework.schemas.results import GateEvaluationPath, GraderResult, MetricResult
+from skill_eval_framework.validation import validate_benchmark_definition_v03
 
 
 def _v03_definition() -> BenchmarkDefinitionV03:
@@ -78,6 +80,30 @@ def _v03_definition() -> BenchmarkDefinitionV03:
     return BenchmarkDefinitionV03.model_validate(data)
 
 
+def _v03_definition_with_two_metric_inputs() -> BenchmarkDefinitionV03:
+    data = _v03_definition().model_dump(mode="python")
+    second_contract = deepcopy(data["contracts"][0])
+    second_contract["contract_id"] = "C002"
+    data["contracts"].append(second_contract)
+    data["test_cases"][0]["expected_assertions"].append(
+        {"contract_id": "C002", "expectation": "Second output is present."}
+    )
+    data["evidence_specifications"][0]["targets"].append(
+        {"test_case_id": "TC001", "contract_id": "C002"}
+    )
+    data["grader_specifications"][0]["targets"].append(
+        {
+            "test_case_id": "TC001",
+            "contract_id": "C002",
+            "evidence_spec_ids": ["ES001"],
+        }
+    )
+    data["metric_specifications"][0]["inputs"].append(
+        {"test_case_id": "TC001", "contract_id": "C002"}
+    )
+    return BenchmarkDefinitionV03.model_validate(data)
+
+
 def _v03_metric(
     *, selection: str = "all_distinct", reduction: str = "mean", unit: str = "per_target"
 ) -> MetricSpecificationV03:
@@ -91,12 +117,23 @@ def _v03_metric(
 
 
 def _retry_result(
-    graph: object, *, judgment: str, episode_id: str = "E002"
+    graph: object,
+    *,
+    judgment: str,
+    episode_id: str = "E002",
+    grader_result_id: str = "GR002",
+    attempt_index: int = 2,
 ) -> tuple[object, GraderResult]:
-    episode = graph.episodes[0].model_copy(update={"episode_id": episode_id, "attempt_index": 2})
+    episode = graph.episodes[0].model_copy(
+        update={"episode_id": episode_id, "attempt_index": attempt_index}
+    )
     result_data = graph.grader_results[0].model_dump(mode="python")
     result_data.update(
-        {"grader_result_id": "GR002", "episode_id": episode_id, "judgment": judgment}
+        {
+            "grader_result_id": grader_result_id,
+            "episode_id": episode_id,
+            "judgment": judgment,
+        }
     )
     if judgment == "insufficient_evidence":
         result_data["explanation"].update(
@@ -475,6 +512,40 @@ def test_metric_all_distinct_mean_uses_exact_decimal_contributions() -> None:
     assert metric.coverage.distinct_result_count == 2
 
 
+@pytest.mark.parametrize(
+    ("selection", "expected_dispositions"),
+    [
+        ("first_distinct", [("GR001", "included"), ("GR002", "excluded")]),
+        ("final_distinct_raw", [("GR001", "excluded"), ("GR002", "included")]),
+    ],
+)
+def test_metric_selection_exclusions_are_preserved_in_attempt_order(
+    selection: str,
+    expected_dispositions: list[tuple[str, str]],
+) -> None:
+    graph = complete_runtime_graph()
+    retry_episode, retry_result = _retry_result(graph, judgment="violated")
+    metric = calculate_metric_result(
+        _v03_metric(selection=selection),
+        run_id="RUN001",
+        metric_result_id="MR-SELECTION-TRACE",
+        created_at=NOW,
+        grader_results=[retry_result, graph.grader_results[0]],
+        episodes=[retry_episode, graph.episodes[0]],
+    )
+
+    assert [
+        (trace.grader_result_id, trace.disposition.value) for trace in metric.input_traces
+    ] == expected_dispositions
+    excluded = [trace for trace in metric.input_traces if trace.disposition == "excluded"]
+    assert len(excluded) == 1
+    assert "attempt selection" in excluded[0].reason
+    assert excluded[0].contribution_value is None
+    assert metric.coverage.available_raw_result_count == 2
+    assert metric.coverage.distinct_result_count == 2
+    assert metric.coverage.selected_result_count == 1
+
+
 def test_metric_final_raw_selects_last_non_substantive_without_fallback() -> None:
     graph = complete_runtime_graph()
     retry_episode, retry_result = _retry_result(graph, judgment="insufficient_evidence")
@@ -506,6 +577,155 @@ def test_metric_final_eligible_excludes_last_non_substantive_and_keeps_first() -
     assert metric.status == "available"
     assert metric.value is not None
     assert metric.value.canonical_value == Decimal("1")
+
+
+def test_metric_final_eligible_marks_only_the_final_unit_contribution_included() -> None:
+    graph = complete_runtime_graph()
+    retry_episode, retry_result = _retry_result(graph, judgment="violated")
+    metric = calculate_metric_result(
+        _v03_metric(reduction="final_eligible"),
+        run_id="RUN001",
+        metric_result_id="MR-FINAL-ELIGIBLE-TRACE",
+        created_at=NOW,
+        grader_results=[retry_result, graph.grader_results[0]],
+        episodes=[retry_episode, graph.episodes[0]],
+    )
+
+    assert metric.value is not None
+    assert metric.value.canonical_value == Decimal("0")
+    assert [
+        (
+            trace.grader_result_id,
+            trace.disposition.value,
+            trace.contribution_value,
+        )
+        for trace in metric.input_traces
+    ] == [
+        ("GR001", "excluded", Decimal("1")),
+        ("GR002", "included", Decimal("0")),
+    ]
+    assert "final_eligible unit reduction" in metric.input_traces[0].reason
+    assert metric.coverage.selected_result_count == 2
+    assert metric.coverage.substantive_eligible_count == 2
+    assert metric.coverage.contributing_unit_count == 1
+
+
+def test_metric_coverage_counts_match_selection_and_eligibility_stages() -> None:
+    graph = complete_runtime_graph()
+    insufficient_episode, insufficient_result = _retry_result(
+        graph,
+        judgment="insufficient_evidence",
+    )
+    not_exercised_episode, not_exercised_result = _retry_result(
+        graph,
+        judgment="not_exercised",
+        episode_id="E003",
+        grader_result_id="GR003",
+        attempt_index=3,
+    )
+    metric = calculate_metric_result(
+        _v03_metric(),
+        run_id="RUN001",
+        metric_result_id="MR-COVERAGE-STAGES",
+        created_at=NOW,
+        grader_results=[not_exercised_result, graph.grader_results[0], insufficient_result],
+        episodes=[not_exercised_episode, graph.episodes[0], insufficient_episode],
+    )
+
+    coverage = metric.coverage
+    assert coverage.expected_input_count == 1
+    assert coverage.available_raw_result_count == 3
+    assert coverage.distinct_result_count == 3
+    assert coverage.selected_result_count == 3
+    assert coverage.substantive_eligible_count == 1
+    assert coverage.not_exercised_count == 1
+    assert coverage.insufficient_evidence_count == 1
+    assert coverage.unavailable_input_count == 0
+    assert coverage.contributing_unit_count == 1
+    assert coverage.denominator == Decimal("1")
+    assert coverage.coverage_ratio == Decimal("1")
+
+
+def test_metric_trace_order_and_result_are_stable_under_runtime_input_shuffle() -> None:
+    graph = complete_runtime_graph()
+    retry_episode, retry_result = _retry_result(
+        graph,
+        judgment="violated",
+        grader_result_id="GR000",
+    )
+    specification = _v03_metric()
+    forward = calculate_metric_result(
+        specification,
+        run_id="RUN001",
+        metric_result_id="MR-SHUFFLE",
+        created_at=NOW,
+        grader_results=[graph.grader_results[0], retry_result],
+        episodes=[graph.episodes[0], retry_episode],
+    )
+    shuffled = calculate_metric_result(
+        specification,
+        run_id="RUN001",
+        metric_result_id="MR-SHUFFLE",
+        created_at=NOW,
+        grader_results=[retry_result, graph.grader_results[0]],
+        episodes=[retry_episode, graph.episodes[0]],
+    )
+
+    assert forward == shuffled
+    assert [trace.grader_result_id for trace in forward.input_traces] == ["GR001", "GR000"]
+
+
+def test_set_like_metric_input_order_does_not_change_digest_or_result() -> None:
+    graph = complete_runtime_graph()
+    forward_definition = _v03_definition_with_two_metric_inputs()
+    reversed_data = forward_definition.model_dump(mode="python")
+    reversed_data["metric_specifications"][0]["inputs"].reverse()
+    reversed_definition = BenchmarkDefinitionV03.model_validate(reversed_data)
+
+    assert validate_benchmark_definition_v03(forward_definition).is_valid
+    assert validate_benchmark_definition_v03(reversed_definition).is_valid
+    assert compute_definition_digest_v03(forward_definition) == compute_definition_digest_v03(
+        reversed_definition
+    )
+
+    second_result_data = graph.grader_results[0].model_dump(mode="python")
+    second_result_data.update({"grader_result_id": "GR002", "contract_id": "C002"})
+    second_result = GraderResult.model_validate(second_result_data)
+    forward = calculate_metric_result(
+        forward_definition.metric_specifications[0],
+        run_id="RUN001",
+        metric_result_id="MR-INPUT-ORDER",
+        created_at=NOW,
+        grader_results=[graph.grader_results[0], second_result],
+        episodes=graph.episodes,
+    )
+    reversed_result = calculate_metric_result(
+        reversed_definition.metric_specifications[0],
+        run_id="RUN001",
+        metric_result_id="MR-INPUT-ORDER",
+        created_at=NOW,
+        grader_results=[second_result, graph.grader_results[0]],
+        episodes=graph.episodes,
+    )
+    assert forward == reversed_result
+
+    forward_missing = calculate_metric_result(
+        forward_definition.metric_specifications[0],
+        run_id="RUN001",
+        metric_result_id="MR-MISSING-ORDER",
+        created_at=NOW,
+    )
+    reversed_missing = calculate_metric_result(
+        reversed_definition.metric_specifications[0],
+        run_id="RUN001",
+        metric_result_id="MR-MISSING-ORDER",
+        created_at=NOW,
+    )
+    assert forward_missing == reversed_missing
+    assert [(item.test_case_id, item.contract_id) for item in forward_missing.missing_inputs] == [
+        ("TC001", "C001"),
+        ("TC001", "C002"),
+    ]
 
 
 def test_metric_strict_missing_input_is_unavailable_not_zero() -> None:

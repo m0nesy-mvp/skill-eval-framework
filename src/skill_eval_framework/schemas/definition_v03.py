@@ -101,6 +101,17 @@ class AggregationUnit(StrEnum):
     PER_TEST_CASE = "per_test_case"
 
 
+def _metric_input_unit_key(
+    aggregation_unit: AggregationUnit,
+    metric_input: MetricInput,
+) -> tuple[str, ...]:
+    if aggregation_unit == AggregationUnit.PER_TARGET:
+        return ("target", metric_input.test_case_id, metric_input.contract_id)
+    if aggregation_unit == AggregationUnit.PER_CONTRACT:
+        return ("contract", metric_input.contract_id)
+    return ("test_case", metric_input.test_case_id)
+
+
 class UnitReductionMode(StrEnum):
     SINGLE = "single"
     MEAN = "mean"
@@ -238,6 +249,15 @@ class MetricSpecificationV03(SchemaModel):
             [(item.test_case_id, item.contract_id) for item in self.inputs],
             "inputs",
         )
+        if self.execution_policy.unit_reduction.mode == UnitReductionMode.FINAL_ELIGIBLE:
+            unit_keys = [
+                _metric_input_unit_key(self.execution_policy.aggregation_unit, item)
+                for item in self.inputs
+            ]
+            if len(unit_keys) != len(set(unit_keys)):
+                raise ValueError(
+                    "final_eligible requires exactly one MetricInput per derived aggregation unit"
+                )
         return self
 
 

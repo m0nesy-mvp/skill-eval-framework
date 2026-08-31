@@ -129,6 +129,94 @@ def test_final_eligible_requires_all_distinct() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("aggregation_unit", "inputs"),
+    [
+        (
+            "per_target",
+            [
+                {"test_case_id": "TC001", "contract_id": "C001"},
+                {"test_case_id": "TC001", "contract_id": "C002"},
+            ],
+        ),
+        (
+            "per_contract",
+            [
+                {"test_case_id": "TC001", "contract_id": "C001"},
+                {"test_case_id": "TC002", "contract_id": "C002"},
+            ],
+        ),
+        (
+            "per_test_case",
+            [
+                {"test_case_id": "TC001", "contract_id": "C001"},
+                {"test_case_id": "TC002", "contract_id": "C001"},
+            ],
+        ),
+    ],
+)
+def test_final_eligible_accepts_exactly_one_input_per_derived_unit(
+    aggregation_unit: str,
+    inputs: list[dict[str, str]],
+) -> None:
+    data = metric_v03_data(
+        aggregation_unit=aggregation_unit,
+        unit_reduction={"mode": "final_eligible"},
+    )
+    data["inputs"] = inputs
+    metric = MetricSpecificationV03.model_validate(data)
+    assert metric.execution_policy.unit_reduction.mode == UnitReductionMode.FINAL_ELIGIBLE
+
+
+@pytest.mark.parametrize(
+    ("aggregation_unit", "inputs"),
+    [
+        (
+            "per_contract",
+            [
+                {"test_case_id": "TC001", "contract_id": "C001"},
+                {"test_case_id": "TC002", "contract_id": "C001"},
+            ],
+        ),
+        (
+            "per_test_case",
+            [
+                {"test_case_id": "TC001", "contract_id": "C001"},
+                {"test_case_id": "TC001", "contract_id": "C002"},
+            ],
+        ),
+    ],
+)
+def test_final_eligible_rejects_multiple_inputs_in_one_derived_unit(
+    aggregation_unit: str,
+    inputs: list[dict[str, str]],
+) -> None:
+    data = metric_v03_data(
+        aggregation_unit=aggregation_unit,
+        unit_reduction={"mode": "final_eligible"},
+    )
+    data["inputs"] = inputs
+    with pytest.raises(
+        ValidationError,
+        match="final_eligible requires exactly one MetricInput per derived aggregation unit",
+    ):
+        MetricSpecificationV03.model_validate(data)
+
+
+@pytest.mark.parametrize("reduction", ["single", "mean"])
+def test_non_final_eligible_reducers_allow_multiple_inputs_per_unit(reduction: str) -> None:
+    data = metric_v03_data(
+        aggregation_unit="per_contract",
+        unit_reduction={"mode": reduction},
+    )
+    data["inputs"] = [
+        {"test_case_id": "TC001", "contract_id": "C001"},
+        {"test_case_id": "TC002", "contract_id": "C001"},
+    ]
+    metric = MetricSpecificationV03.model_validate(data)
+    assert metric.execution_policy.unit_reduction.mode.value == reduction
+
+
 def test_canonical_semantic_and_binary_contribution() -> None:
     metric = MetricSpecificationV03.model_validate(metric_v03_data())
     rules = metric.execution_policy.contribution_mapping
