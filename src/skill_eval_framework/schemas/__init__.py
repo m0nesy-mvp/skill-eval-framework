@@ -3,19 +3,21 @@
 from .common import ResultSemantic, SchemaModel
 from .definition import (
     AcceptancePolicy,
-    BenchmarkDefinition,
     Contract,
     EvidenceSpecification,
-    GateCondition,
-    GateSpecification,
     GraderSpecification,
-    MetricNormalization,
-    MetricSpecification,
     OverallScorePolicy,
     Requirement,
     TestCase,
 )
-from .definition_v02 import BenchmarkDefinitionV02
+from .definition_v02 import (
+    BenchmarkDefinitionV02,
+    GateConditionV02,
+    GateSpecificationV02,
+    GraderResultGateConditionV02,
+    MetricNormalizationV02,
+    MetricSpecificationV02,
+)
 from .definition_v03 import (
     AggregationMode,
     AggregationPolicy,
@@ -62,6 +64,15 @@ from .runtime import (
     RuntimeDiagnostic,
 )
 
+# The aggregate schema API uses unsuffixed names for the current executable
+# Definition. Historical v0.2 compatibility is available only through explicit
+# ``*V02`` names (or the legacy ``schemas.definition`` module).
+BenchmarkDefinition = BenchmarkDefinitionV03
+MetricSpecification = MetricSpecificationV03
+GateCondition = GateConditionV03
+GateSpecification = GateSpecificationV03
+GraderResultGateCondition = GraderResultGateConditionV03
+
 __all__ = [
     "AcceptanceEvaluation",
     "AcceptancePolicy",
@@ -86,17 +97,22 @@ __all__ = [
     "EmptyDenominatorHandling",
     "ExpectedApplicationRef",
     "GateCondition",
+    "GateConditionV02",
     "GateConditionV03",
     "GateResult",
     "GateSpecification",
+    "GateSpecificationV02",
     "GateSpecificationV03",
+    "GraderResultGateCondition",
+    "GraderResultGateConditionV02",
+    "GraderResultGateConditionV03",
     "GraderResult",
     "GraderJudgment",
     "GraderSpecification",
-    "GraderResultGateConditionV03",
-    "MetricNormalization",
+    "MetricNormalizationV02",
     "MetricResult",
     "MetricSpecification",
+    "MetricSpecificationV02",
     "MetricExecutionPolicy",
     "MetricSpecificationV03",
     "MissingInputHandling",

@@ -28,6 +28,8 @@ from .definition import (
     verify_definition_digest_v03,
     verify_definition_identity_v03,
     verify_run_definition_binding,
+    verify_run_definition_binding_v02,
+    verify_run_definition_binding_v03,
     verify_semantic_resource,
 )
 from .errors import (
@@ -69,5 +71,7 @@ __all__ = [
     "verify_definition_digest_result_v03",
     "verify_definition_identity_v03",
     "verify_run_definition_binding",
+    "verify_run_definition_binding_v02",
+    "verify_run_definition_binding_v03",
     "verify_semantic_resource",
 ]

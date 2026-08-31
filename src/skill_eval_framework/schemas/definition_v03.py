@@ -281,13 +281,6 @@ class BenchmarkDefinitionV03(SchemaModel):
     semantic_resource_bindings: list[DefinitionResourceBinding]
 
 
-# Convenient unsuffixed names for callers that import this explicit versioned module.
-MetricSpecification = MetricSpecificationV03
-GraderResultGateCondition = GraderResultGateConditionV03
-GateCondition = GateConditionV03
-BenchmarkDefinition = BenchmarkDefinitionV03
-
-
 __all__ = [
     "AggregationMode",
     "AggregationUnit",
@@ -295,7 +288,6 @@ __all__ = [
     "AttemptOrdering",
     "AttemptSelectionMode",
     "AttemptSelectionPolicy",
-    "BenchmarkDefinition",
     "BenchmarkDefinitionV03",
     "CompletenessMode",
     "CompletenessPolicy",
@@ -304,13 +296,10 @@ __all__ = [
     "DirectGraderGatePolicy",
     "EligibilityPolicy",
     "EmptyDenominatorHandling",
-    "GateCondition",
     "GateConditionV03",
     "GateSpecificationV03",
-    "GraderResultGateCondition",
     "GraderResultGateConditionV03",
     "MetricExecutionPolicy",
-    "MetricSpecification",
     "MetricSpecificationV03",
     "MissingInputHandling",
     "NonSubstantiveHandling",

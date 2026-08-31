@@ -1,17 +1,29 @@
-"""Explicit import surface for the historical Benchmark Definition v0.2 schema."""
+"""Explicit versioned imports for the historical Benchmark Definition v0.2 schema."""
 
-from .definition import *  # noqa: F403
 from .definition import (
-    BenchmarkDefinition,
-    GraderResultGateCondition,
-    MetricSpecification,
+    BenchmarkDefinition as BenchmarkDefinitionV02,
 )
-
-BenchmarkDefinitionV02 = BenchmarkDefinition
+from .definition import (
+    GateCondition as GateConditionV02,
+)
+from .definition import (
+    GateSpecification as GateSpecificationV02,
+)
+from .definition import (
+    GraderResultGateCondition as GraderResultGateConditionV02,
+)
+from .definition import (
+    MetricNormalization as MetricNormalizationV02,
+)
+from .definition import (
+    MetricSpecification as MetricSpecificationV02,
+)
 
 __all__ = [
     "BenchmarkDefinitionV02",
-    "BenchmarkDefinition",
-    "MetricSpecification",
-    "GraderResultGateCondition",
+    "GateConditionV02",
+    "GateSpecificationV02",
+    "GraderResultGateConditionV02",
+    "MetricNormalizationV02",
+    "MetricSpecificationV02",
 ]

@@ -198,12 +198,25 @@ def _resolve_resource(resolver: ResourceResolver, resource_ref: str) -> bytes | 
 
 def verify_run_definition_binding(
     run_definition_ref: FrozenDefinitionRef,
-    benchmark: BenchmarkDefinition,
+    benchmark: BenchmarkDefinition | BenchmarkDefinitionV03,
     resource_contents: ResourceResolver | None = None,
 ) -> bool:
-    """Verify a Run's complete Definition identity and explicitly supplied resources."""
+    """Dispatch complete Run binding verification by concrete Definition version."""
 
-    _check_profile(run_definition_ref.definition_closure_profile)
+    if isinstance(benchmark, BenchmarkDefinitionV03):
+        return verify_run_definition_binding_v03(run_definition_ref, benchmark, resource_contents)
+    if isinstance(benchmark, BenchmarkDefinition):
+        return verify_run_definition_binding_v02(run_definition_ref, benchmark, resource_contents)
+    raise TypeError("benchmark must be an explicit v0.2 or v0.3 Definition")
+
+
+def _verify_run_definition_binding(
+    run_definition_ref: FrozenDefinitionRef,
+    benchmark: BenchmarkDefinition | BenchmarkDefinitionV03,
+    resource_contents: ResourceResolver | None,
+) -> bool:
+    """Verify version-independent identity fields and explicit resource bytes."""
+
     if (
         run_definition_ref.benchmark_id != benchmark.benchmark_id
         or run_definition_ref.benchmark_version != benchmark.version
@@ -222,6 +235,35 @@ def verify_run_definition_binding(
         if content is None or not verify_semantic_resource(binding, content):
             return False
     return True
+
+
+def verify_run_definition_binding_v02(
+    run_definition_ref: FrozenDefinitionRef,
+    benchmark: BenchmarkDefinition,
+    resource_contents: ResourceResolver | None = None,
+) -> bool:
+    """Verify a historical v0.2 Definition bound with closure profile v0."""
+
+    if not isinstance(benchmark, BenchmarkDefinition):
+        raise TypeError("verify_run_definition_binding_v02 requires a v0.2 Definition")
+    _check_profile(run_definition_ref.definition_closure_profile)
+    return _verify_run_definition_binding(run_definition_ref, benchmark, resource_contents)
+
+
+def verify_run_definition_binding_v03(
+    run_definition_ref: FrozenDefinitionRef,
+    benchmark: BenchmarkDefinitionV03,
+    resource_contents: ResourceResolver | None = None,
+) -> bool:
+    """Verify an executable v0.3 Definition bound with closure profile v1."""
+
+    if not isinstance(benchmark, BenchmarkDefinitionV03):
+        raise TypeError("verify_run_definition_binding_v03 requires a v0.3 Definition")
+    if str(run_definition_ref.definition_closure_profile) != CLOSURE_PROFILE_V1:
+        raise UnsupportedClosureProfileError(
+            f"unsupported closure profile: {run_definition_ref.definition_closure_profile!r}"
+        )
+    return _verify_run_definition_binding(run_definition_ref, benchmark, resource_contents)
 
 
 def detect_same_version_drift(
@@ -288,5 +330,7 @@ __all__ = [
     "verify_definition_digest_result_v03",
     "verify_definition_identity_v03",
     "verify_run_definition_binding",
+    "verify_run_definition_binding_v02",
+    "verify_run_definition_binding_v03",
     "verify_semantic_resource",
 ]

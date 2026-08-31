@@ -21,9 +21,12 @@ from skill_eval_framework.digest import (
     compute_definition_digest_v03,
     verify_definition_digest_v02,
     verify_definition_digest_v03,
+    verify_run_definition_binding,
+    verify_run_definition_binding_v03,
 )
 from skill_eval_framework.schemas.definition import BenchmarkDefinition
 from skill_eval_framework.schemas.definition_v03 import BenchmarkDefinitionV03
+from skill_eval_framework.schemas.runtime import DefinitionClosureProfile, FrozenDefinitionRef
 
 VECTOR_A_DIGEST = "sha256:2993ae35813c668650111852c7d2288d7a319305b329498d3f83c7a775e18878"
 VECTOR_B_DIGEST = "sha256:6e424529752e20182298ec952ae51b5159c92047eecee3adac746597b3e9eb58"
@@ -92,6 +95,24 @@ def test_generic_digest_dispatch_and_cross_version_profiles() -> None:
         compute_definition_digest(v03, closure_profile=CLOSURE_PROFILE)
     with pytest.raises(UnsupportedClosureProfileError):
         compute_definition_digest(v02, closure_profile=CLOSURE_PROFILE_V1)
+
+
+def test_v03_run_binding_uses_v1_in_explicit_and_generic_helpers() -> None:
+    benchmark = _v03()
+    ref = FrozenDefinitionRef(
+        benchmark_id=benchmark.benchmark_id,
+        benchmark_version=benchmark.version,
+        definition_closure_profile=DefinitionClosureProfile.V1,
+        definition_digest=compute_definition_digest_v03(benchmark),
+    )
+
+    assert verify_run_definition_binding_v03(ref, benchmark)
+    assert verify_run_definition_binding(ref, benchmark)
+    with pytest.raises(UnsupportedClosureProfileError):
+        verify_run_definition_binding(
+            ref.model_copy(update={"definition_closure_profile": DefinitionClosureProfile.V0}),
+            benchmark,
+        )
 
 
 def test_v03_executable_policy_changes_change_digest() -> None:
