@@ -130,9 +130,20 @@ def test_evaluate_happy_path_serializes_complete_bundle(cli_tmp_path: Path) -> N
     assert payload["scorecard"]["finalization_status"] == "finalized_evaluation"
 
 
-def test_evaluate_rejects_definition_digest_or_profile_mismatch(cli_tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("field", "invalid_value"),
+    [
+        ("definition_digest", "sha256:" + "0" * 64),
+        ("definition_closure_profile", "skill-eval-frozen-definition-closure-v0"),
+    ],
+)
+def test_evaluate_rejects_definition_digest_or_profile_mismatch(
+    cli_tmp_path: Path,
+    field: str,
+    invalid_value: str,
+) -> None:
     value = _load(RUN_INPUT)
-    value["definition_ref"]["definition_digest"] = "sha256:" + "0" * 64
+    value["definition_ref"][field] = invalid_value
     input_path = cli_tmp_path / "mismatched-input.json"
     output = cli_tmp_path / "should-not-exist.json"
     _write(input_path, value)
@@ -227,15 +238,21 @@ def test_evaluate_rejects_v02_free_text_definition(cli_tmp_path: Path) -> None:
     assert not output.exists()
 
 
-def test_evaluate_rejects_caller_supplied_derived_results(cli_tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "derived_field",
+    [
+        "metric_results",
+        "gate_results",
+        "overall_score_outcome",
+        "acceptance_evaluation",
+    ],
+)
+def test_evaluate_rejects_caller_supplied_derived_results(
+    cli_tmp_path: Path,
+    derived_field: str,
+) -> None:
     value = _load(RUN_INPUT)
-    value["metric_results"] = [
-        {
-            "metric_result_id": "FORGED",
-            "metric_id": "M001",
-            "status": "available",
-        }
-    ]
+    value[derived_field] = {"forged": True}
     input_path = cli_tmp_path / "forged-derived-result.json"
     output = cli_tmp_path / "should-not-exist.json"
     _write(input_path, value)
@@ -254,7 +271,7 @@ def test_evaluate_rejects_caller_supplied_derived_results(cli_tmp_path: Path) ->
     payload = _error(result)
     assert payload["error_type"] == "input_schema_error"
     assert any(
-        item["path"] == "metric_results" and item["code"] == "extra_forbidden"
+        item["path"] == derived_field and item["code"] == "extra_forbidden"
         for item in payload["details"]
     )
     assert not output.exists()
