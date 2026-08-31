@@ -1,54 +1,45 @@
-# Public API and Definition version policy v0.1
+# Public API 与 Definition 版本策略 v0.1
 
-## Status
+## 状态
 
 `AUDIT-006: CLOSED`
 
-The public version boundary is explicit:
+Public version 边界是显式的：
 
-| Definition | Role | Closure profile |
+| Definition | 角色 | Closure profile |
 |---|---|---|
-| `BenchmarkDefinitionV03` | Current executable Definition | `skill-eval-frozen-definition-closure-v1` |
-| `BenchmarkDefinitionV02` | Historical compatibility Definition | `skill-eval-frozen-definition-closure-v0` |
+| `BenchmarkDefinitionV03` | 当前可执行 Definition | `skill-eval-frozen-definition-closure-v1` |
+| `BenchmarkDefinitionV02` | 历史兼容 Definition | `skill-eval-frozen-definition-closure-v0` |
 
-The `skill-eval` CLI accepts `BenchmarkDefinitionV03` only.
+`skill-eval` CLI 只接受 `BenchmarkDefinitionV03`。
 
-## Import policy
+## 导入策略
 
-Use the aggregate schema API for current executable code:
+当前可执行代码使用聚合 schema API：
 
 ```python
 from skill_eval_framework.schemas import BenchmarkDefinition
 ```
 
-The aggregate unsuffixed Definition, Metric, and Gate names resolve to their
-v0.3 executable forms. Versioned modules publish versioned names only:
+无版本后缀的聚合 Definition、Metric 与 Gate 名称解析到 v0.3 可执行形式。带版本模块只发布带版本名称：
 
 ```python
 from skill_eval_framework.schemas.definition_v03 import BenchmarkDefinitionV03
 from skill_eval_framework.schemas.definition_v02 import BenchmarkDefinitionV02
 ```
 
-The legacy `skill_eval_framework.schemas.definition` module remains available
-for historical v0.2 compatibility. Its unsuffixed names are historical and
-must not be interpreted as the current executable API. No removal schedule is
-declared for that compatibility module.
+旧的 `skill_eval_framework.schemas.definition` 模块继续用于历史 v0.2 兼容。其无版本后缀名称属于历史 API，禁止解释为当前可执行 API。该兼容模块尚未声明 removal schedule。
 
-## Version-aware helpers
+## 版本感知 helpers
 
-Generic Definition validation, digest, and Run-binding helpers dispatch on the
-concrete Definition root type. Explicit versioned helpers are also available
-when a caller wants to pin the protocol:
+通用 Definition validation、digest 与 Run-binding helpers 根据具体 Definition root type 分派。调用方需要固定 protocol 时，也可以使用显式带版本 helper：
 
-- `validate_benchmark_definition_v02` / `validate_benchmark_definition_v03`;
-- `compute_definition_digest_v02` / `compute_definition_digest_v03`;
-- `verify_run_definition_binding_v02` / `verify_run_definition_binding_v03`.
+- `validate_benchmark_definition_v02` / `validate_benchmark_definition_v03`；
+- `compute_definition_digest_v02` / `compute_definition_digest_v03`；
+- `verify_run_definition_binding_v02` / `verify_run_definition_binding_v03`。
 
-Cross-version Definition/profile pairs are rejected. v0.2 free-text Metric or
-Gate policy fields never enter the v0.3 executable path.
+跨版本 Definition/profile 配对会被拒绝。v0.2 自由文本 Metric 或 Gate 策略字段不会进入 v0.3 可执行路径。
 
-## Compatibility boundary
+## 兼容边界
 
-Historical v0.2 parsing and closure-v0 digest behavior remain supported for
-explicit compatibility use. New executable definitions and all supported CLI
-workflows use v0.3 and closure profile v1.
+历史 v0.2 parsing 与 closure-v0 digest 行为继续支持显式兼容用途。新的可执行 definitions 和所有受支持 CLI 工作流使用 v0.3 与 closure profile v1。

@@ -1,20 +1,16 @@
-# Final-Eligible Aggregation Hardening v0.1
+# Final-Eligible 聚合加固 v0.1
 
-Status: `AUDIT_002_DESIGN_HARDENING_FREEZE_READY`
+状态：`AUDIT_002_DESIGN_HARDENING_FREEZE_READY`
 
-Target: Benchmark Definition schema v0.3
+目标：Benchmark Definition schema v0.3
 
-Scope: Definition-time legality of `final_eligible` unit reduction when explicit
-Metric inputs derive to aggregation units.
+范围：当显式 Metric inputs 派生到 aggregation units 时，`final_eligible` unit reduction 在 Definition-time 的合法性。
 
-This document is a versioned hardening addendum. It does not rewrite the
-historical Benchmark Definition v0.2 design or the existing v0.3 executable
-policy design. It freezes the smallest missing legality invariant discovered by
-the Full Design-to-Code Conformance Audit. It does not implement the invariant.
+本文是带版本的加固附录。它不重写历史 Benchmark Definition v0.2 设计，也不重写现有 v0.3 可执行策略设计；它只冻结 Full Design-to-Code Conformance Audit 发现的最小缺失合法性不变量。本文不实现该不变量。
 
-## 1. Problem
+## 1. 问题
 
-`BenchmarkDefinitionV03` currently accepts a `MetricSpecificationV03` where:
+当前 `BenchmarkDefinitionV03` 接受以下 `MetricSpecificationV03`：
 
 ```text
 multiple MetricInputs
@@ -22,43 +18,33 @@ multiple MetricInputs
 -> unit_reduction.mode = final_eligible
 ```
 
-The deterministic evaluator cannot execute that combination. It preserves
-`Episode.attempt_index` order within each MetricInput, but the Frozen Definition
-does not define a total order between different MetricInputs that derive to the
-same unit.
+确定性 evaluator 无法执行该组合。它会在每个 MetricInput 内保留 `Episode.attempt_index` 顺序，但 Frozen Definition 没有定义派生到同一 unit 的不同 MetricInputs 之间的全序。
 
-Different MetricInputs have no Frozen:
+不同 MetricInputs 没有以下 Frozen authority：
 
-- global attempt timeline;
-- cross-input attempt ordering;
-- test-case ordering authority;
-- contract ordering authority; or
-- tie-break rule when local attempt indexes are equal.
+- 全局 attempt timeline；
+- 跨 input attempt ordering；
+- Test Case 顺序 权威；
+- Contract ordering authority；
+- local attempt indexes 相等时的 tie-break rule。
 
-The current evaluator therefore rejects the combination with a defensive error
-instead of producing a Result. The Definition layer must reject the undefined
-combination before execution.
+因此，当前 evaluator 会用防御性错误拒绝该组合，而不是生成 Result。Definition 层必须在执行前拒绝这个未定义组合。
 
-## 2. Existing authority
+## 2. 现有权威
 
-The existing executable v0.3 design freezes the following rules:
+现有可执行 v0.3 设计冻结了以下规则：
 
-1. `Episode.attempt_index` is the only attempt ordering authority. Timestamp,
-   arrival order, Result ID, filesystem order, and list construction order are
-   not ordering authorities.
-2. Attempt selection is performed independently for the distinct Grader Results
-   associated with one MetricInput.
-3. `final_eligible` is not an attempt selector. It is a post-eligibility
-   unit-reduction mode and requires `all_distinct` selection.
-4. Aggregation-unit identity is derived only from explicit MetricInput identity:
-   - `per_target` -> `(test_case_id, contract_id)`;
-   - `per_contract` -> `contract_id`;
-   - `per_test_case` -> `test_case_id`.
-5. Every MetricInput belongs to exactly one derived aggregation unit.
-6. Undefined advanced ordering or grouping behavior must not be supplied by an
-   implementation-specific convention.
+1. `Episode.attempt_index` 是唯一 attempt ordering authority。Timestamp、arrival order、Result ID、filesystem order 和 list construction order 都不是 ordering authority。
+2. 对一个 MetricInput 关联的不同 Grader Results，attempt selection 独立执行。
+3. `final_eligible` 不是 attempt selector，而是 eligibility 之后的 unit-reduction mode，并要求 `all_distinct` selection。
+4. Aggregation-unit identity 只从显式 MetricInput identity 派生：
+   - `per_target` -> `(test_case_id, contract_id)`；
+   - `per_contract` -> `contract_id`；
+   - `per_test_case` -> `test_case_id`。
+5. 每个 MetricInput 只属于一个派生 aggregation unit。
+6. 实现不得用 implementation-specific convention 补充未定义的高级排序或分组行为。
 
-The Metric Specification Guide also fixes the semantic pipeline:
+Metric Specification Guide 同时固定了以下语义 pipeline：
 
 ```text
 resolve explicit MetricInput population
@@ -71,92 +57,69 @@ resolve explicit MetricInput population
 -> apply weighting and final aggregation
 ```
 
-It distinguishes final raw selection from final eligible reduction and does not
-give MetricInput list order any semantic authority.
+该 pipeline 区分 final raw selection 与 final eligible reduction，也不赋予 MetricInput list order 任何语义权威。
 
-## 3. Authority review decision
+## 3. 权威审查决定
 
-### 3.1 Compatibility with existing authority
+### 3.1 与现有权威的兼容性
 
-The minimum restriction is compatible with existing authority.
+最小限制与现有权威兼容。
 
-When one derived unit contains exactly one MetricInput, every eligible
-contribution in that unit belongs to one attempt sequence. The existing
-`Episode.attempt_index` authority is therefore sufficient to identify the final
-eligible contribution.
+当一个派生 unit 恰好包含一个 MetricInput 时，该 unit 的全部 eligible contributions 都属于同一个 attempt sequence。现有 `Episode.attempt_index` authority 足以识别 final eligible contribution。
 
-When one derived unit contains multiple MetricInputs, the existing authority
-provides multiple local attempt sequences but no rule that merges them into one
-total order. Rejecting that combination preserves the rule that an executor must
-not invent ordering authority.
+当一个派生 unit 包含多个 MetricInputs 时，现有权威只提供多个局部 attempt sequences，没有将它们合并为全序的规则。拒绝该组合可维持“executor 禁止虚构 ordering authority”的规则。
 
-### 3.2 Effect on existing legal semantics
+### 3.2 对现有合法语义的影响
 
-The restriction does not change any currently defined, executable semantic
-case:
+该限制不改变任何已经定义且可执行的语义场景：
 
-- all `per_target + final_eligible` specifications with unique MetricInput pairs
-  remain legal;
-- `per_contract + final_eligible` remains legal when each Contract unit has one
-  MetricInput;
-- `per_test_case + final_eligible` remains legal when each Test Case unit has one
-  MetricInput;
-- `single` and `mean` retain their existing semantics;
-- attempt selection, eligibility, contribution mapping, weighting,
-  completeness, and final aggregation are unchanged.
+- 唯一 MetricInput pairs 的 `per_target + final_eligible` specification 仍然合法；
+- 每个 Contract unit 只有一个 MetricInput 时，`per_contract + final_eligible` 仍然合法；
+- 每个 Test Case unit 只有一个 MetricInput 时，`per_test_case + final_eligible` 仍然合法；
+- `single` 与 `mean` 保持现有语义；
+- attempt selection、eligibility、contribution mapping、weighting、completeness 与 final aggregation 均不变。
 
-The restriction closes only the combination for which no cross-input ordering
-semantics were frozen and for which the current evaluator cannot produce an
-authoritative Result.
+该限制只关闭尚未冻结跨 input ordering 语义、且当前 evaluator 无法生成权威 Result 的组合。
 
-### 3.3 Versioning decision
+### 3.3 版本决定
 
-This decision is a versioned v0.3 hardening addendum. It does not require a
-Benchmark Definition schema v0.4.
+该决定是带版本的 v0.3 加固附录，不要求 Benchmark Definition schema v0.4，原因如下：
 
-Reasons:
+- 没有新增、删除、重命名或重新定型字段；
+- 没有可执行 enum value 改变含义；
+- 没有已经定义的可执行行为发生变化；
+- 没有规范 Definition field 或 collection classification 发生变化；
+- digest byte protocol 不变；
+- `skill-eval-frozen-definition-closure-v1` 仍是正确 closure profile；
+- 附录拒绝的是未定义且当前无法执行的策略组合，没有引入新语义。
 
-- no field is added, removed, renamed, or retyped;
-- no executable enum value changes meaning;
-- no previously defined executable behavior changes;
-- no canonical Definition field or collection classification changes;
-- no digest byte protocol changes;
-- `skill-eval-frozen-definition-closure-v1` remains the correct closure profile;
-- the addendum rejects an undefined and currently unexecutable policy
-  combination instead of introducing new semantics.
+未来若设计跨 MetricInput ordering，则属于语义扩展，必须单独进行版本审查。本文不授权该扩展。
 
-A future design that adds cross-MetricInput ordering would be a semantic
-expansion and would require a separate versioning review. This hardening does
-not authorize that expansion.
+## 4. 冻结决定
 
-## 4. Frozen decision
-
-For every `MetricSpecificationV03` where:
+对每个满足以下条件的 `MetricSpecificationV03`：
 
 ```text
 execution_policy.unit_reduction.mode == final_eligible
 ```
 
-derive one logical aggregation-unit key for every explicit MetricInput using
-`execution_policy.aggregation_unit`.
+使用 `execution_policy.aggregation_unit`，为每个显式 MetricInput 派生一个逻辑 aggregation-unit key。
 
-Each resulting aggregation-unit key MUST occur exactly once across
-`MetricSpecificationV03.inputs`.
+每个派生 aggregation-unit key 在 `MetricSpecificationV03.inputs` 中必须（MUST）恰好出现一次。
 
-If any derived aggregation-unit key occurs more than once, the Benchmark
-Definition is invalid.
+只要任一派生 aggregation-unit key 出现多次，Benchmark Definition 即无效。
 
-This rule is additional to the existing invariant:
+该规则是在以下现有不变量之外追加的规则：
 
 ```text
 final_eligible requires selection.mode == all_distinct
 ```
 
-Both invariants must hold.
+两个不变量必须同时成立。
 
-## 5. Machine-implementable legality invariant
+## 5. 可由机器实现的合法性不变量
 
-Let:
+定义：
 
 ```text
 I = MetricSpecificationV03.inputs
@@ -164,7 +127,7 @@ U = MetricSpecificationV03.execution_policy.aggregation_unit
 R = MetricSpecificationV03.execution_policy.unit_reduction.mode
 ```
 
-For each input `i` in `I`, derive `unit_key(U, i)` as:
+对 `I` 中每个 input `i`，按下列方式派生 `unit_key(U, i)`：
 
 ```text
 unit_key(per_target, i)    = (i.test_case_id, i.contract_id)
@@ -172,7 +135,7 @@ unit_key(per_contract, i)  = i.contract_id
 unit_key(per_test_case, i) = i.test_case_id
 ```
 
-The legality rule is:
+合法性规则：
 
 ```text
 if R == final_eligible:
@@ -180,7 +143,7 @@ if R == final_eligible:
         count(i in I where unit_key(U, i) == K) MUST equal 1
 ```
 
-Equivalent executable predicate:
+等价的可执行谓词：
 
 ```text
 R != final_eligible
@@ -189,22 +152,19 @@ len([unit_key(U, i) for i in I])
     == len(set(unit_key(U, i) for i in I))
 ```
 
-The rule depends only on:
+该规则只依赖：
 
-- `MetricSpecificationV03.inputs`;
-- `execution_policy.aggregation_unit`; and
-- `execution_policy.unit_reduction.mode`.
+- `MetricSpecificationV03.inputs`；
+- `execution_policy.aggregation_unit`；
+- `execution_policy.unit_reduction.mode`。
 
-It does not depend on Benchmark-wide references, Runtime Episodes, actual
-GraderResults, timestamps, Result IDs, input list order, or implementation
-state.
+它不依赖 Benchmark-wide references、Runtime Episodes、实际 GraderResults、timestamps、Result IDs、input list order 或 implementation state。
 
-## 6. Ordering rationale
+## 6. 排序理由
 
-`final_eligible` is meaningful only when all eligible contributions in one unit
-share one Frozen attempt sequence.
+只有一个 unit 中的全部 eligible contributions 共享同一个 Frozen attempt sequence 时，`final_eligible` 才有明确含义。
 
-With exactly one MetricInput per unit:
+每个 unit 恰好一个 MetricInput 时：
 
 ```text
 one MetricInput
@@ -213,23 +173,20 @@ one MetricInput
 -> final eligible contribution
 ```
 
-With multiple MetricInputs per unit:
+每个 unit 有多个 MetricInputs 时：
 
 ```text
 MetricInput A -> local attempt sequence A
 MetricInput B -> local attempt sequence B
 ```
 
-No Frozen authority answers whether an attempt from A precedes, follows, or ties
-an attempt from B. MetricInput list order, Test Case ID, Contract ID, Result ID,
-timestamp, and arrival order MUST NOT fill that gap.
+没有任何 Frozen authority 能决定 A 的 attempt 位于 B 的 attempt 之前、之后或与其并列。MetricInput list order、Test Case ID、Contract ID、Result ID、timestamp 与 arrival order 禁止（MUST NOT）填补该空白。
 
-The minimum safe v0.3 behavior is therefore rejection at Definition validation,
-not an invented merge order.
+因此，v0.3 的最小安全行为是在 Definition validation 时拒绝，而不是虚构 merge order。
 
-## 7. Valid examples
+## 7. 合法示例
 
-### A. Per-target, one explicit input
+### A. Per-target，一个显式 input
 
 ```text
 inputs:
@@ -239,15 +196,15 @@ aggregation_unit: per_target
 unit_reduction: final_eligible
 ```
 
-Derived units:
+派生 unit：
 
 ```text
 (TC1, C1) -> one MetricInput
 ```
 
-Result: `VALID`
+结果：`VALID`
 
-### B. Per-contract, distinct Contract units
+### B. Per-contract，不同 Contract units
 
 ```text
 inputs:
@@ -258,16 +215,16 @@ aggregation_unit: per_contract
 unit_reduction: final_eligible
 ```
 
-Provided `C1 != C2`, derived units are:
+在 `C1 != C2` 时，派生 units 为：
 
 ```text
 C1 -> one MetricInput
 C2 -> one MetricInput
 ```
 
-Result: `VALID`
+结果：`VALID`
 
-### C. Per-contract, same Test Case but distinct Contract units
+### C. Per-contract，同一个 Test Case、不同 Contract units
 
 ```text
 inputs:
@@ -278,18 +235,16 @@ aggregation_unit: per_contract
 unit_reduction: final_eligible
 ```
 
-Provided `C1 != C2`, derived units are:
+在 `C1 != C2` 时，派生 units 为：
 
 ```text
 C1 -> one MetricInput
 C2 -> one MetricInput
 ```
 
-Result: `VALID`
+结果：`VALID`。共享 Test Case 不会合并 Contract aggregation units。
 
-The shared Test Case does not merge Contract aggregation units.
-
-### Additional valid boundary: per-test-case with distinct Test Cases
+### 附加合法边界：Per-test-case，不同 Test Cases
 
 ```text
 inputs:
@@ -300,13 +255,13 @@ aggregation_unit: per_test_case
 unit_reduction: final_eligible
 ```
 
-Provided `TC1 != TC2`, each Test Case unit has one MetricInput.
+在 `TC1 != TC2` 时，每个 Test Case unit 只有一个 MetricInput。
 
-Result: `VALID`
+结果：`VALID`
 
-## 8. Invalid examples
+## 8. 非法示例
 
-### D. Per-contract, multiple inputs in one Contract unit
+### D. Per-contract，一个 Contract unit 中有多个 inputs
 
 ```text
 inputs:
@@ -317,18 +272,17 @@ aggregation_unit: per_contract
 unit_reduction: final_eligible
 ```
 
-Derived unit:
+派生 unit：
 
 ```text
 C1 -> two MetricInputs
 ```
 
-Result: `INVALID`
+结果：`INVALID`
 
-The two MetricInputs have separate local attempt sequences. No cross-input total
-order is Frozen.
+两个 MetricInputs 拥有不同的局部 attempt sequences，没有跨 input 全序的 Frozen authority。
 
-### E. Per-test-case, multiple inputs in one Test Case unit
+### E. Per-test-case，一个 Test Case unit 中有多个 inputs
 
 ```text
 inputs:
@@ -339,137 +293,96 @@ aggregation_unit: per_test_case
 unit_reduction: final_eligible
 ```
 
-Derived unit:
+派生 unit：
 
 ```text
 TC1 -> two MetricInputs
 ```
 
-Result: `INVALID`
+结果：`INVALID`
 
-Contract ID does not provide an ordering rule inside a Test Case unit.
+Contract ID 不提供 Test Case unit 内部的排序规则。
 
-## 9. Other reducers
+## 9. 其他 reducers
 
-This restriction applies only when:
+该限制只适用于：
 
 ```text
 unit_reduction.mode == final_eligible
 ```
 
-It does not change `single` or `mean`:
+它不改变 `single` 或 `mean`：
 
-- `single` retains its existing rule that exactly one eligible contribution is
-  required for a unit;
-- `mean` retains its existing rule that all eligible contributions in a unit
-  are averaged arithmetically.
+- `single` 继续要求一个 unit 恰好有一个 eligible contribution；
+- `mean` 继续对一个 unit 中的全部 eligible contributions 取算术平均。
 
-Multi-input same-unit Definitions using `single` or `mean` remain governed by
-their existing semantics and validation boundaries. This addendum neither
-widens nor narrows those reducers.
+同一 unit 包含多个 inputs 的 `single` 或 `mean` Definition 继续受其现有语义和 validation boundary 约束。本文不会扩大或缩小这两种 reducer。
 
-## 10. Ownership
+## 10. 归属
 
-The authoritative legality check belongs to
-`MetricSpecificationV03` local/cross-field validation.
+权威合法性检查属于 `MetricSpecificationV03` local/cross-field validation，理由如下：
 
-Rationale:
+- 所需数据全部位于一个 MetricSpecification 内；
+- 不变量不需要 Benchmark-wide object resolution；
+- 在消费 digest 或规划执行前即可检测无效性；
+- 保持一条 Definition-time 合法性事实，可防止 Schema、cross-object validator、evaluator 与 CLI 分叉。
 
-- all required data is contained in one MetricSpecification;
-- the invariant does not require Benchmark-wide object resolution;
-- invalidity can be detected before digest consumption or execution planning;
-- keeping one Definition-time legality truth prevents Schema, cross-object
-  validator, evaluator, and CLI from diverging.
+该检查主要不属于：Benchmark-wide cross-object Definition validator、Runtime validation、Metric evaluator、CLI / orchestration 或新 execution stage。
 
-The check does not belong primarily to:
+只有在复用同一 legality helper 或以其他方式保证不会分叉时，cross-object Definition validator 才可以保留防御性 assertion。禁止（MUST NOT）维护第二套独立规则解释。
 
-- the Benchmark-wide cross-object Definition validator;
-- Runtime validation;
-- the Metric evaluator;
-- CLI or orchestration; or
-- a new execution stage.
+## 11. Schema 影响
 
-The cross-object Definition validator may retain a defensive assertion only if
-it reuses the same legality helper or otherwise cannot diverge. It MUST NOT
-maintain a second independent interpretation of the rule.
+后续 implementation migration 必须扩展 `MetricSpecificationV03` local/cross-field validation：
 
-## 11. Schema implication
+1. 检查 `execution_policy.unit_reduction.mode`；
+2. 当其为 `final_eligible` 时，使用 `execution_policy.aggregation_unit` 为每个显式 input 派生 aggregation-unit key；
+3. 任一 key 重复时拒绝 specification；
+4. 保留现有 `final_eligible requires all_distinct` 不变量；
+5. 保持 `single` 和 `mean` 行为不变。
 
-A later implementation migration must extend
-`MetricSpecificationV03` local/cross-field validation to:
+Definition invalidity 必须在 Evaluation Services 执行前报告。
 
-1. inspect `execution_policy.unit_reduction.mode`;
-2. when it is `final_eligible`, derive one aggregation-unit key per explicit
-   input using `execution_policy.aggregation_unit`;
-3. reject the specification if any key is repeated;
-4. preserve the existing `final_eligible requires all_distinct` invariant; and
-5. leave `single` and `mean` behavior unchanged.
+本文不选择 implementation helper 名称、error-code 名称或 Pydantic error-message 文案；只要保持上述唯一不变量，这些都属于实现细节。
 
-Definition invalidity must be reported before Evaluation Services execute.
+## 12. Evaluator 影响
 
-This document does not select an implementation helper name, error-code name, or
-Pydantic error-message wording. Those are implementation details provided they
-preserve the single invariant above.
-
-## 12. Evaluator implication
-
-The current evaluator error:
+当前 evaluator error：
 
 ```text
 final_eligible cannot merge multiple MetricInputs into one aggregation unit
 ```
 
-may remain as a defensive integrity check.
+可以保留为防御性完整性检查。完成 Schema migration 后，对于正常验证过的 `MetricSpecificationV03`，该分支禁止（MUST NOT）成为常规控制路径；evaluator 也禁止增加跨 input ordering fallback。
 
-After the Schema migration, that branch MUST NOT be the normal control path for
-a normally validated `MetricSpecificationV03`. The evaluator must not add a
-cross-input ordering fallback.
+本文属于纯设计任务，不授权 evaluator 修改。
 
-No evaluator change is authorized by this design-only task.
+## 13. 回归要求
 
-## 13. Regression requirements
+后续 implementation migration 必须增加测试，证明：
 
-The later implementation migration must add tests proving:
+1. 示例 A 合法。
+2. Contract IDs 不同时，示例 B 合法。
+3. Contract IDs 不同时，示例 C 合法。
+4. 示例 D 在 Definition validation 阶段被拒绝。
+5. 示例 E 在 Definition validation 阶段被拒绝。
+6. 所有 Test Case unit keys 不同时，`per_test_case + final_eligible` 合法。
+7. 多个唯一 target pairs 的 `per_target + final_eligible` 仍合法。
+8. `final_eligible` 仍要求 `all_distinct` selection。
+9. `single` 的同 unit 多 input 行为不变。
+10. `mean` 的同 unit 多 input 行为不变。
+11. 正常验证的 Definition 无法到达 evaluator 的防御性多 input `final_eligible` error。
+12. Digest v1 canonicalization 与 closure-profile selection 不变。
 
-1. Example A is valid.
-2. Example B is valid when Contract IDs differ.
-3. Example C is valid when Contract IDs differ.
-4. Example D is rejected at Definition validation.
-5. Example E is rejected at Definition validation.
-6. `per_test_case + final_eligible` is valid when all Test Case unit keys are
-   distinct.
-7. `per_target + final_eligible` remains valid for multiple unique target pairs.
-8. `final_eligible` still requires `all_distinct` selection.
-9. `single` multi-input same-unit behavior is unchanged.
-10. `mean` multi-input same-unit behavior is unchanged.
-11. A normally validated Definition cannot reach the evaluator's defensive
-    multi-input `final_eligible` error.
-12. Digest v1 canonicalization and closure-profile selection remain unchanged.
+测试必须覆盖三种 aggregation-unit mode 的合法性组合，不能只覆盖单 input fixture。
 
-Tests must exercise the legality cross-product across all three aggregation-unit
-modes instead of covering only a single-input fixture.
+## 14. 非目标
 
-## 14. Non-goals
+本文不引入或授权：跨 MetricInput 全序、Test Case ordering、Contract ordering、tie-break rule、global attempt timeline、按 timestamp / Result ID / input list order / arrival order 排序、新 Core Object、新 execution stage、新 reducer、修改 `single` 或 `mean`、修改 weighting / completeness / final aggregation、implementation 修改、CLI / Packaging / Public API 工作。
 
-This hardening does not introduce or authorize:
+## 15. 发现项状态
 
-- cross-MetricInput total ordering;
-- Test Case ordering;
-- Contract ordering;
-- a tie-break rule;
-- a global attempt timeline;
-- ordering by timestamp, Result ID, input list order, or arrival order;
-- a new Core Object;
-- a new execution stage;
-- a new reducer;
-- changes to `single` or `mean`;
-- changes to weighting, completeness, or final aggregation;
-- implementation changes; or
-- CLI, Packaging, or public API work.
-
-## 15. Finding status
-
-With this addendum Frozen:
+冻结本附录后：
 
 ```text
 AUDIT-002: DESIGN_HARDENING_FREEZE_READY
@@ -482,11 +395,9 @@ AUDIT-002:
   BLOCKING_BEFORE_CLI: YES
 ```
 
-`AUDIT-002` is not fixed or fully closed by this document. The CLI blocker may
-be removed only after the single Definition-time legality invariant and its
-regressions are implemented and independently verified.
+本文不会修复或完全关闭 `AUDIT-002`。只有实现并独立验证该 Definition-time 合法性不变量及其回归后，才能移除 CLI blocker。
 
-Historical finding status:
+历史发现项状态：
 
 ```text
 IMP-EVAL-METRIC-POLICY-001:
@@ -494,18 +405,12 @@ IMP-EVAL-METRIC-POLICY-001:
   IMPLEMENTATION_LAYER: OPEN_PENDING_SCHEMA_VALIDATION_AND_TESTS
 ```
 
-The original typed-policy design remains valid after the undefined combination
-is closed by this addendum. Full implementation closure still requires the
-Schema/validator migration and regression evidence.
+关闭未定义组合后，原始类型化策略设计仍然有效。完整 implementation closure 仍需要 Schema/validator migration 与 regression evidence。
 
-## 16. Freeze decision
+## 16. 冻结决定
 
 ```text
 AUDIT_002_DESIGN_HARDENING_FREEZE_READY: YES
 ```
 
-The minimum restriction is compatible with existing authority, preserves all
-currently defined legal semantics, rejects only an undefined executable
-combination, requires no v0.4 schema or new digest profile, and assigns one
-machine-implementable legality truth to `MetricSpecificationV03` local/cross-
-field validation.
+该最小限制与现有权威兼容，保留全部已经定义的合法语义，只拒绝未定义的可执行组合；它不要求 v0.4 schema 或新 digest profile，并把唯一可由机器实现的合法性事实归属于 `MetricSpecificationV03` local/cross-field validation。

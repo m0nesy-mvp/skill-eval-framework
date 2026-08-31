@@ -65,7 +65,7 @@ v1.1 不试图证明一套 Eval 在科学意义上是“优秀 Benchmark”。
 
 - Eval Quality Score
 - Meta-Eval
-- Multi-Agent Benchmark Review
+- 多 Agent Benchmark 审查
 - Benchmark Quality Scoring
 - Empirical Benchmark Validation
 - Human Alignment Validation
@@ -201,11 +201,11 @@ Contract Design
 
 不能直接覆盖旧结果。
 
-## 3. Step 1 → Step 14
+## 3. 步骤 1 → 步骤 14
 
-# Part 1：Agent Design
+# 第 1 部分：Agent Design
 
-## Step 1：Skill Understanding & Scope
+## 步骤 1：Skill Understanding & 范围
 
 **分类：Mandatory**
 
@@ -279,10 +279,10 @@ Contract Design
 
 - Requirement Extraction
 - Contract Design
-- Input / Fixture / Environment Design
+- Input / Fixture / Environment 设计
 - Workflow Compliance Design
 
-## Step 2：Requirement Extraction
+## 步骤 2：Requirement Extraction
 
 **分类：Mandatory**
 
@@ -349,7 +349,7 @@ v1.1 只保留 `Requirement` 作为核心概念，不再把 `Claim` 作为独立
 - Eval Design Validation
 - 最终 Requirement → Result 追溯链
 
-## Step 3：Contract, Criticality & Failure Modes
+## 步骤 3：Contract, Criticality & 失败模式
 
 **分类：Mandatory**
 
@@ -432,7 +432,7 @@ Risk Analysis 作为本阶段和下一阶段的内部设计动作，其结果分
 - Gate Design
 - Eval Design Validation
 
-## Step 4：Risk-driven Case Matrix & Coverage
+## 步骤 4：Risk-driven Case Matrix & Coverage
 
 **分类：Mandatory**
 
@@ -508,7 +508,7 @@ v1.1 不规定所有 Contract 必须拥有固定数量的 Case。
 - Coverage Validation
 - Execution
 
-## Step 5：Input, Fixture & Environment Design
+## 步骤 5：Input, Fixture & Environment Design
 
 **分类：核心阶段 Mandatory；具体 Fixture 为 Conditional**
 
@@ -577,7 +577,7 @@ Fixture 在以下情况下需要：
 - Case Execution
 - Baseline Comparison
 
-## Step 6：Evidence & Workflow Trace Design
+## 步骤 6：Evidence & Workflow Trace Design
 
 **分类：Evidence 为 Mandatory；Workflow Trace 为 Conditional**
 
@@ -641,7 +641,7 @@ Evidence Design 必须先于正式执行完成，不能看到结果后再临时�
 - Intermediate Artifact
 - Validator Execution
 - State Transition
-- Stop / Retry / Cancel Behavior
+- Stop / Retry / Cancel 行为
 
 ### 输出
 
@@ -661,7 +661,7 @@ Evidence Design 必须先于正式执行完成，不能看到结果后再临时�
 - Episode Execution
 - Evidence Preservation
 
-## Step 7：Grader & Assertion Design
+## 步骤 7：Grader & Assertion Design
 
 **分类：Mandatory**
 
@@ -707,7 +707,7 @@ Evidence Design 必须先于正式执行完成，不能看到结果后再临时�
 
 ### Grader 选择原则
 
-#### Deterministic Grader
+#### 技术主题：Deterministic Grader
 
 适用于：
 
@@ -722,7 +722,7 @@ Evidence Design 必须先于正式执行完成，不能看到结果后再临时�
 - 可计算数值
 - 明确成功条件
 
-#### Rubric-based Grader
+#### 技术主题：Rubric-based Grader
 
 适用于：
 
@@ -733,7 +733,7 @@ Evidence Design 必须先于正式执行完成，不能看到结果后再临时�
 - 用户体验
 - 多个合法答案之间的质量差异
 
-#### Mixed Grader
+#### 技术主题：Mixed Grader
 
 适用于同时包含硬约束与质量判断的结果。
 
@@ -771,13 +771,13 @@ Evidence Design 必须先于正式执行完成，不能看到结果后再临时�
 - Eval Design Validation
 - Part 2 Grading
 
-## Step 8：Metric, Rubric, Weight, Gate & Baseline Design
+## 步骤 8：Metric, Rubric, Weight, Gate & 基线 Design
 
 **分类：核心阶段 Mandatory；各组成项按适用性启用**
 
 本阶段统一设计结果聚合与比较政策。它们相互依赖，因此不再拆成多个重量级顶层阶段。
 
-### 8.1 Metric Design
+### 技术主题：8.1 Metric Design
 
 **实例化状态：Mandatory，且必须是多维 Metric**
 
@@ -811,7 +811,7 @@ Evidence Design 必须先于正式执行完成，不能看到结果后再临时�
 - 样本计数规则
 - 未执行、不适用、错误状态的处理规则
 
-### 8.2 Rubric Design
+### 技术主题：8.2 Rubric Design
 
 **实例化状态：Conditional**
 
@@ -840,7 +840,7 @@ Evidence Design 必须先于正式执行完成，不能看到结果后再临时�
 - Rubric → Metric 映射
 - 评分依据
 
-### 8.3 Weight & Overall Score Design
+### 技术主题：8.3 Weight & Overall Score Design
 
 **实例化状态：Framework 默认支持并默认启用；Benchmark 可以关闭**
 
@@ -892,7 +892,7 @@ Overall Score 只是汇总视图，不能代替多维 Scorecard。
 - Metric → Overall Score 映射
 - Overall Score 聚合政策
 
-### 8.4 Gate Design
+### 技术主题：8.4 Gate Design
 
 **实例化状态：Conditional；Framework Core 必须支持**
 
@@ -942,7 +942,7 @@ Gate 用于表达：
 - Gate Failure 语义
 - Gate Result 的展示政策
 
-### 8.5 Baseline Design
+### 8.5 基线 Design
 
 **实例化状态：Conditional；Framework Core 必须支持**
 
@@ -1007,7 +1007,7 @@ Baseline vs Candidate
 - Part 2 Grading
 - Scorecard Generation
 
-## Step 9：Eval Design Validation
+## 步骤 9：Eval Design 验证
 
 **分类：Mandatory**
 
@@ -1089,10 +1089,10 @@ INVALID
 
 ### 下游依赖
 
-- `VALID` → Freeze Benchmark Definition
+- `VALID` → 冻结 Benchmark Definition
 - `INVALID` → 返回 Part 1 对应阶段修正
 
-## Step 10：Freeze Benchmark / Eval Definition
+## 步骤 10：Freeze Benchmark / Eval Definition
 
 **分类：Mandatory**
 
@@ -1157,11 +1157,11 @@ Frozen Benchmark / Eval Definition
 - Result Traceability
 - Version Comparison
 
-# Part 2：CLI Execution
+# 第 2 部分：CLI Execution
 
 Part 2 在本版本中只定义执行方法，不设计 CLI 命令、参数、文件结构或 Runtime 架构。
 
-## Step 11：Create Run & Prepare Environment
+## 步骤 11：Create Run & Prepare Environment
 
 **分类：Mandatory**
 
@@ -1218,7 +1218,7 @@ Part 2 在本版本中只定义执行方法，不设计 CLI 命令、参数、�
 - Evidence Qualification
 - Scorecard 中的运行上下文
 
-## Step 12：Execute Cases & Produce Episodes
+## 步骤 12：Execute Cases & Produce Episodes
 
 **分类：Mandatory**
 
@@ -1280,7 +1280,7 @@ Part 2 在本版本中只定义执行方法，不设计 CLI 命令、参数、�
 - Workflow Trace
 - Validator Result
 - Execution Status
-- Retry / Stop / Cancel Record
+- Retry / Stop / Cancel 记录
 - 实际输入与环境上下文
 - 原始 Failure Information
 
@@ -1292,7 +1292,7 @@ Part 2 在本版本中只定义执行方法，不设计 CLI 命令、参数、�
 - Case Result
 - Baseline Comparison
 
-## Step 13：Collect, Qualify & Preserve Evidence
+## 步骤 13：Collect, Qualify & Preserve Evidence
 
 **分类：Mandatory**
 
@@ -1358,7 +1358,7 @@ Part 2 在本版本中只定义执行方法，不设计 CLI 命令、参数、�
 - Scorecard
 - Evidence Traceability
 
-## Step 14：Grade, Aggregate, Apply Gates & Generate Scorecard
+## 步骤 14：Grade, Aggregate, Apply Gates & Generate Scorecard
 
 **分类：Mandatory**
 
@@ -1425,15 +1425,15 @@ Overall Score
 
 ### 结果聚合顺序
 
-#### 1. Grader Result
+#### 1. 技术主题：Grader Result
 
 每个 Grader 基于声明的 Evidence 产生判断。
 
-#### 2. Case / Contract Result
+#### 2. 技术主题：Case / Contract Result
 
 把 Grader Result 关联回 Case 与 Contract。
 
-#### 3. Metric Result
+#### 3. 技术主题：Metric Result
 
 按冻结规则聚合多个 Grader Result，并保留：
 
@@ -1443,23 +1443,23 @@ Overall Score
 - Excluded Cases
 - Failure Distribution
 
-#### 4. Rubric Aggregation
+#### 4. 技术主题：Rubric Aggregation
 
 仅在适用时执行，并保留子维度评分。
 
-#### 5. Weighted Overall Score
+#### 5. 技术主题：Weighted Overall Score
 
 默认启用。
 
 如果 Benchmark 在冻结前关闭 Overall Score，则不生成总体分数，但仍生成所有 Metric 与 Scorecard。
 
-#### 6. Gate Evaluation
+#### 6. 技术主题：Gate Evaluation
 
 Gate 独立判断。
 
 即使 Gate Failure，仍然保留并计算其他可计算 Metric；不得只输出一个失败状态。
 
-#### 7. Baseline Comparison
+#### 7. 基线 Comparison
 
 仅比较可比 Metric，并输出：
 
@@ -1468,7 +1468,7 @@ Gate 独立判断。
 - No Material Change
 - Not Comparable
 
-#### 8. Scorecard
+#### 8. 字段或协议值：Scorecard
 
 Scorecard 是权威结果视图，必须至少能够展示：
 
@@ -1527,7 +1527,7 @@ Overall Score / Scorecard
 
 ## 4. 三条评估线如何嵌入同一主流程
 
-## 4.1 A. Outcome Eval
+## 技术主题：4.1 A. Outcome Eval
 
 Outcome Eval 回答：
 
@@ -1569,13 +1569,13 @@ Scorecard / Overall Score
 - Robustness
 - Efficiency
 - Baseline Improvement
-- Skill-specific Capability Metrics
+- Skill 专属能力 Metrics
 
 Framework 不规定所有 Skill 必须使用这些固定 Metric，也不规定固定权重。
 
 Agent 根据 Target Skill 生成实际 Metric。
 
-## 4.2 B. Workflow Compliance Eval
+## 技术主题：4.2 B. Workflow Compliance Eval
 
 Workflow Compliance 回答：
 
@@ -1665,7 +1665,7 @@ Workflow PASS
 
 这两个结果必须分别保留，不能互相覆盖。
 
-## 4.3 C. Eval Design Validation
+## 4.3 C. Eval Design 验证
 
 Eval Design Validation 回答：
 
@@ -1811,11 +1811,11 @@ Eval Definition
 - Benchmark 可以在执行前明确关闭；
 - 即使关闭，Metric、Case Result、Gate Result 和 Evidence 仍然必须保留。
 
-## 6. Advanced / Future Work
+## 6. 技术主题：Advanced / Future Work
 
 以下能力不进入 v1.1 Core 主路径。
 
-## 6.1 Pilot / Calibration
+## 技术主题：6.1 Pilot / Calibration
 
 **分类：Optional / Advanced**
 
@@ -1839,7 +1839,7 @@ Eval Definition
 
 v1.1 不实现独立 Pilot System，也不把 Pilot 设为第一次 Eval Design 的强制阶段。
 
-## 6.2 Independent Review
+## 技术主题：6.2 Independent Review
 
 **分类：Optional / Advanced**
 
@@ -1854,7 +1854,7 @@ v1.1 不实现独立 Pilot System，也不把 Pilot 设为第一次 Eval Design 
 
 Independent Review 不属于 Core Execution Chain，不要求每次常规 Eval 都执行。
 
-## 6.3 Unseen Regression
+## 技术主题：6.3 Unseen Regression
 
 **分类：Optional / Advanced / Future Extension**
 
@@ -1876,7 +1876,7 @@ Unseen Regression 留待后续单独设计。
 
 ## 6.4 其他 Future Work
 
-- Multi-Agent Benchmark Review
+- 多 Agent Benchmark 审查
 - Meta-Eval
 - Benchmark Quality Score
 - Empirical Benchmark Validation
@@ -1894,7 +1894,7 @@ Unseen Regression 留待后续单独设计。
 
 这些能力不应反向扩大 v1.1 Core。
 
-## 7. Framework Rules vs Agent Generated Eval Content
+## 7. 技术主题：Framework Rules vs Agent Generated Eval Content
 
 ## 7.1 区分原则
 
@@ -2044,7 +2044,7 @@ Part 2：4 个 CLI Execution 阶段
 
 以下能力从潜在主路径中移出：
 
-### Pilot / Calibration
+### 技术主题：Pilot / Calibration
 
 从常规必需步骤降为：
 
@@ -2052,7 +2052,7 @@ Part 2：4 个 CLI Execution 阶段
 Optional / Advanced
 ```
 
-### Independent Review
+### 技术主题：Independent Review
 
 从 Core Execution Chain 移出，降为：
 
@@ -2060,7 +2060,7 @@ Optional / Advanced
 Optional / Advanced
 ```
 
-### Unseen Regression
+### 技术主题：Unseen Regression
 
 从第一次 Eval Design 的要求移出，降为：
 

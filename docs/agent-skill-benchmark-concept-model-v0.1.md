@@ -1,7 +1,7 @@
-# 《Agent Skill Benchmark Concept Model v0.1》
+# 《Agent Skill 基准概念模型 v0.1》
 
 Version: v0.1
-Status: Approved for Schema Design
+状态：已批准进入 Schema 设计（Approved for Schema Design）
 Date: 2026-08-21
 
 > v0.1 是进入第一批 Schema 设计前的当前 Concept Model Baseline。
@@ -204,7 +204,7 @@ v0.1 继续保留 16 个一等对象，数量和分类与 v0 相同。
 
 ## 4. 每个核心对象的中文解释
 
-# A. Benchmark Definition
+# A. 技术主题：Benchmark Definition
 
 ## 4.1 基准定义
 
@@ -287,7 +287,7 @@ Benchmark Definition 直接包含或引用：
 
 同一个 Benchmark Definition 可以产生多个 Run，每个 Run 只对应一个 Subject。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Mandatory
@@ -350,7 +350,7 @@ Agent Designer
 - 可以关联一个或多个 Contract；
 - 一个 Contract 也可以同时追溯到多个 Requirement。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Mandatory
@@ -419,7 +419,7 @@ Agent Designer
 - Runtime 中通过 Contract-specific Grader Result 体现实际判断；
 - 可以与 Grader Specification 一起成为 Gate Specification 的 Definition-level 引用目标。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Mandatory
@@ -484,7 +484,7 @@ Agent Designer
 - 在一个或多个 Run 中产生零个或多个 Episode；
 - 输入、简单 Fixture 和环境前置条件属于 Test Case 的组成内容。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Mandatory
@@ -549,7 +549,7 @@ Agent Designer
 - 可以被一个或多个 Grader Specification 声明为输入；
 - Runtime 中由 Episode、Artifact、输出或 Trace 产生实际 Evidence。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Mandatory
@@ -613,7 +613,7 @@ Agent Designer
 - 可以与 Contract 一起被 Gate Specification 引用；
 - 其 Grader Result 可以进入一个或多个 Metric Result。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Mandatory
@@ -679,7 +679,7 @@ Agent Designer
 - Metric Aggregator
 - Gate Evaluator
 - Scorecard Generator
-- Run-to-Run Comparison
+- Run-to-Run 比较
 - Human Reviewer
 
 ### 它与哪些对象直接关联
@@ -691,7 +691,7 @@ Agent Designer
 - 可以被 Gate Specification 在 Definition 阶段引用；
 - 两个兼容 Run 的对应 Metric Result 可以被比较。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Mandatory
@@ -758,7 +758,7 @@ Gate Specification 在 Definition 阶段只能引用已经存在的 Definition �
 
 正式 Run 后，Gate Evaluator 根据 Gate Specification 定位该 Run 中对应的实际 Grader Result、Metric Result 或执行状态，计算 Gate Result。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Conditional
@@ -772,7 +772,7 @@ Conditional
 
 Gate 需要独立身份、Definition-level 引用、判断规则和运行后结果，不能只作为 Metric 的布尔属性。
 
-# B. Runtime
+# B. 字段或协议值：Runtime
 
 ## 4.9 运行
 
@@ -855,7 +855,7 @@ CLI / Execution Framework
 
 Baseline 或 Candidate 不作为同一 Run 中的第二个 Subject。比较时分别建立两个 Run。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Mandatory
@@ -922,7 +922,7 @@ CLI / Execution Framework
 - 可以产生零个或多个 Grader Result；
 - 可以包含 Execution Trace、Tool Trace 和状态变化。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Mandatory for scheduled execution
@@ -985,7 +985,7 @@ Runtime
 - 可以成为零个或多个 Evidence 的来源；
 - 可以被 Workflow Evidence 和 Outcome Evidence 共同引用。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Conditional
@@ -1049,7 +1049,7 @@ Evidence Collector / Execution Framework
 - 可以被一个或多个 Grader Result 消费；
 - 可以服务于 Outcome Contract、Workflow Contract 或两者共享。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Mandatory for gradable execution
@@ -1063,7 +1063,7 @@ Mandatory for gradable execution
 
 Evidence 是 Runtime 事实与评分判断之间的正式桥梁。
 
-# C. Result
+# C. 字段或协议值：Result
 
 ## 4.13 评分器结果
 
@@ -1119,7 +1119,7 @@ Result
 - 可以被一个或多个 Metric Result 使用；
 - 可以由 Gate Evaluator 按 Gate Specification 的 Definition-level 引用定位并使用。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Mandatory for each applicable grading operation
@@ -1170,7 +1170,7 @@ Metric Aggregator
 - Gate Evaluator
 - Overall Score Aggregator
 - Scorecard Generator
-- Run-to-Run Comparison
+- Run-to-Run 比较
 - Human Reviewer
 
 ### 它与哪些对象直接关联
@@ -1186,7 +1186,7 @@ Metric Aggregator
 
 即使没有足够有效观察，也应形成明确状态，而不是让该 Metric 静默消失。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Mandatory
@@ -1235,7 +1235,7 @@ Gate Evaluator
 - Scorecard Generator
 - Acceptance Decision
 - Human Reviewer
-- Run-to-Run Comparison
+- Run-to-Run 比较
 
 ### 它与哪些对象直接关联
 
@@ -1247,7 +1247,7 @@ Gate Evaluator
 - 进入该 Run 的 Scorecard；
 - 影响 Gate Status，但不删除其他 Metric Result。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Conditional
@@ -1299,7 +1299,7 @@ Framework / Scorecard Generator
 - Skill Author
 - Human Reviewer
 - Acceptance Decision
-- Run-to-Run Comparison
+- Run-to-Run 比较
 - 后续版本优化流程
 
 ### 它与哪些对象直接关联
@@ -1318,7 +1318,7 @@ Scorecard：
 
 Candidate vs Baseline 或 Skill v1 vs Skill v2 的比较由两个兼容 Run 的 Scorecard / Metric Results 派生，不在单个 Scorecard 内假设存在第二个 Subject。
 
-### Mandatory / Conditional / Optional
+### 技术主题：Mandatory / Conditional / Optional
 
 ```text
 Mandatory for finalized or terminated Run
@@ -1434,7 +1434,7 @@ Run 002 Result
 
 比较的基本单位是两个兼容 Run 的 Result，而不是一个 Run 内的两个 Subject。
 
-### 5.3 Requirement → Contract
+### 技术主题：5.3 Requirement → Contract
 
 ```text
 Requirement N ↔ N Contract
@@ -1447,7 +1447,7 @@ Requirement N ↔ N Contract
 - 每个进入范围的 Requirement 至少关联一个 Contract；
 - 每个 Contract 至少关联一个 Requirement。
 
-### 5.4 Contract ↔ Test Case
+### 技术主题：5.4 Contract ↔ Test Case
 
 ```text
 Contract N ↔ N Test Case
@@ -1457,7 +1457,7 @@ Contract N ↔ N Test Case
 
 多 Contract Case 不能只记录模糊的 `Case FAIL`。每个 Grader Result 必须明确评价哪个 Contract、使用哪些 Evidence，以及对该 Contract 的具体判断。
 
-### 5.5 Test Case → Episode
+### 技术主题：5.5 Test Case → Episode
 
 ```text
 Test Case 1 → 0..N Episodes
@@ -1484,7 +1484,7 @@ TC001
 
 如果 Case 已进入执行尝试但被前置条件阻塞，建议形成 BLOCKED Episode；具体状态表达留到 Schema 阶段。
 
-### 5.6 Episode → Artifact / Evidence
+### 技术主题：5.6 Episode → Artifact / Evidence
 
 ```text
 Episode 1 → 0..N Artifacts
@@ -1507,7 +1507,7 @@ Episode
 Evidence
 ```
 
-### 5.7 Evidence ↔ Grader
+### 技术主题：5.7 Evidence ↔ Grader
 
 Definition 层：
 
@@ -1523,7 +1523,7 @@ Evidence N ↔ N Grader Result
 
 一个 Grader 可以消费多个 Evidence；一个 Evidence 也可以被多个 Grader 复用。复用不意味着自动适用于所有判断，每个 Grader Specification 都必须明确其 Evidence 依赖。
 
-### 5.8 Grader Result → Metric Result
+### 技术主题：5.8 Grader Result → Metric Result
 
 ```text
 Grader Result N ↔ N Metric Result
@@ -1537,7 +1537,7 @@ Metric Result 1 ← N Grader Results
 
 一个 Metric Result 应由多个 Test Case、Episode 和 Grader Result 支撑。一个 Grader Result 也可以按冻结的 Metric Specification 被多个 Metric 使用，但不能在执行后临时重复计分。
 
-### 5.9 Gate Specification → Gate Result
+### 技术主题：5.9 Gate Specification → Gate Result
 
 Definition 层：
 
@@ -1714,7 +1714,7 @@ Workflow Metric
 
 Outcome 与 Workflow 共用同一主链，不建立平行对象体系。
 
-### 8.2 Input Specification
+### 技术主题：8.2 Input Specification
 
 ```text
 Input Specification
@@ -1723,7 +1723,7 @@ Input Specification
 
 输入本身不在 Core v0.1 中成为一等对象。
 
-### 8.3 Fixture
+### 技术主题：8.3 Fixture
 
 ```text
 简单 Fixture
@@ -1735,7 +1735,7 @@ Input Specification
 
 Fixture 不进入 Core 一等对象集合。
 
-### 8.4 Benchmark Policy / Coverage Policy
+### 技术主题：8.4 Benchmark Policy / Coverage Policy
 
 ```text
 Benchmark Policy
@@ -1747,7 +1747,7 @@ Coverage Policy
 
 它们承载规则，不单独形成核心实体。
 
-### 8.5 Risk Analysis / Criticality / Failure Mode
+### 8.5 风险分析 / Criticality / Failure Mode
 
 ```text
 Risk Analysis
@@ -1762,7 +1762,7 @@ Failure Mode
 
 三者均不建立一等对象。
 
-### 8.6 Execution Trace / Tool Trace
+### 技术主题：8.6 Execution Trace / Tool Trace
 
 ```text
 Execution Trace
@@ -1772,7 +1772,7 @@ Tool Trace
 
 如果 Trace 被持久化成独立文件，它可以成为 Artifact；其中被 Grader 使用的部分可以成为 Evidence。
 
-### 8.7 Rubric / Rubric Result
+### 技术主题：8.7 Rubric / Rubric Result
 
 ```text
 Rubric
@@ -1784,7 +1784,7 @@ Rubric Result
 
 不新增独立对象。
 
-### 8.8 Weight / Overall Score
+### 技术主题：8.8 Weight / Overall Score
 
 ```text
 Weight
@@ -1796,7 +1796,7 @@ Overall Score
 
 二者均不具有独立权威 Evidence，不成为一等对象。
 
-### 8.9 Subject / Candidate / Baseline
+### 8.9 Subject / Candidate / 基线
 
 ```text
 Subject
@@ -1811,7 +1811,7 @@ Baseline
 
 Subject、Candidate、Baseline 均不新增为当前核心对象，也不在本轮设计其 Schema。
 
-### 8.10 Comparison / Comparison Result
+### 技术主题：8.10 Comparison / Comparison Result
 
 ```text
 Comparison Policy
@@ -1828,7 +1828,7 @@ Subject Result
 
 不新增 `Comparison`、`Comparison Run`、`Comparison Result`、`Baseline Result` 或 `Subject Result` 一等对象。
 
-### 8.11 Observation
+### 技术主题：8.11 Observation
 
 ```text
 Observation
@@ -1837,7 +1837,7 @@ Observation
 
 `Grader Result` 已经表示某个 Grader 针对某个 Episode、Contract 和一组 Evidence 产生的一次可聚合测量，因此它承担 Observation 职责。
 
-### 8.12 Case Result
+### 技术主题：8.12 Case Result
 
 ```text
 Case Result
@@ -1846,7 +1846,7 @@ Case Result
 
 Case 可以有多个 Episode、多个 Grader Result，并且可能同时验证多个 Contract。简单 Case PASS / FAIL 容易掩盖部分失败，因此不提升为权威一等 Result。
 
-### 8.13 Contract Result
+### 技术主题：8.13 Contract Result
 
 ```text
 Contract Result
@@ -2189,7 +2189,7 @@ v0.1 不增加、不删除任何核心一等对象，只冻结以下三处边界
 
 Subject 是外部被测对象引用，不成为第 17 个核心对象。
 
-### 11.2 Comparison → Run vs Run
+### 技术主题：11.2 Comparison → Run vs Run
 
 ```text
 Baseline Run Result
@@ -2199,7 +2199,7 @@ Candidate Run Result
 
 比较不再发生于一个 Run 内的两个 Subject，也不新增 Comparison Result 一等对象。
 
-### 11.3 Gate Specification → Definition-level references
+### 技术主题：11.3 Gate Specification → Definition-level references
 
 ```text
 Gate Specification

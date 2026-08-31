@@ -1,4 +1,4 @@
-# 《Evidence Specification Design Guide v0》
+# 《Evidence Specification 设计指南 v0》
 
 Status: Design Guide
 
@@ -12,14 +12,14 @@ Status: Design Guide
 
 Evidence Specification 回答：
 
-> What observations must be available so that downstream evaluation can legitimately judge the Contract exercised by this Test Case?
+> 需要具备哪些观察结果，下游评估才能合理判断该 Test Case 所行使的 Contract？
 
 它是 Definition-time first-class object，预先声明未来 Episode 中为了评价目标 ExpectedAssertion，必须取得什么观察、来源、上下文与最低资格条件。
 
 Evidence Specification 负责定义：
 
 - required observation semantics；
-- minimum sufficient observation scope；
+- 最低充分观察范围；
 - provenance expectations；
 - temporal、ordering、scope 或 before / after context；
 - qualification expectations；
@@ -110,7 +110,7 @@ Evidence 描述：
 - actual file；
 - actual value；
 - actual timestamp；
-- actual availability / qualification result。
+- 实际 availability / qualification 结果。
 
 ---
 
@@ -157,13 +157,13 @@ Definition-time Evidence Specification 可以语义描述“最终 Subject-produ
 
 ## 5. Authoritative Input 与 Entry Gate
 
-### 5.1 Production inputs
+### 技术主题：5.1 Production inputs
 
 Production Evidence Specification Design 必须消费：
 
-1. authoritative Frozen Requirement Set；
+1. 权威 Frozen Requirement Set；
 2. validated Contract Set；
-3. validated Test Case Set；
+3. 已验证 Test Case Set；
 4. Test Case → Contract authority，即 `expected_assertions[].contract_id`；
 5. ExpectedAssertion semantics；
 6. Contract success criteria；
@@ -171,11 +171,11 @@ Production Evidence Specification Design 必须消费：
 8. Contract failure modes；
 9. Contract `evaluation_type` 与 `criticality`；
 10. Test Case task、initial state、fixtures、preconditions 与 interaction steps；
-11. Test Case Design Audit context when needed。
+11. 需要时提供 Test Case Design Audit 上下文。
 
 Audit context 只帮助理解既有 design，不得修改 Requirement、Contract 或 Test Case semantics。
 
-### 5.2 Production Entry Gate
+### 5.2 Production 入口门禁
 
 只有以下条件全部满足，才能开始 production Evidence Specification Design：
 
@@ -193,7 +193,7 @@ Evidence Specification Design Status = EVIDENCE_SPECS_BLOCKED
 
 不得通过 downstream Evidence wording 修补 Contract ambiguity、Test Case exercise gap 或 upstream blocker。
 
-### 5.3 Method Validation Subset
+### 5.3 Method 验证 Subset
 
 如果上游状态是完整限定的：
 
@@ -226,7 +226,7 @@ Evidence Specification Method Validation Subset 不是 Core Object，也不是 p
 
 ---
 
-## 6. Contract / Test Case → Evidence Specification Mapping
+## 6. 技术主题：Contract / Test Case → Evidence Specification Mapping
 
 Concept Model 冻结：
 
@@ -296,7 +296,7 @@ EvidenceTarget:
 
 ---
 
-## 8. Evidence Need Categories
+## 8. 技术主题：Evidence Need Categories
 
 Evidence need categories 是 Design dimensions，不在 v0 中冻结为 enum。
 
@@ -324,7 +324,7 @@ Category labels 可以记录在 Design Audit 中帮助 review，但不进入 Fro
 
 ## 9. Outcome Evidence 与 Workflow Evidence
 
-### 9.1 Outcome Contract
+### 技术主题：9.1 Outcome Contract
 
 Outcome Evidence need 通常关注：
 
@@ -343,15 +343,15 @@ Outcome Evidence need 通常关注：
 - Case 是否可能产生相似但错误的 Artifact identity；
 - handoff Contract 是否需要 user-visible response observation，而不能只看文件存在。
 
-### 9.2 Workflow Contract
+### 技术主题：9.2 Workflow Contract
 
 Workflow Evidence need 通常关注：
 
 - required action occurrence；
 - ordering；
 - authorization / consent；
-- required tool / resource use；
-- forbidden action absence or occurrence；
+- 必需的工具 / 资源使用；
+- 禁止行为未发生或发生；
 - retry / recovery；
 - cleanup；
 - before / after state；
@@ -371,7 +371,7 @@ Correct final Outcome
 
 ---
 
-## 10. Evidence Sufficiency
+## 10. 技术主题：Evidence Sufficiency
 
 Evidence Sufficiency 回答：
 
@@ -411,7 +411,7 @@ Sufficiency Review 至少检查：
 
 ---
 
-## 11. Minimum Sufficient Evidence
+## 11. 技术主题：Minimum Sufficient Evidence
 
 Evidence Specification 不应要求保存整个 Episode 的所有内容。设计目标是：
 
@@ -434,7 +434,7 @@ Minimality Review 至少检查：
 
 对每一项 proposed observation requirement 还必须执行 Removal Test：
 
-> If this observation were removed, would the downstream evaluator still have a legitimate basis to distinguish compliant from violating semantics?
+> 如果移除这项观察结果，下游 evaluator 是否仍有合理依据区分合规与违规语义？
 
 - 如果答案为 `YES`，该 observation 可能不是 minimum required evidence，应从 authoritative Evidence Specification 移出；
 - 如果答案为 `NO`，且没有其他 observation 已经提供相同 semantic basis，则保留；
@@ -456,7 +456,7 @@ Supporting / debugging-only observations
 
 ---
 
-## 12. Evidence Provenance
+## 12. Evidence 来源追踪
 
 Evidence Specification 必须声明对 qualification 语义必要的最低 provenance expectations。
 
@@ -465,10 +465,10 @@ Evidence Specification 必须声明对 qualification 语义必要的最低 prove
 - observation source；
 - Subject、Evaluator、Environment 或 Tool origin；
 - current Episode association；
-- current Test Case / target relation；
+- 当前 Test Case / 目标 关系；
 - relevant Artifact identity；
 - interaction participant identity；
-- action / state observation origin；
+- 操作 / 状态观察来源；
 - transformed observation 与 original source 的 lineage。
 
 Provenance expectation 不是 actual runtime provenance record。Evidence Specification 不保存 Episode ID、Artifact ID、actual path 或 timestamp，只说明未来 Evidence 必须能够证明这些关系中的哪些。
@@ -482,19 +482,19 @@ Provenance expectation 不是 actual runtime provenance record。Evidence Specif
 
 常见 provenance ambiguity 包括：
 
-### Current vs historical Artifact
+### 技术主题：Current vs historical Artifact
 
 环境中存在多个名称或内容相似的 outputs 时，Evidence 必须能够归因到 current Episode 的目标 final Artifact，不能仅按名称相似度选取历史产物。
 
-### Final vs intermediate Artifact
+### 技术主题：Final vs intermediate Artifact
 
 中间 draft、declaration、skeleton 或 partially transformed output 不能自动成为 final Artifact Evidence source。Provenance 必须能建立 relevant final / intermediate identity 与必要 lineage。
 
-### Subject vs Evaluator interaction
+### 技术主题：Subject vs Evaluator interaction
 
 Interaction observation 必须保留 participant origin。Evaluator response 不能被误当作 Subject request，environment event 也不能被误归因到 Subject action。
 
-### Current vs stale authorization
+### 技术主题：Current vs stale authorization
 
 历史 interaction 中的 authorization 不自动支持当前 operation。需要时，provenance 与 context 必须共同建立 authorization 属于当前 Episode、当前 interaction 与当前 operation。
 
@@ -531,7 +531,7 @@ Evidence Specification 应表达：
 
 除非这些信息本身由 authoritative Requirement规定，否则它们属于 Runtime encoding或Grader implementation。
 
-### Cross-Spec Context
+### 技术主题：Cross-Spec Context
 
 当同一个 ExpectedAssertion 由多个 Evidence Specifications 共同覆盖时，某个 Spec 的 `context_requirements` 可以引用由同一 target coverage 中其他 Spec 提供的 semantic observation，例如：
 
@@ -540,7 +540,7 @@ Evidence Specification 应表达：
 允许的是 semantic relation，不是新的 reference system。禁止增加或暗示：
 
 - `depends_on_evidence_spec_ids`；
-- Evidence Specification execution ordering；
+- Evidence Specification execution 顺序；
 - Runtime Evidence ID；
 - Artifact ID；
 - event ID；
@@ -558,7 +558,7 @@ shared EvidenceTarget
 
 ---
 
-## 14. Before / After State Evidence
+## 14. 技术主题：Before / After State Evidence
 
 并非所有 Contracts 都需要 before / after state。
 
@@ -585,13 +585,13 @@ shared EvidenceTarget
 
 ---
 
-## 15. Interaction Evidence
+## 15. 技术主题：Interaction Evidence
 
 对于包含 `interaction_steps` 的 Test Case，Evidence need 可以涉及：
 
 - initial user turn；
-- trigger-relevant Subject behavior；
-- conditional evaluator response occurrence；
+- trigger-相关 Subject 行为；
+- 条件 evaluator response 是否发生；
 - later Subject action；
 - relevant interaction participants；
 - confirmation / consent scope；
@@ -622,15 +622,15 @@ Upstream Test Case Design Concern
 
 ## 16. Canonical Field Placement 与 Evidence Qualification
 
-### 16.1 Four-field canonical placement
+### 技术主题：16.1 Four-field canonical placement
 
 四组 requirements 都是 Definition-time authority，但每组有不同 primary semantic role。
 
-#### observation_requirements
+#### 字段或协议值：observation_requirements
 
 回答：
 
-> What must be observed?
+> 必须观察什么？
 
 优先描述：
 
@@ -648,30 +648,30 @@ Upstream Test Case Design Concern
 
 不要主要在这里描述它属于哪个 Episode、与另一个 event 的顺序，或捕获结果是否完整可读。
 
-#### provenance_requirements
+#### 字段或协议值：provenance_requirements
 
 回答：
 
-> Where / from whom / which execution does this observation come?
+> 这项观察结果来自哪里、来自谁、来自哪次执行？
 
 优先描述：
 
 - current Episode association；
-- Subject / Evaluator / Environment / Tool origin；
+- Subject / Evaluator / Environment / Tool 来源；
 - participant identity；
 - Artifact identity；
-- final vs intermediate / skeleton identity；
+- 最终 vs intermediate / skeleton 身份；
 - transformation / derivation lineage；
-- current vs historical source；
+- 当前 vs historical 来源；
 - source attribution。
 
 Canonical rule：如果问题是“这个 observation 到底是谁的、哪次运行的、哪个 Artifact 的、从哪里来的”，优先属于 provenance。
 
-#### context_requirements
+#### 字段或协议值：context_requirements
 
 回答：
 
-> What semantic relation between relevant observations must be preserved?
+> 相关观察结果之间必须保留什么语义关系？
 
 优先描述：
 
@@ -688,11 +688,11 @@ Canonical rule：如果单个 observations 已经确认，但评价还需要知�
 
 Context 不得保存 Runtime event ID、exact timestamp format、trace index、matcher 或 executable relation。
 
-#### qualification_requirements
+#### 字段或协议值：qualification_requirements
 
 回答：
 
-> What must be true of the captured observation itself so that it is usable as Evidence?
+> 捕获的观察结果本身必须满足什么条件，才能作为 Evidence 使用？
 
 优先描述：
 
@@ -702,13 +702,13 @@ Context 不得保存 Runtime event ID、exact timestamp format、trace index、m
 - integrity preserved；
 - enough scope coverage；
 - sufficiently unambiguous；
-- transformation preserves relevant semantics。
+- transformation preserves 相关 语义。
 
 Canonical rule：即使 provenance 已经确定，captured observation 本身是否达到可供 evaluation 使用的质量，属于 qualification。
 
 `unambiguous` 不能作为万能词。如果 ambiguity 本质是“是否来自当前 Episode / 当前 Artifact / 正确 participant”，主要问题属于 provenance；qualification 只描述来源已经确定后 observation 本身的 usable condition。
 
-### 16.2 Anti-duplication rule
+### 技术主题：16.2 Anti-duplication rule
 
 同一个 semantic requirement 不得为了“保险”完整复制到 provenance、context 与 qualification 多个字段。Author 必须先判断其 primary semantic role。
 
@@ -734,7 +734,7 @@ qualification:
 Artifact 必须完整、可读取，足以支持目标 semantic content evaluation。
 ```
 
-### 16.3 Evidence qualification principles
+### 技术主题：16.3 Evidence qualification principles
 
 Captured data 不自动成为 qualified Evidence。在provenance与context已经分别建立source identity、Episode association和semantic relation之后，captured observation本身至少还应按相关Evidence Specification检查：
 
@@ -759,7 +759,7 @@ Grading:
 这些 qualified observations 是否说明 Contract satisfied or violated？
 ```
 
-### 16.4 Qualification anti-boilerplate rule
+### 技术主题：16.4 Qualification anti-boilerplate rule
 
 Qualification requirement 必须说明：
 
@@ -778,11 +778,11 @@ Qualification requirement 必须说明：
 
 较好：
 
-> Relevant interaction turns must be complete enough to preserve participant identity, authorization scope, and ordering.
+> 相关交互轮次必须足够完整，以保留参与者 identity、授权范围和顺序。
 
 不足：
 
-> Evidence must be sufficiently complete.
+> Evidence 必须足够完整。
 
 Qualification 保持 semantic level，不需要转成数值 threshold、checker 或 automatic validator。
 
@@ -838,15 +838,15 @@ C. Subject实际完成责任，但Evaluator capture mechanism失败
 
 ---
 
-## 18. Evidence Collection Failure Boundary
+## 18. 技术主题：Evidence Collection Failure Boundary
 
 至少区分：
 
-### A. Subject responsibility failure
+### A. 技术主题：Subject responsibility failure
 
 Subject 未履行 Contract 本身要求的 action、Outcome、handoff或Artifact responsibility。
 
-### B. Evaluator / infrastructure capture failure
+### B. 技术主题：Evaluator / infrastructure capture failure
 
 例如：
 
@@ -915,7 +915,7 @@ Shared runtime source
 
 ---
 
-## 20. Evidence Need Atomicity Test
+## 20. Evidence Need 原子性 Test
 
 对每个 proposed Evidence Specification 询问：
 
@@ -976,7 +976,7 @@ Supporting / optional observations
 
 ---
 
-## 22. Evidence Specification Design Audit
+## 22. 技术主题：Evidence Specification Design Audit
 
 v0引入轻量、非Core、非authoritative的Evidence Specification Design Audit。它是必需working artifact，因为最小Schema不保存sufficiency、minimality、atomicity与shared / split rationale。
 
@@ -1002,14 +1002,14 @@ v0引入轻量、非Core、非authoritative的Evidence Specification Design Audi
 
 - each Spec contribution；
 - composition rationale；
-- required cross-Spec semantic relation；
-- why combined coverage is sufficient。
+- 必需 cross-Spec 语义 关系；
+- why combined 覆盖 是 sufficient。
 
 当一个 Spec 共享给多个 targets 时，Audit 还必须记录：
 
-- why the evidence need is genuinely shared；
-- why individual target minimality is preserved；
-- why shared capture-failure semantics and diagnosis remain acceptable。
+- why 该 evidence need 是 genuinely 共享；
+- why individual 目标 minimality 是 保留的；
+- why 共享 capture-失败 语义 与 diagnosis 保持 acceptable。
 
 Audit：
 
@@ -1023,7 +1023,7 @@ Audit：
 
 ---
 
-## 23. Evidence Specification Candidate / Working Stage
+## 23. 技术主题：Evidence Specification Candidate / Working Stage
 
 v0不引入mandatory `Evidence Specification Candidate`对象或Candidate lifecycle。
 
@@ -1034,7 +1034,7 @@ v0不引入mandatory `Evidence Specification Candidate`对象或Candidate lifecy
 - provenance choices；
 - before / after necessity；
 - minimum vs overcollection；
-- interaction / action / Artifact surfaces。
+- interaction / action / Artifact 表面。
 
 Working Draft：
 
@@ -1048,9 +1048,9 @@ Working Draft：
 
 ---
 
-## 24. Minimal EvidenceSpecification Schema Proposal
+## 24. 技术主题：Minimal EvidenceSpecification Schema Proposal
 
-### 24.1 EvidenceSpecification
+### 技术主题：24.1 EvidenceSpecification
 
 ```text
 EvidenceSpecification:
@@ -1062,7 +1062,7 @@ EvidenceSpecification:
 - qualification_requirements: list[str]
 ```
 
-### 24.2 EvidenceTarget
+### 技术主题：24.2 EvidenceTarget
 
 ```text
 EvidenceTarget:
@@ -1112,19 +1112,19 @@ ES003
 
 ---
 
-## 25. Schema Field Semantics
+## 25. Schema 字段语义
 
-### 25.1 evidence_spec_id
+### 技术主题：25.1 evidence_spec_id
 
 非空string，表示Definition-time Evidence Specification identity。它不是Runtime Evidence ID。
 
-### 25.2 targets
+### 技术主题：25.2 targets
 
 必填`list[EvidenceTarget]`，至少一项且pair不得重复。每个pair必须解析到当前validated Test Case中唯一的ExpectedAssertion contract reference。
 
 Targets表示该Spec服务哪些ExpectedAssertions，不表示这些targets最终共享同一Grader或Result。
 
-### 25.3 observation_requirements
+### 技术主题：25.3 observation_requirements
 
 必填`list[str]`，至少一项。每项描述必须可用的human-readable observation semantics，例如action occurrence、final Artifact content、interaction sequence或affected scope。
 
@@ -1132,7 +1132,7 @@ Targets表示该Spec服务哪些ExpectedAssertions，不表示这些targets最�
 
 Canonical placement：主要写需要观察的object、event、state、content或occurrence；Episode / source identity优先写入provenance，observations之间的relation优先写入context，捕获结果本身的usable condition优先写入qualification。
 
-### 25.4 provenance_requirements
+### 技术主题：25.4 provenance_requirements
 
 必填`list[str]`，至少一项。每项描述qualification所需的semantic origin / identity / lineage，例如current Episode association、Subject-produced output identity或interaction participant identity。
 
@@ -1140,7 +1140,7 @@ Canonical placement：主要写需要观察的object、event、state、content�
 
 Canonical placement：主要回答 observation来自谁、哪个execution、哪个Artifact或什么lineage；不要同时复制qualification中的completeness / readability wording。
 
-### 25.5 context_requirements
+### 技术主题：25.5 context_requirements
 
 必填`list[str]`，允许空列表。每项描述判断所需的temporal、ordering、scope、before / after、attempt或interaction relation。
 
@@ -1150,7 +1150,7 @@ Canonical placement：主要回答 observation来自谁、哪个execution、哪�
 
 如果同一target由多个Specs共同覆盖，context可以语义引用其他Spec提供的relevant observation，但不得增加Spec dependency ID或Runtime relation ID。
 
-### 25.6 qualification_requirements
+### 技术主题：25.6 qualification_requirements
 
 必填`list[str]`，至少一项。每项描述observation成为qualified Evidence所需的最低completeness、readability、integrity、scope coverage、post-provenance residual ambiguity或transformation-preservation expectation。
 
@@ -1167,7 +1167,7 @@ Evidence Specification禁止保存：
 - actual evidence value；
 - actual filepath；
 - actual log；
-- actual model / user message；
+- 实际 model / user message；
 - actual timestamp；
 - actual screenshot；
 - actual tool call；
@@ -1197,9 +1197,9 @@ Runtime identity只能在Episode实际发生后建立。
 
 ---
 
-## 27. Three-layer Evidence Specification Validation
+## 27. Three-layer Evidence Specification 验证
 
-### 27.1 A. Structural / Field Validation
+### 27.1 A. Structural / Field 验证
 
 未来可deterministic检查：
 
@@ -1214,7 +1214,7 @@ Runtime identity只能在Episode实际发生后建立。
 - `qualification_requirements`是非空、条目非空且无完全重复的字符串列表；
 - 不存在actual Evidence、Artifact、Episode、Result或Grader implementation字段。
 
-### 27.2 B. Cross-object Validation
+### 27.2 B. Cross-object 验证
 
 需要完整Definition context：
 
@@ -1231,7 +1231,7 @@ Runtime identity只能在Episode实际发生后建立。
 
 Cross-object validator可以证明pair与mapping一致，不能证明observation requirements真的足够。
 
-### 27.3 C. Semantic Evidence Review
+### 技术主题：27.3 C. Semantic Evidence Review
 
 逐Spec至少检查：
 
@@ -1257,7 +1257,7 @@ Semantic Review需要Agent / Human judgment，不能伪装成Schema validation�
 
 ---
 
-## 28. ExpectedAssertion → Evidence Specification Coverage
+## 28. 技术主题：ExpectedAssertion → Evidence Specification Coverage
 
 Coverage Mapping是轻量working artifact，不是Core Object，也不是Frozen EvidenceSpecification Schema的一部分。
 
@@ -1265,7 +1265,7 @@ Coverage Mapping是轻量working artifact，不是Core Object，也不是Frozen 
 
 | 字段 | 含义 |
 |---|---|
-| `test_case_id` | Validated Test Case ID |
+| `test_case_id` | Validated Test Case ID（已验证的 Test Case ID） |
 | `contract_id` | 该Case中唯一ExpectedAssertion的Contract ID |
 | `evidence_spec_ids` | 引用该target pair的Evidence Specification IDs |
 | `coverage_status` | `COVERED`或`BLOCKED` |
@@ -1281,7 +1281,7 @@ Coverage Mapping是轻量working artifact，不是Core Object，也不是Frozen 
 - 不是仅靠ID linkage；
 - critical Contract完成更严格sufficiency review。
 
-### Cross-Spec Composition Review
+### 技术主题：Cross-Spec Composition Review
 
 当一个ExpectedAssertion由多个Evidence Specifications共同覆盖时，仅把多个`evidence_spec_ids`列入同一Coverage row不等于sufficient composition。Coverage Review必须确认：
 
@@ -1320,10 +1320,10 @@ authorization belongs to the same operation
 
 至少区分：
 
-- upstream Contract observability issue；
-- upstream Test Case exercise / interaction issue；
+- 上游 Contract 可观测性问题；
+- 上游 Test Case 触发 / 交互问题；
 - Evidence sufficiency issue；
-- Evidence minimality / overcollection issue；
+- Evidence 最小化 / 过度收集问题；
 - provenance issue；
 - temporal / context issue；
 - qualification issue；
@@ -1357,36 +1357,36 @@ Capture mechanism原则上无法提供required observation
 
 ---
 
-## 30. Evidence Specification Design Workflow
+## 30. 技术主题：Evidence Specification Design Workflow
 
-### Step 1 — Verify Inputs
+### 步骤 1 — Verify Inputs
 
 - 验证Requirements、Contracts、Test Cases、ExpectedAssertions与status；
 - production input不满足Entry Gate时立即BLOCK；
 - method validation subset保留限定边界。
 
-### Step 2 — Build Assertion Inventory
+### 步骤 2 — Build Assertion Inventory
 
 - 以`(test_case_id, contract_id)`列出每个ExpectedAssertion；
 - 读取Contract criteria、failure modes、evaluation_type与criticality；
 - 读取Case trigger、state、fixtures与interaction；
 - 不重新设计Contract或Case。
 
-### Step 3 — Draft Evidence Needs
+### 步骤 3 — Draft Evidence Needs
 
 - 识别required observations；
 - 区分Outcome与Workflow surfaces；
 - 识别provenance、temporal、scope、before / after与qualification需要；
 - 使用Working Drafts比较alternate packages。
 
-### Step 4 — Run Sufficiency and Minimality Review
+### 步骤 4 — Run Sufficiency and Minimality Review
 
 - 确认compliant / violating semantics原则上可区分；
 - 对每项observation执行Removal Test；
 - 删除仅用于debugging或future convenience的overcollection；
 - 对critical targets执行加强review。
 
-### Step 5 — Run Atomicity and Sharing Review
+### 步骤 5 — Run 原子性 and Sharing Review
 
 - 决定一个target需要1→N Specs还是多个targets共享1 Spec；
 - 拆分不同provenance、context或qualification surfaces；
@@ -1395,14 +1395,14 @@ Capture mechanism原则上无法提供required observation
 - 对shared Spec执行`Shared runtime source ≠ Shared Evidence Need` negative check；
 - 对one assertion → multiple Specs执行Cross-Spec Composition Review。
 
-### Step 6 — Write Evidence Specifications
+### 步骤 6 — Write Evidence Specifications
 
 - 分配正式`ESxxx`；
 - 写targets；
 - 写observation、provenance、context与qualification requirements；
 - 不写Runtime IDs、actual Evidence或Grader implementation。
 
-### Step 7 — Build Coverage and Audit
+### 步骤 7 — Build Coverage and Audit
 
 - 每个ExpectedAssertion pair建立Coverage row；
 - 记录sufficiency、minimality与shared / split rationale；
@@ -1410,14 +1410,14 @@ Capture mechanism原则上无法提供required observation
 - 对shared Spec记录每个target的individual minimality；
 - 保留upstream、capture与downstream concerns。
 
-### Step 8 — Validate
+### 步骤 8 — Validate
 
 - Structural / Field Validation；
 - Cross-object Validation；
 - Semantic Evidence Review；
 - unresolved issue进入Evidence Specification Design Issues。
 
-### Step 9 — Determine Status
+### 步骤 9 — Determine Status
 
 - 所有ExpectedAssertions获得minimum sufficient Evidence Specification coverage且validation通过时READY；
 - 任一required target BLOCKED时整体BLOCKED；
@@ -1425,7 +1425,7 @@ Capture mechanism原则上无法提供required observation
 
 ---
 
-## 31. Evidence Specification Design Status
+## 31. Evidence Specification 设计状态
 
 Production状态只保留：
 
@@ -1434,7 +1434,7 @@ EVIDENCE_SPECS_READY
 EVIDENCE_SPECS_BLOCKED
 ```
 
-### 31.1 EVIDENCE_SPECS_READY
+### 技术主题：31.1 EVIDENCE_SPECS_READY
 
 只有同时满足：
 
@@ -1449,7 +1449,7 @@ EVIDENCE_SPECS_BLOCKED
 - 没有unresolved Evidence Design Issue；
 - 没有提前设计Grader、Metric或Gate。
 
-### 31.2 EVIDENCE_SPECS_BLOCKED
+### 技术主题：31.2 EVIDENCE_SPECS_BLOCKED
 
 例如：
 
@@ -1474,7 +1474,7 @@ Method Validation Subset使用5.3节的完整限定status wording，不改变pro
 
 ---
 
-## 32. Required Outputs
+## 32. 必需输出
 
 Evidence Specification Design至少产生：
 
@@ -1524,9 +1524,9 @@ How are qualified observations judged?
 
 ---
 
-## 34. Schema Design Findings
+## 34. Schema Design 发现项
 
-### 34.1 EvidenceTarget pair
+### 技术主题：34.1 EvidenceTarget pair
 
 `(test_case_id, contract_id)`能够唯一定位当前Test Case中的ExpectedAssertion，因为同一Case内同一Contract最多一项assertion。无需增加ExpectedAssertion ID。
 
@@ -1536,30 +1536,30 @@ Nested pair支持many-to-many共享，并避免独立`test_case_ids`与`contract
 
 四组字段分别回答：
 
-- what must be observed；
-- where / from whom / which Episode relation it must come；
-- what temporal / scope / before-after relation must be preserved；
-- what minimum completeness / readability / integrity / residual non-ambiguity makes it qualified。
+- what 必须 为 observed；
+- where / 来自 whom / which Episode 关系 it 必须 come；
+- what temporal / 范围 / 之前-之后 关系 必须 为 保留的；
+- what 最低 completeness / readability / integrity / residual non-ambiguity makes it qualified。
 
 它们是Evidence Specification作为Definition / Runtime interface的最小独立语义，不是Grader fields。
 
-### 34.3 No required / optional enum
+### 技术主题：34.3 No required / optional enum
 
 Evidence Specification本身定义minimum required evidence。Optional / supporting observations没有当前authoritative Framework行为，留在Audit或Runtime diagnostics。
 
-### 34.4 No evidence category enum
+### 技术主题：34.4 No evidence category enum
 
 Outcome、interaction、ordering、Artifact、scope等categories可以重叠，当前只帮助Design Review，不进入Schema。
 
-### 34.5 No producer implementation field
+### 技术主题：34.5 No producer implementation field
 
 Source / origin semantic expectation由`provenance_requirements`表达。具体collector、script、trace recorder或capture mechanism属于后续Execution Design，不进入本轮Schema。
 
-### 34.6 No Runtime identity fields
+### 技术主题：34.6 No Runtime identity fields
 
 Evidence Specification不保存Episode ID、Artifact ID、actual path、timestamp、value、availability或qualification result。Definition只声明未来identity / association必须可证明。
 
-### 34.7 No composition or dependency fields
+### 技术主题：34.7 No composition or dependency fields
 
 真实method validation已经证明one assertion → multiple Specs与multiple targets → one shared Spec都可通过现有`targets`、semantic `context_requirements`、Coverage Mapping与Design Audit解释。
 
@@ -1568,11 +1568,11 @@ Evidence Specification不保存Episode ID、Artifact ID、actual path、timestam
 - `depends_on_evidence_spec_ids`；
 - composition object；
 - evidence group ID；
-- shared runtime-source field。
+- 共享 runtime-来源 字段。
 
 Cross-Spec Composition Review负责确认semantic completeness；它不是第二套Frozen relation authority。
 
-### 34.8 Schema remains unchanged after real validation
+### 技术主题：34.8 Schema remains unchanged after real validation
 
 真实validation没有证明任何新增字段必要。最小Schema继续保持：
 
@@ -1594,7 +1594,7 @@ EvidenceTarget:
 
 ---
 
-## 35. Method Self-Review
+## 35. Method 自查
 
 | 检查问题 | v0结论 |
 |---|---|
@@ -1620,7 +1620,7 @@ EvidenceTarget:
 | 20. 是否出现target-specific assumption？ | 未发现。方法适用于coding、browser、research、file、tool-use、conversational、multi-turn与data-processing Skills。 |
 | 21. 真实validation暴露了什么？ | Schema与pair足够；canonical field placement、qualification anti-boilerplate、Cross-Spec Composition与shared-source negative check需要generic hardening。 |
 
-### 35.1 Self-review corrections incorporated
+### 35.1 已纳入的自查修正
 
 本轮自审已经在正文中处理：
 
@@ -1642,18 +1642,18 @@ EvidenceTarget:
 - 为避免supporting observation因Runtime顺便产生而升级为required evidence，增加Removal Test与supporting evidence rule；
 - 为避免missing observation继续被二分为“有/无”，明确区分observed Subject behavior、Evidence insufficiency与capture failure。
 
-### 35.2 Real Method Validation Coverage
+### 35.2 Real Method 验证 Coverage
 
 Evidence Specification Design v0 real validation已经实际覆盖：
 
-- simple final Outcome Artifact Case；
-- structured output content Case；
-- Workflow action occurrence / ordering Case；
-- multi-turn authorization Case；
-- destructive scope before / after Case；
+- simple 最终 Outcome Artifact Case；
+- 结构化 输出 content Case；
+- Workflow action occurrence / 顺序 Case；
+- 多轮授权 Case；
+- destructive 范围 之前 / 之后 Case；
 - handoff Case；
-- one assertion → multiple Specs；
-- multiple assertions → one genuinely shared Spec；
+- 一个 assertion → 多个 Specs；
+- 多个 assertions → 一个 genuinely 共享 Spec；
 - provenance ambiguity反例；
 - missing / incomplete Evidence边界；
 - minimum evidence与overcollection对比；
@@ -1667,11 +1667,11 @@ EVIDENCE_SPECS_READY for validation subset
 
 没有发现Schema blocker。该结论不应被误报为Runtime Evidence、Grader、execution PASS或production `EVIDENCE_SPECS_READY`。
 
-### 35.3 Focused Consistency Check
+### 35.3 聚焦一致性检查
 
 Hardening后对真实validation已经证明的三类generic design执行focused consistency check；不重新author整套validation。
 
-#### A. Ordinary single-Spec target
+#### A. 技术主题：Ordinary single-Spec target
 
 抽象Case：一个final structured Artifact target由单个Spec覆盖。
 
@@ -1686,7 +1686,7 @@ Hardening后对真实validation已经证明的三类generic design执行focused 
 
 结论：canonical placement没有使此前valid single-Spec design失效。
 
-#### B. One assertion → multiple Specs
+#### B. 技术主题：One assertion → multiple Specs
 
 抽象Case：authorization interaction observation与later destructive-action observation共同覆盖一个authorization assertion。
 
@@ -1700,14 +1700,14 @@ Hardening后对真实validation已经证明的三类generic design执行focused 
 
 结论：Cross-Spec Composition Rule完整解释此前valid one assertion → N Specs design，并能拒绝ID-only composition。
 
-#### C. Multiple targets → one shared Spec
+#### C. 技术主题：Multiple targets → one shared Spec
 
 抽象Case：同一个destructive-action occurrence与affected-scope observation package同时服务authorization与scope targets。
 
 | Check | Result |
 |---|---|
 | observation need对两个targets substantially same | PASS |
-| provenance / context / qualification substantially same | PASS |
+| provenance / context / qualification substantially 相同 | PASS |
 | shared package对两个targets都是minimum evidence | PASS |
 | 不迫使任一target收集无关信息 | PASS |
 | Contract-specific diagnosis仍由各自专属Specs保留 | PASS |
@@ -1721,26 +1721,26 @@ Focused consistency check：
 PASS
 ```
 
-### 35.4 Hardening Self-Review and Freeze Readiness
+### 35.4 Hardening 自查 and Freeze Readiness
 
 | Freeze condition | Result |
 |---|---|
-| no Schema blocker | PASS |
-| canonical placement clear | PASS |
-| anti-duplication clear | PASS |
-| qualification anti-boilerplate clear | PASS |
-| Cross-Spec Composition clear | PASS |
-| shared Spec negative rule clear | PASS |
-| Evidence Atomicity stable | PASS |
-| Minimum Sufficient Evidence stable | PASS |
-| supporting evidence boundary stable | PASS |
-| missing / capture boundary stable | PASS |
-| Artifact / Evidence boundary stable | PASS |
-| EvidenceTarget authority unchanged | PASS |
-| validation-subset boundary preserved | PASS |
-| no Runtime leakage | PASS |
-| no Grader leakage | PASS |
-| focused consistency check | PASS |
+| 无 Schema blocker | PASS |
+| canonical placement 清晰 | PASS |
+| anti-duplication 清晰 | PASS |
+| qualification anti-boilerplate 清晰 | PASS |
+| Cross-Spec Composition 清晰 | PASS |
+| 共享 Spec negative 规则 清晰 | PASS |
+| Evidence Atomicity 稳定 | PASS |
+| Minimum Sufficient Evidence 稳定 | PASS |
+| supporting evidence 边界 稳定 | PASS |
+| 缺失 / capture 边界 稳定 | PASS |
+| Artifact / Evidence 边界 稳定 | PASS |
+| EvidenceTarget 权威 unchanged | PASS |
+| 验证-subset 边界 保留的 | PASS |
+| 无 Runtime leakage | PASS |
+| 无 Grader leakage | PASS |
+| 聚焦一致性检查 | PASS |
 
 结论：
 
@@ -1751,7 +1751,7 @@ YES
 
 `YES`表示当前方法与Schema Proposal在已经完成的validation coverage内没有已知generic blocker。它不表示Runtime Evidence、collector、qualification execution、Grader、Metric、Gate或完整Target Benchmark已经ready。
 
-### 35.5 Future Validation Notes
+### 35.5 Future 验证 Notes
 
 以下是future coverage limitations，不是当前freeze blocker：
 
@@ -1765,16 +1765,16 @@ YES
 
 ---
 
-## 36. Final Decision Checklist
+## 36. 最终决定 检查清单
 
-### Inputs
+### 字段或协议值：Inputs
 
 - [ ] Production input使用authoritative Frozen Requirements、validated Contracts与validated Test Cases
 - [ ] Test Case Design Status为`TEST_CASES_READY`
 - [ ] Inputs没有stale或unresolved upstream issue
 - [ ] Method validation subset保留validation-only boundary与限定status
 
-### Target Mapping and Coverage
+### 技术主题：Target Mapping and Coverage
 
 - [ ] 每个EvidenceTarget pair解析到真实ExpectedAssertion
 - [ ] ExpectedAssertion authority仍在TestCase中
@@ -1783,7 +1783,7 @@ YES
 - [ ] Coverage不只是ID linkage
 - [ ] Critical targets完成加强review
 
-### Sufficiency and Minimality
+### 技术主题：Sufficiency and Minimality
 
 - [ ] Required facts、action、order、scope或state可被观察
 - [ ] Compliant与violating semantics原则上可区分
@@ -1793,7 +1793,7 @@ YES
 - [ ] Runtime顺便产生的信息没有因此被升级为required evidence
 - [ ] 没有明显privacy、cost或storage overcollection
 
-### Provenance and Context
+### 来源追踪 and Context
 
 - [ ] Current Episode association可建立
 - [ ] Source / participant / Artifact identity requirements明确
@@ -1804,7 +1804,7 @@ YES
 - [ ] Interaction Evidence覆盖相关turn与later action context
 - [ ] `context_requirements: []`仅表示无额外relation，不表示unknown或未验证
 
-### Qualification and Failure Boundaries
+### 技术主题：Qualification and Failure Boundaries
 
 - [ ] Completeness、staleness、ambiguity与lineage expectations明确
 - [ ] 每项qualification同时说明information与usable condition
@@ -1814,7 +1814,7 @@ YES
 - [ ] Capture failure没有被归咎于Subject
 - [ ] Qualification没有滑向Grading
 
-### Granularity and Audit
+### 技术主题：Granularity and Audit
 
 - [ ] Atomicity Test完成
 - [ ] Shared / split decision有rationale
@@ -1825,7 +1825,7 @@ YES
 - [ ] Audit没有成为第二套authority
 - [ ] 不引入mandatory Candidate
 
-### Definition Boundaries
+### 技术主题：Definition Boundaries
 
 - [ ] 没有actual Evidence、Artifact、Episode、message、trace、path或timestamp
 - [ ] 没有assertion ID、Spec dependency ID、composition object或evidence group ID
@@ -1833,7 +1833,7 @@ YES
 - [ ] 没有Grader、Metric、Weight、Score或Gate design
 - [ ] 没有Runtime collector或validator implementation
 
-### Validation and Status
+### 验证 and Status
 
 - [ ] Structural / Field Validation完成
 - [ ] Cross-object Validation完成

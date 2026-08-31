@@ -1,4 +1,4 @@
-# 《Metric Specification Design Guide v0》
+# 《Metric Specification 设计指南 v0》
 
 Status: Design Guide
 
@@ -12,19 +12,19 @@ Status: Design Guide
 
 Metric Specification回答：
 
-> How should a defined population of Grader Results be aggregated into one interpretable evaluation measure?
+> 应如何将定义好的 Grader Results 群体聚合为一个可解释的评估度量？
 
 它是Definition-time first-class object，预先冻结：
 
 - Metric semantic identity；
 - aggregation population；
 - Definition-time membership；
-- distinct Result / attempt selection；
-- accepted Grader Result semantics；
+- 不同 Result / attempt 选择；
+- accepted Grader Result 语义；
 - eligibility与denominator policy；
 - contribution mapping；
 - aggregation unit；
-- repeated-result / unit-level reduction；
+- 重复 Result / 单元-level reduction；
 - aggregation rule；
 - weighting policy；
 - input completeness与empty-denominator policy；
@@ -77,18 +77,18 @@ Metric Result未来描述：
 
 - Run ID；
 - Subject ID；
-- actual Grader Result ID；
+- 实际 Grader Result ID；
 - actual count或sample size；
 - actual numerator / denominator；
 - actual Metric value；
-- actual Metric Result status；
+- 实际 Metric Result 状态；
 - actual comparison result。
 
 ---
 
 ## 3. Grader、Metric、Gate 与 Scorecard Boundary
 
-### 3.1 Grader vs Metric
+### 技术主题：3.1 Grader vs Metric
 
 ```text
 Grader
@@ -111,7 +111,7 @@ Grader A judges condition A
 
 Metric可以聚合同一Contract在不同Cases / Episodes中的performance observations，但这不是重写任何一次Contract-specific Grader Result。
 
-### 3.2 Metric vs Gate
+### 技术主题：3.2 Metric vs Gate
 
 ```text
 Metric
@@ -123,7 +123,7 @@ Gate
 
 Metric value低、critical target violated或insufficient比例高，都不能由Metric Specification直接宣布Benchmark FAIL。Gate Definition与Gate Result属于后续阶段。
 
-### 3.3 Metric vs Scorecard / Overall Score
+### 技术主题：3.3 Metric vs Scorecard / Overall Score
 
 Metric必须具有独立可解释意义。它可以在未来参与Overall Score，但不得为了提前实现Scorecard而创建一个没有独立Benchmark meaning的`overall_score` Metric。
 
@@ -141,24 +141,24 @@ Overall Score
 
 ## 4. Authoritative Inputs 与 Entry Gate
 
-### 4.1 Production inputs
+### 技术主题：4.1 Production inputs
 
 Production Metric Specification Design必须消费：
 
-1. authoritative Benchmark Definition context；
+1. 权威 Benchmark Definition context；
 2. authoritative Frozen Requirements；
 3. validated Contract Set；
 4. validated Test Case Set与ExpectedAssertions；
-5. validated Evidence Specification Set；
-6. validated Grader Specification Set；
-7. ExpectedAssertion → authoritative Grader Coverage Mapping；
+5. 已验证 Evidence Specification Set；
+6. 已验证 Grader Specification Set；
+7. ExpectedAssertion → 权威 Grader 覆盖映射；
 8. Contract evaluation type与criticality；
 9. Grader result semantics与applicable Rubric / local-value semantics；
 10. relevant Definition version与staleness information。
 
 Design Audits可以帮助理解既有rationale，但不得成为Metric membership或aggregation的第二套authority。
 
-### 4.2 Production Entry Gate
+### 4.2 Production 入口门禁
 
 只有以下条件全部满足，才能开始production Metric Specification Design：
 
@@ -176,7 +176,7 @@ METRICS_BLOCKED
 
 并回退相关upstream lifecycle，不得通过Metric临时发明membership或verdict。
 
-### 4.3 Method Validation Subset
+### 4.3 Method 验证 Subset
 
 允许使用明确限定、internally consistent的validation subset验证本方法，但必须同时满足：
 
@@ -198,15 +198,15 @@ METRICS_BLOCKED for validation subset
 
 ---
 
-## 5. Metric Semantic Identity
+## 5. 技术主题：Metric Semantic Identity
 
 每个Metric必须回答：
 
-- What does this Metric measure?
-- Which evaluation population does it summarize?
-- What receives one conceptual contribution?
-- What does a higher, lower or equal value mean?
-- What is included in the denominator or count universe?
+- What does 该 Metric measure?
+- 它汇总哪个 evaluation population？
+- What receives 一个 conceptual contribution?
+- What does a 更高, 更低 或 相等 值 mean?
+- What 是 included in 该 denominator 或 count universe?
 
 以下定义不充分：
 
@@ -224,11 +224,11 @@ Metric name提供简洁identity；完整meaning由`result_semantics`与其他pol
 
 ---
 
-## 6. Population Authority
+## 6. 技术主题：Population Authority
 
 Metric population回答：
 
-> Which Definition targets are expected to supply future Grader Results to this Metric?
+> 哪些 Definition targets 预计会为此 Metric 提供未来的 Grader Results？
 
 v0采用explicit target membership，不采用semantic selector或query DSL。
 
@@ -253,7 +253,7 @@ MetricInput:
 
 这些信息可以在authoring时帮助生成explicit inputs或进入Audit rationale，但不能成为与`inputs`并行的第二套population authority。
 
-### Why explicit membership first
+### 技术主题：Why explicit membership first
 
 - Definition membership deterministic；
 - future Graders不会被自动纳入；
@@ -292,7 +292,7 @@ MetricInput pair
 
 ---
 
-## 8. Grader Result Input Semantics
+## 8. 技术主题：Grader Result Input Semantics
 
 Grader Result是最小可聚合evaluation observation。Metric Specification只声明接受哪些semantic meanings，不冻结完整GraderResult Schema。
 
@@ -307,7 +307,7 @@ Grader Result是最小可聚合evaluation observation。Metric Specification只�
 
 未来Runtime还可能存在：
 
-- no Result because Episode not run；
+- 无 Result because Episode 不 run；
 - execution blocked；
 - environment failure；
 - Grader execution failure。
@@ -316,11 +316,11 @@ Grader Result是最小可聚合evaluation observation。Metric Specification只�
 
 ---
 
-## 8.1 Result Selection Policy
+## 技术主题：8.1 Result Selection Policy
 
 `result_selection_policy`回答：
 
-> Given the distinct Grader Results associated with one MetricInput within the current Run, which Result observations are selected for this Metric before eligibility and contribution mapping?
+> 对于当前 Run 中与一个 MetricInput 关联的不同 Grader Results，在 eligibility 与 contribution mapping 前，此 Metric 选择哪些 Result observations？
 
 它是Definition-time Metric semantics，定义selection intent，不保存actual Episode、attempt或Grader Result identity。Future Runtime负责提供足够actual identity与ordering，以区分same logical Result、duplicate record、distinct Episodes / attempts以及current Run association。
 
@@ -365,7 +365,7 @@ Select the final distinct attempt-level Grader Result for each MetricInput accor
 
 对于预期只有一个distinct Result的Metric，也必须明确：
 
-> Use the sole distinct Grader Result associated with each MetricInput; if multiple distinct attempts exist, the Metric Definition is not satisfied unless this policy explicitly defines their selection.
+> 使用每个 MetricInput 关联的唯一不同 Grader Result；如果存在多个不同 attempts，除非本 policy 显式定义选择方式，否则不满足 Metric Definition。
 
 禁止模糊selection：
 
@@ -375,7 +375,7 @@ Select the final distinct attempt-level Grader Result for each MetricInput accor
 
 除非`relevant`、`best`或`valid`已有完整、deterministic且不循环依赖Metric judgment的semantics。本轮不设计selector language或concrete selection code。
 
-### Final raw attempt vs final eligible contribution
+### 技术主题：Final raw attempt vs final eligible contribution
 
 两者是不同Metric policies：
 
@@ -400,11 +400,11 @@ select all distinct attempts
 
 ---
 
-## 9. Aggregation Unit
+## 9. 技术主题：Aggregation Unit
 
 Aggregation Unit定义：
 
-> The unit that receives one conceptual contribution before the final Metric aggregation.
+> 在最终 Metric aggregation 前接收一个概念 contribution 的 unit。
 
 它不同于最小Runtime input：
 
@@ -467,7 +467,7 @@ select the worst eligible contribution
 
 重复执行可能测量stability，也可能是replacement retry或其他sample semantics。哪些distinct Results进入后续processing由Result Selection冻结；selected contributions怎样形成unit contribution由Unit Reduction冻结。
 
-### Attempt / Episode Multiplicity Review
+### 技术主题：Attempt / Episode Multiplicity Review
 
 Case数量与Episode数量是不同multiplicity dimensions。每个Metric Design至少检查：
 
@@ -485,27 +485,27 @@ Attempt / Episode Multiplicity Review属于Design Audit与Semantic Review，不�
 
 ---
 
-## 11. Eligibility Policy
+## 11. 资格策略
 
 Eligibility Policy决定actual Grader Results是否可以形成Metric contribution。
 
 它必须区分：
 
-### Eligible substantive meanings
+### 技术主题：Eligible substantive meanings
 
 例如binary compliance Metric通常选择：
 
 - satisfied；
 - violated。
 
-### Non-substantive meanings
+### 技术主题：Non-substantive meanings
 
 例如：
 
 - insufficient evidence；
 - not exercised。
 
-### Unavailable input states
+### 技术主题：Unavailable input states
 
 例如：
 
@@ -521,7 +521,7 @@ Eligibility Policy决定actual Grader Results是否可以形成Metric contributi
 
 ---
 
-## 12. Denominator Semantics
+## 12. 技术主题：Denominator Semantics
 
 对于rate、proportion或mean，denominator不是“所有Cases”的机械计数，而是Metric semantic identity的一部分。
 
@@ -550,7 +550,7 @@ compliance rate
 
 ---
 
-## 13. Insufficient Evidence Handling
+## 13. 技术主题：Insufficient Evidence Handling
 
 默认原则：
 
@@ -562,7 +562,7 @@ insufficient evidence
 
 Metric-specific policy可以选择：
 
-- exclude from substantive denominator and report separately；
+- exclude 来自 substantive denominator 与 report separately；
 - exclude but make Metric unavailable if completeness requirement不满足；
 - 对专门的evidence-availability Metric作为被统计对象。
 
@@ -572,7 +572,7 @@ Metric永远不能修改原Grader Result meaning。
 
 ---
 
-## 14. Not-Exercised Handling
+## 14. 技术主题：Not-Exercised Handling
 
 ```text
 not exercised
@@ -590,7 +590,7 @@ not exercised
 
 ---
 
-## 15. Missing Result vs Insufficient Evidence
+## 15. 技术主题：Missing Result vs Insufficient Evidence
 
 必须保持：
 
@@ -614,12 +614,12 @@ Metric Specification不设计这些Runtime状态字段，但`unavailable_input_h
 
 Metric completeness回答：
 
-> Is the actual input coverage sufficient for this Metric Result to retain its declared interpretation?
+> 实际 input coverage 是否足以让该 Metric Result 保留其声明的解释？
 
 Spec必须定义：
 
 - Result selection之后的selected population如何计入coverage；
-- minimum eligible observation requirement；
+- 最低 eligible observation 要求；
 - minimum unit coverage；
 - insufficient / not-exercised / unavailable对coverage的影响；
 - partial computation是否允许；
@@ -630,15 +630,15 @@ Selection完成后，selected Result可能是substantive、not-exercised、insuf
 
 不同Metrics可以选择不同policy：
 
-### Strict completeness
+### 技术主题：Strict completeness
 
 任何required unit缺少eligible contribution，Metric Result unavailable。
 
-### Threshold completeness
+### 技术主题：Threshold completeness
 
 达到明确minimum unit count或coverage proportion时允许partial value，并强制报告coverage。
 
-### Eligible-only descriptive result
+### 技术主题：Eligible-only descriptive result
 
 始终汇总当前eligible units，但result semantics明确限定为“among eligible observations”，且不得隐藏coverage不足。
 
@@ -646,7 +646,7 @@ Selection完成后，selected Result可能是substantive、not-exercised、insuf
 
 ---
 
-## 17. Empty Denominator
+## 17. 技术主题：Empty Denominator
 
 如果rate / mean的eligible denominator为零：
 
@@ -669,7 +669,7 @@ Count Metric是例外：如果expected population与observation surface完整，
 
 ---
 
-## 18. Contribution Mapping
+## 18. 技术主题：Contribution Mapping
 
 Contribution Mapping把eligible Grader Result meaning转换为Metric-local contribution。
 
@@ -691,7 +691,7 @@ violated is not inherently the number 0
 
 每条mapping必须说明：
 
-- source Grader Result semantics；
+- 来源 Grader Result 语义；
 - produced contribution meaning；
 - contribution scale或unit；
 - 为什么没有改变原judgment。
@@ -702,11 +702,11 @@ violated is not inherently the number 0
 
 ## 19. Binary、Ordinal 与 Scalar Inputs
 
-### 19.1 Binary
+### 技术主题：19.1 Binary
 
 当前最稳定的输入是satisfied / violated。Rate、proportion、count、all-satisfied或worst-case等rules都可以表达，但必须明确unit、denominator与mapping。
 
-### 19.2 Ordinal
+### 技术主题：19.2 Ordinal
 
 不得机械执行：
 
@@ -725,7 +725,7 @@ Good = 3
 
 没有real validation前，不为ordinal新增special Schema字段。
 
-### 19.3 Local scalar
+### 技术主题：19.3 Local scalar
 
 聚合local scalar前必须确认：
 
@@ -740,21 +740,21 @@ Good = 3
 
 ---
 
-## 20. Aggregation Rule
+## 20. 技术主题：Aggregation Rule
 
 Metric aggregation应尽可能deterministic。Spec必须让两个conforming implementations在相同qualified inputs上得到相同conceptual result。
 
 允许使用：
 
-- human-readable exact rule；
+- 人类可读的精确规则；
 - mathematical expression；
-- explicit numerator / denominator definition；
+- 显式 numerator / denominator 定义；
 - rate / proportion；
 - count / sum；
 - mean；
 - min / max；
 - weighted mean；
-- clearly bounded unit-level reduction。
+- 边界清晰的 单元-level reduction。
 
 不冻结`aggregation_method` enum，因为真实needs可能组合unit reduction与final aggregation，简单enum会掩盖semantics。
 
@@ -764,13 +764,13 @@ Metric aggregation应尽可能deterministic。Spec必须让两个conforming impl
 
 较稳定：
 
-> For each Contract unit, compute the proportion of eligible target contributions mapped to satisfied; then take the equal-weight mean of all Contract units that meet the unit completeness rule.
+> 对每个 Contract unit，计算映射为 satisfied 的 eligible target contributions 比例；然后对满足 unit completeness rule 的所有 Contract units 取等权平均。
 
 本Guide不写concrete aggregation code。
 
 ---
 
-## 21. Weighting Policy
+## 21. 技术主题：Weighting Policy
 
 每个Metric必须显式写`weighting_policy`，不得依赖隐含default。
 
@@ -828,7 +828,7 @@ Contract B → 1 input
 
 ---
 
-## 23. Contract-Level Normalization
+## 23. 技术主题：Contract-Level Normalization
 
 对于“average Contract compliance”类Metric，可定义两阶段semantic aggregation：
 
@@ -868,7 +868,7 @@ Metric可以分别总结Outcome或Workflow targets，也可以在有清楚semant
 
 ---
 
-## 25. Hierarchical Aggregation Boundary
+## 25. 技术主题：Hierarchical Aggregation Boundary
 
 v0 Metric Specification只消费Grader Results，不消费其他Metric Results。
 
@@ -893,7 +893,7 @@ Metric Result A
 
 ---
 
-## 26. Failure-Mode-Derived Metrics
+## 26. 技术主题：Failure-Mode-Derived Metrics
 
 Failure modes主要属于Grader Result diagnosis。统计supported failure-mode frequency可以形成有意义的diagnostic Metric，但它必须：
 
@@ -907,7 +907,7 @@ Failure modes主要属于Grader Result diagnosis。统计supported failure-mode 
 
 ---
 
-## 27. Metric Result Semantics
+## 27. 技术主题：Metric Result Semantics
 
 Metric Specification必须定义future Result代表什么，至少包括：
 
@@ -927,26 +927,26 @@ Metric不等于score。合法Metric Result可以是：
 - mean local scalar；
 - coverage rate；
 - diagnostic frequency；
-- unavailable / undefined with coverage metadata。
+- 不可用 / undefined with 覆盖 metadata。
 
 ---
 
-## 28. Denominator Transparency
+## 28. 技术主题：Denominator Transparency
 
 即使non-substantive与unavailable inputs不进入main value，也不得静默消失。
 
 Metric Specification的`completeness_policy.transparency_requirements`必须要求future Metric Result能够说明与本Metric相关的：
 
 - expected population size；
-- actual Grader Results available；
-- distinct Results remaining after duplicate removal；
+- 实际 Grader Results 可用；
+- 不同 Results remaining 之后 duplicate removal；
 - Results selected by `result_selection_policy`与selection coverage；
 - eligible substantive count；
-- excluded not-exercised count；
+- excluded 不-exercised count；
 - insufficient-evidence count；
-- unavailable count where known；
+- 不可用 count where 已知；
 - included aggregation units；
-- units failing minimum completeness；
+- 单元 failing 最低 completeness；
 - partial / unavailable interpretation；
 - included Cases或target identities的traceability。
 
@@ -956,7 +956,7 @@ Future Result metadata必须使reviewer能够区分：expected MetricInputs、av
 
 ---
 
-## 29. Metric Specification Candidate / Working Stage
+## 29. 技术主题：Metric Specification Candidate / Working Stage
 
 v0不引入mandatory Metric Specification Candidate对象或Candidate lifecycle。
 
@@ -964,10 +964,10 @@ v0不引入mandatory Metric Specification Candidate对象或Candidate lifecycle�
 
 - alternate populations；
 - alternate Result selection与Attempt multiplicity semantics；
-- per-target vs per-contract units；
+- per-目标 vs per-contract 单元；
 - eligibility与denominator policies；
-- strict vs partial completeness；
-- equal vs explicit weighting；
+- strict 与 partial completeness；
+- 相等 vs 显式 weighting；
 - contribution mappings；
 - result interpretations。
 
@@ -983,7 +983,7 @@ Working Draft：
 
 ---
 
-## 30. Metric Specification Design Audit
+## 30. 技术主题：Metric Specification Design Audit
 
 v0引入轻量、非Core、非authoritative的Metric Specification Design Audit，建议至少记录：
 
@@ -1007,7 +1007,7 @@ v0引入轻量、非Core、非authoritative的Metric Specification Design Audit�
 | `comparison_concern` | Benchmark version或Run comparability concern |
 | `downstream_gate_concern` | 只记录future Gate concern，不定义blocking |
 | `downstream_scorecard_concern` | 只记录future presentation / Overall concern |
-| `implementation_concern` | future aggregation implementation concern |
+| `implementation_concern` | 后续 aggregation implementation concern |
 
 Audit：
 
@@ -1020,9 +1020,9 @@ Audit：
 
 ---
 
-## 31. Minimal MetricSpecification Schema Proposal
+## 31. 技术主题：Minimal MetricSpecification Schema Proposal
 
-### 31.1 MetricSpecification
+### 技术主题：31.1 MetricSpecification
 
 ```text
 MetricSpecification:
@@ -1040,7 +1040,7 @@ MetricSpecification:
 - result_semantics: MetricResultSemantics
 ```
 
-### 31.2 MetricInput
+### 技术主题：31.2 MetricInput
 
 ```text
 MetricInput:
@@ -1048,7 +1048,7 @@ MetricInput:
 - contract_id
 ```
 
-### 31.3 MetricEligibilityPolicy
+### 技术主题：31.3 MetricEligibilityPolicy
 
 ```text
 MetricEligibilityPolicy:
@@ -1057,7 +1057,7 @@ MetricEligibilityPolicy:
 - unavailable_input_handling: list[str]
 ```
 
-### 31.4 MetricContributionRule
+### 技术主题：31.4 MetricContributionRule
 
 ```text
 MetricContributionRule:
@@ -1065,7 +1065,7 @@ MetricContributionRule:
 - contribution_semantics
 ```
 
-### 31.5 MetricCompletenessPolicy
+### 技术主题：31.5 MetricCompletenessPolicy
 
 ```text
 MetricCompletenessPolicy:
@@ -1075,7 +1075,7 @@ MetricCompletenessPolicy:
 - transparency_requirements: list[str]
 ```
 
-### 31.6 MetricResultSemantics
+### 技术主题：31.6 MetricResultSemantics
 
 ```text
 MetricResultSemantics:
@@ -1089,7 +1089,7 @@ MetricResultSemantics:
 
 ---
 
-## 32. Schema Field Decisions
+## 32. Schema Field 决定s
 
 | 候选字段 | v0决定 | 理由 |
 |---|---|---|
@@ -1120,7 +1120,7 @@ MetricResultSemantics:
 | Overall Score / Scorecard | 禁止 | 属于downstream derived result/presentation |
 | Metric input refs | 禁止 | v0不支持Metric→Metric graph |
 
-### ID Rules
+### 技术主题：ID Rules
 
 推荐形式：
 
@@ -1140,31 +1140,31 @@ M003
 
 ---
 
-## 33. Schema Field Semantics
+## 33. Schema 字段语义
 
-### 33.1 metric_id
+### 技术主题：33.1 metric_id
 
 非空string，表示Definition-time Metric Specification identity，不是Runtime Metric Result ID。
 
-### 33.2 name
+### 技术主题：33.2 name
 
 非空、human-readable、meaningful name。禁止只有`quality`、`score`、`metric`等无法区分population与purpose的名称。
 
-### 33.3 inputs
+### 技术主题：33.3 inputs
 
 必填非空`list[MetricInput]`，pair不得重复。它冻结expected Definition population，不保存Episode或Grader Result IDs。
 
-### 33.4 result_selection_policy
+### 技术主题：33.4 result_selection_policy
 
 必填非空deterministic string。它在duplicate logical Result records去重后、eligibility之前，定义每个MetricInput选择哪些distinct Results。
 
 Policy必须说明selection population、basis、需要时的ordering basis、selected cardinality以及identity / ordering不可用时的behavior。它不得保存actual Episode、attempt或Result IDs，不得引用`grader_id`，也不得依赖`best`、`relevant`、`valid`等未定义判断。
 
-### 33.5 aggregation_unit
+### 技术主题：33.5 aggregation_unit
 
 非空string，明确unit identity如何从inputs确定。必须足够deterministic，不能只写`appropriate unit`。
 
-### 33.6 eligibility_policy
+### 技术主题：33.6 eligibility_policy
 
 必填nested structure：
 
@@ -1174,35 +1174,35 @@ Policy必须说明selection population、basis、需要时的ordering basis、se
 
 它不冻结全局Result enum，也不保存actual counts。
 
-### 33.7 contribution_mapping
+### 技术主题：33.7 contribution_mapping
 
 必填非空rules。每个`source_semantics`在同一Metric中不得存在冲突mapping；`contribution_semantics`必须明确value、unit或category meaning。
 
-### 33.8 unit_reduction
+### 技术主题：33.8 unit_reduction
 
 非空deterministic semantic rule。它只处理selection、eligibility与contribution mapping之后的contributions，必须说明同一unit的多个eligible contributions如何形成一个unit contribution以及无eligible contribution时如何处理。它不得再次决定first / final raw attempt。
 
-### 33.9 aggregation_rule
+### 技术主题：33.9 aggregation_rule
 
 非空、可复核、deterministic。必须说明unit contributions如何形成one Metric Result，并与result semantics一致。
 
-### 33.10 weighting_policy
+### 技术主题：33.10 weighting_policy
 
 非空。必须说明equal或unequal、weight attachment unit、normalization与omitted units。不得只写`weighted as appropriate`。
 
-### 33.11 completeness_policy
+### 技术主题：33.11 completeness_policy
 
 四个必填semantics：minimum requirement、partial policy、empty denominator、transparency requirements。它定义availability policy，不保存actual coverage。
 
-### 33.12 result_semantics
+### 技术主题：33.12 result_semantics
 
 四个非空strings共同定义future Result meaning。对于count Metric，`denominator_meaning`说明count universe或明确denominator不适用，而不能留空。
 
 ---
 
-## 34. Three-Layer Metric Specification Validation
+## 34. Three-Layer Metric Specification 验证
 
-### 34.1 A. Structural / Field Validation
+### 34.1 A. Structural / Field 验证
 
 未来可deterministic检查：
 
@@ -1223,7 +1223,7 @@ Policy必须说明selection population、basis、需要时的ordering basis、se
 - result semantics四组fields均非空；
 - 不存在actual value、counts、Result ref、Gate、Overall Score或Metric input ref字段。
 
-### 34.2 B. Cross-object Validation
+### 34.2 B. Cross-object 验证
 
 需要完整Definition context：
 
@@ -1243,7 +1243,7 @@ Policy必须说明selection population、basis、需要时的ordering basis、se
 - Metric Set、Population Review与Audit双向一致；
 - 没有Metric→Metric、Gate或Scorecard refs。
 
-### 34.3 C. Semantic Metric Review
+### 技术主题：34.3 C. Semantic Metric Review
 
 逐Metric至少检查：
 
@@ -1289,7 +1289,7 @@ Metric Population Review至少记录：
 
 | 字段 | 含义 |
 |---|---|
-| `metric_id` | Metric identity |
+| `metric_id` | Metric 身份 |
 | `intended_dimension` | 该Metric要summarize的能力/表现维度 |
 | `included_inputs` | 从Spec派生的MetricInput pairs |
 | `excluded_relevant_inputs` | 看似相关但被排除的pairs及理由 |
@@ -1319,23 +1319,23 @@ Population Review是working artifact，不是Core Object，也不成为membershi
 - metric-purpose ambiguity；
 - population / membership issue；
 - input-reference issue；
-- Grader Result semantic incompatibility；
+- Grader Result 语义 incompatibility；
 - eligibility / denominator issue；
-- insufficient / not-exercised handling issue；
+- insufficient / 不-exercised 处理 issue；
 - unavailable-input issue；
-- completeness / partial-result issue；
+- completeness / partial-结果 issue；
 - empty-denominator issue；
 - contribution-mapping issue；
 - aggregation-unit issue；
-- result-selection / attempt-multiplicity issue；
-- repeat / retry / duplicate issue；
+- 结果-选择 / attempt-multiplicity issue；
+- 重复 / 重试 / duplicate 问题；
 - Case multiplicity issue；
 - weighting issue；
-- ordinal / scalar compatibility issue；
+- ordinal / scalar 兼容性问题；
 - result-semantics issue；
 - Schema insufficiency；
 - downstream Gate concern；
-- downstream Scorecard / Overall concern；
+- 下游 Scorecard / Overall 问题；
 - implementation concern。
 
 Rollback：
@@ -1367,27 +1367,27 @@ Metric rule clear but executable calculation unknown
 
 ---
 
-## 37. Metric Specification Design Workflow
+## 37. 技术主题：Metric Specification Design Workflow
 
-### Step 1 — Verify Inputs
+### 步骤 1 — Verify Inputs
 
 - 验证upstream Definitions、Grader coverage、statuses与versions；
 - production Entry Gate不满足时立即BLOCK；
 - validation subset保留限定边界。
 
-### Step 2 — Define Metric Meaning
+### 步骤 2 — Define Metric Meaning
 
 - 写清measure、population、unit、direction与denominator meaning；
 - 确认它是独立Metric，不是伪装的Overall Score或Gate。
 
-### Step 3 — Freeze Explicit Population
+### 步骤 3 — Freeze Explicit Population
 
 - 列出MetricInput pairs；
 - 通过Coverage Mapping解析authoritative GraderTargets；
 - 删除future-convenience或无关inputs；
 - 不写selector DSL。
 
-### Step 4 — Define Result Selection
+### 步骤 4 — Define Result Selection
 
 - 明确每个MetricInput选择all、first、final或其他deterministic subset；
 - duplicate logical Results在selection前必须去重；
@@ -1396,7 +1396,7 @@ Metric rule clear but executable calculation unknown
 - 执行Attempt / Episode Multiplicity Review；
 - 不保存actual Runtime IDs，不写selector implementation。
 
-### Step 5 — Define Eligibility and Contribution
+### 步骤 5 — Define Eligibility and Contribution
 
 - 对selected Results分开substantive、non-substantive与unavailable；
 - 写contribution mappings；
@@ -1404,49 +1404,49 @@ Metric rule clear but executable calculation unknown
 - 不把insufficient自动映射为violation；
 - 不在eligibility阶段回退到earlier unselected Result。
 
-### Step 6 — Choose Aggregation Unit
+### 步骤 6 — Choose Aggregation Unit
 
 - 决定per-target、per-contract、per-case或其他可derivable unit；
 - 执行Case Multiplicity Review；
 - 明确新增Case是否改变weight。
 
-### Step 7 — Define Unit Reduction
+### 步骤 7 — Define Unit Reduction
 
 - 只处理selected eligible contributions；
 - 写exact unit-level reduction；
 - 不重新决定first / final raw attempt；
 - 不引入Metric→Metric graph。
 
-### Step 8 — Define Weighting
+### 步骤 8 — Define Weighting
 
 - 显式写equal / unequal policy；
 - 保持weight与unit对齐。
 
-### Step 9 — Define Final Aggregation
+### 步骤 9 — Define Final Aggregation
 
 - 写exact final aggregation rule；
 - 明确result scale、direction与denominator meaning；
 - 不引入Metric→Metric graph。
 
-### Step 10 — Define Completeness and Interpretation
+### 步骤 10 — Define Completeness and Interpretation
 
 - 写minimum input、partial、empty-denominator与transparency policy；
 - 确认selection改变的coverage与denominator被诚实报告；
 - 明确unavailable与zero value的区别。
 
-### Step 11 — Write Metric Specifications
+### 步骤 11 — Write Metric Specifications
 
 - 分配`Mxxx`；
 - 使用Proposed Schema；
 - 不写actual value、Gate、Overall Score或implementation。
 
-### Step 12 — Build Population Review and Audit
+### 步骤 12 — Build Population Review and Audit
 
 - 记录included / excluded rationale；
 - 记录Result selection、Case multiplicity、Attempt multiplicity、unit、weight与completeness rationale；
 - 保留downstream concerns。
 
-### Step 13 — Validate and Determine Status
+### 步骤 13 — Validate and Determine Status
 
 - Structural / Field Validation；
 - Cross-object Validation；
@@ -1457,7 +1457,7 @@ Metric rule clear but executable calculation unknown
 
 ---
 
-## 38. Metric Specification Design Status
+## 38. Metric Specification 设计状态
 
 Production状态只保留：
 
@@ -1466,11 +1466,11 @@ METRICS_READY
 METRICS_BLOCKED
 ```
 
-### 38.1 METRICS_READY
+### 技术主题：38.1 METRICS_READY
 
 只有同时满足：
 
-- authoritative upstream Definition current；
+- 权威 upstream Definition 当前；
 - Grader Specification Design为`GRADERS_READY`；
 - required Metric Set已定义；
 - 每个Metric具有独立可解释meaning；
@@ -1495,7 +1495,7 @@ METRICS_BLOCKED
 - 没有unresolved blocker；
 - 没有Gate、Scorecard、Overall或Runtime implementation leakage。
 
-### 38.2 METRICS_BLOCKED
+### 技术主题：38.2 METRICS_BLOCKED
 
 例如：
 
@@ -1522,7 +1522,7 @@ METRICS_BLOCKED
 
 ---
 
-## 39. Required Outputs
+## 39. 必需输出
 
 Metric Specification Design至少产生：
 
@@ -1538,7 +1538,7 @@ Working Metric Drafts不是必需final output，也不算Metric coverage。
 
 ---
 
-## 40. Metric Result Boundary
+## 40. 技术主题：Metric Result Boundary
 
 本轮不设计完整Metric Result Schema，但必须保持：
 
@@ -1572,11 +1572,11 @@ Future Metric Result在概念上至少需要关联或表达：
 
 ## 41. Gate、Scorecard 与 Overall Boundary
 
-### 41.1 Gate
+### 技术主题：41.1 Gate
 
 Metric描述表现，Gate决定阻断。Metric Specification不得包含：
 
-- threshold causing Benchmark FAIL；
+- 阈值 causing Benchmark FAIL；
 - critical violation blocker；
 - non-offsettable failure；
 - Gate pass / fail；
@@ -1584,73 +1584,73 @@ Metric描述表现，Gate决定阻断。Metric Specification不得包含：
 
 Gate Specification未来可以Definition-time引用Metric Specification，再在Run中定位Metric Result；Metric不反向引用Gate。
 
-### 41.2 Scorecard
+### 技术主题：41.2 Scorecard
 
 Scorecard未来组织Grader summaries、Metric Results、Gate Results、Overall Score与diagnostics。Metric不负责layout、report formatting或final Benchmark conclusion。
 
-### 41.3 Overall Score
+### 技术主题：41.3 Overall Score
 
 多个Metric Results如何形成Overall Score属于future Overall Aggregation / Scorecard policy。Metric-level `weighting_policy`只处理本Metric内部aggregation units，不是Metrics之间的Overall weight。
 
 ---
 
-## 42. Schema Design Findings
+## 42. Schema Design 发现项
 
-### 42.1 Explicit MetricInput pair is the membership authority
+### 技术主题：42.1 Explicit MetricInput pair is the membership authority
 
 `(test_case_id, contract_id)`在当前Definition内唯一定位ExpectedAssertion与authoritative GraderTarget，避免query drift与shared Grader ambiguity。
 
-### 42.2 No grader_id in MetricInput
+### 技术主题：42.2 No grader_id in MetricInput
 
 Pair与grader ID同时存在会形成双authority。Grader coverage由Cross-object Validation解析，不在MetricInput重复冻结。
 
-### 42.3 Aggregation unit is first-class policy, not Core Object
+### 技术主题：42.3 Aggregation unit is first-class policy, not Core Object
 
 Unit必须进入Metric Specification，但不创建AggregationUnit Core Object。当前用deterministic string表达派生规则，不冻结enum。
 
-### 42.4 Result selection is first-class and precedes eligibility
+### 技术主题：42.4 Result selection is first-class and precedes eligibility
 
 `result_selection_policy`在duplicate logical Results去重后、eligibility之前，冻结每个MetricInput选择哪些distinct attempt-level Results。它关闭final raw attempt与final eligible contribution混淆，但不保存Runtime IDs，也不引入selector language。
 
 当前真实validation只证明需要一个required deterministic string；没有证据要求nested ResultSelectionPolicy或selection enum。Future implementation evidence若证明string无法稳定执行，再重新评估结构化representation。
 
-### 42.5 Unit reduction is distinct from Result selection and final aggregation
+### 技术主题：42.5 Unit reduction is distinct from Result selection and final aggregation
 
 Unit reduction只处理selection、eligibility与contribution mapping之后的selected eligible contributions；它不再选择first / final raw Result。Multi-Case Contract与同unit多contributions需要先形成unit contribution，随后final aggregation形成Metric Result。
 
-### 42.6 Eligibility separates substantive, non-substantive and unavailable
+### 技术主题：42.6 Eligibility separates substantive, non-substantive and unavailable
 
 三类inputs具有不同语义，不能靠一个included-status list或全局default处理。
 
-### 42.7 Completeness requires explicit nested policy
+### 技术主题：42.7 Completeness requires explicit nested policy
 
 Minimum input、partial、empty denominator与transparency共同决定Metric Result是否仍可解释，不能只放Audit。
 
-### 42.8 No aggregation-method enum
+### 技术主题：42.8 No aggregation-method enum
 
 真实method需要unit reduction + final rule组合。Human-readable exact rule比不成熟enum更忠实；未来implementation validation可重新评估structured formula representation。
 
-### 42.9 Weighting is explicit but not an upstream field
+### 技术主题：42.9 Weighting is explicit but not an upstream field
 
 每个Metric必须声明weighting policy。Criticality、Case count与failure severity都不自动成为weight。
 
 真实unequal-weight authoring可能需要future structured unit-weight mapping；当前validation subset不依赖它，因此不在本轮扩Schema。
 
-### 42.10 Completeness threshold structure remains future hardening
+### 技术主题：42.10 Completeness threshold structure remains future hardening
 
 Strict、eligible-only与简单partial policy可由current nested strings表达。多个threshold units、operators与logical combinations可能需要future structured clauses；当前validation subset不依赖它，因此不是当前generic blocker。
 
-### 42.11 No Metric-to-Metric inputs
+### 技术主题：42.11 No Metric-to-Metric inputs
 
 Hierarchical needs通过unit reduction表达；跨Metrics汇总留Overall Score，避免metric graph。
 
-### 42.12 No actual Result fields
+### 技术主题：42.12 No actual Result fields
 
 Actual value、counts、denominator、included IDs与status属于future Metric Result。
 
 ---
 
-## 43. Method Self-Review
+## 43. Method 自查
 
 | 检查问题 | v0结论 |
 |---|---|
@@ -1685,7 +1685,7 @@ Actual value、counts、denominator、included IDs与status属于future Metric R
 | 29. 是否泄漏Scorecard？ | 未泄漏。没有Overall Score、Metric-to-Metric graph或presentation。 |
 | 30. 哪些问题仍需future validation？ | Structured unequal weights、multi-threshold completeness、ordinal/scalar与large-scale implementation determinism。 |
 
-### 43.1 Self-review corrections incorporated
+### 43.1 已纳入的自查修正
 
 本轮自审已在正文处理：
 
@@ -1705,39 +1705,39 @@ Actual value、counts、denominator、included IDs与status属于future Metric R
 - 为防止Scorecard leakage，Overall Score留downstream；
 - 为防止actual data进入Definition，分开Metric Result semantics与actual value / counts。
 
-### 43.2 Future Method Validation Coverage
+### 43.2 Future Method 验证 Coverage
 
 在freeze MetricSpecification Schema前，至少需要真实validation检查：
 
-- binary per-target compliance rate；
-- per-contract normalization with unequal Case multiplicity；
-- additional repeated Episode semantics beyond all / first / final / worst eligible probes；
-- insufficient / not-exercised exclusions；
+- binary per-目标 compliance rate；
+- Case multiplicity 不相等时的 per-contract normalization；
+- additional repeated Episode 语义 beyond 所有 / first / 最终 / worst eligible probes；
+- insufficient / 不-exercised exclusions；
 - missing Result与partial Metric；
 - empty denominator；
-- strict vs threshold completeness；
+- strict vs 阈值 completeness；
 - shared Grader的target-level membership；
-- equal per-unit weighting；
+- 相等 per-单元 weighting；
 - explicit unequal weighting；
 - mixed Outcome / Workflow rejection或合法正例；
 - ordinal mapping；
-- compatible local scalar aggregation；
-- diagnostic failure-mode Metric；
+- compatible 局部 scalar aggregation；
+- diagnostic 失败-mode Metric；
 - denominator transparency与comparison compatibility。
 
 这些是future method validation，不是Runtime execution、Metric Result、Gate或Scorecard PASS。
 
 ---
 
-## 44. Final Decision Checklist
+## 44. 最终决定 检查清单
 
-### Inputs
+### 字段或协议值：Inputs
 
 - [ ] Upstream Grader Specification Design为`GRADERS_READY`
 - [ ] Inputs属于同一current Benchmark Definition version
 - [ ] Method validation subset保留限定status与benchmark-wide blocker
 
-### Identity and Population
+### 技术主题：Identity and Population
 
 - [ ] Metric name与result interpretation清楚
 - [ ] Metric具有独立meaning，不是伪装Overall Score
@@ -1746,7 +1746,7 @@ Actual value、counts、denominator、included IDs与status属于future Metric R
 - [ ] 没有grader ID、selector或Runtime discovery双authority
 - [ ] Included / excluded population通过review
 
-### Eligibility and Denominator
+### 技术主题：Eligibility and Denominator
 
 - [ ] Substantive、non-substantive与unavailable分开
 - [ ] Insufficient没有自动变violated / 0
@@ -1756,7 +1756,7 @@ Actual value、counts、denominator、included IDs与status属于future Metric R
 - [ ] Empty denominator没有默认0 / 100%
 - [ ] Exclusions必须透明报告
 
-### Result Selection and Attempt Multiplicity
+### 技术主题：Result Selection and Attempt Multiplicity
 
 - [ ] `result_selection_policy`必填、非空且deterministic
 - [ ] Duplicate logical Result records在selection前去重
@@ -1767,7 +1767,7 @@ Actual value、counts、denominator、included IDs与status属于future Metric R
 - [ ] Future Runtime identity / ordering dependency已记录但没有写入Specification IDs
 - [ ] Result selection对denominator、coverage与completeness的影响透明
 
-### Unit、Case Multiplicity and Weighting
+### 技术主题：Unit、Case Multiplicity and Weighting
 
 - [ ] Aggregation unit可deterministic派生
 - [ ] Unit reduction只处理selected eligible contributions，不重新选择raw attempts
@@ -1776,7 +1776,7 @@ Actual value、counts、denominator、included IDs与status属于future Metric R
 - [ ] Weighting policy显式且与unit对齐
 - [ ] Criticality没有自动变weight或Gate
 
-### Contribution and Aggregation
+### 技术主题：Contribution and Aggregation
 
 - [ ] Contribution mapping不改写Grader semantics
 - [ ] Aggregation rule足够deterministic
@@ -1784,7 +1784,7 @@ Actual value、counts、denominator、included IDs与status属于future Metric R
 - [ ] Metric没有重组单一Contract verdict
 - [ ] 没有Metric→Metric dependency
 
-### Completeness and Result Meaning
+### 技术主题：Completeness and Result Meaning
 
 - [ ] Minimum input requirement明确
 - [ ] Partial result policy明确
@@ -1792,7 +1792,7 @@ Actual value、counts、denominator、included IDs与status属于future Metric R
 - [ ] Result interpretation、direction、scale、denominator meaning完整
 - [ ] 没有actual value、counts或Result IDs
 
-### Boundaries and Validation
+### Boundaries and 验证
 
 - [ ] 没有Gate threshold、blocking或Benchmark PASS / FAIL
 - [ ] 没有Overall Score、Scorecard layout或presentation

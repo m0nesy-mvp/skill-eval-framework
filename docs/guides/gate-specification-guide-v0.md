@@ -1,4 +1,4 @@
-# 《Gate Specification Design Guide v0》
+# 《Gate Specification 设计指南 v0》
 
 Status: Design Guide
 
@@ -12,14 +12,14 @@ Status: Design Guide
 
 Gate Specification回答：
 
-> What condition makes the declared Benchmark, Run, or evaluation scope unacceptable regardless of otherwise favorable aggregate performance?
+> 无论总体表现是否有利，什么条件会使声明的 Benchmark、Run 或评估范围不可接受？
 
 它是Definition-time conditional first-class object，预先冻结：
 
 - Gate semantic identity；
 - declared decision scope；
-- one atomic non-offsettable blocking condition；
-- Definition-level input reference；
+- 一个 atomic non-offsettable 阻断 条件；
+- Definition-level 输入 reference；
 - target或Metric membership；
 - Grader Result semantic match或Metric Result predicate；
 - quantifier；
@@ -79,7 +79,7 @@ Definition阶段只能引用已经存在的Definition对象，不能引用未来
 
 ## 3. Grader、Metric、Gate 与 Scorecard Boundary
 
-### 3.1 Grader vs Gate
+### 技术主题：3.1 Grader vs Gate
 
 ```text
 Grader
@@ -107,7 +107,7 @@ Explicit target pair
 → atomic Gate condition matches
 ```
 
-### 3.2 Metric vs Gate
+### 技术主题：3.2 Metric vs Gate
 
 ```text
 Metric
@@ -129,12 +129,12 @@ TRIGGER if that Metric Result is available and value < 0.90
 
 `0.90`属于Gate，不得写回Metric Specification。Metric value本身不宣布Benchmark PASS / FAIL。
 
-### 3.3 Gate vs Scorecard / Overall Score
+### 技术主题：3.3 Gate vs Scorecard / Overall Score
 
 Gate Result未来进入Scorecard，但Gate不定义：
 
 - Scorecard结构；
-- Gate Result display order；
+- Gate Result 显示顺序；
 - Overall Score；
 - 多个Metrics之间的weight；
 - 多个Gate Results的presentation；
@@ -144,7 +144,7 @@ Scorecard可以并列展示Metric Results、Gate Results与Overall Score，但�
 
 ---
 
-## 4. Non-Offsettable Semantics
+## 4. 技术主题：Non-Offsettable Semantics
 
 Gate是non-offsettable decision policy：
 
@@ -199,7 +199,7 @@ Criticality可以成为Gate Design Audit中的blocking rationale input，但不�
 
 ## 6. Authoritative Inputs 与 Entry Gate
 
-### 6.1 Production inputs
+### 技术主题：6.1 Production inputs
 
 Gate Specification Design至少需要：
 
@@ -209,11 +209,11 @@ Gate Specification Design至少需要：
 4. Validated Test Cases与ExpectedAssertion pairs；
 5. Validated Grader Specification Set及authoritative target coverage；
 6. Validated Metric Specification Set及result semantics、scale与availability policy；
-7. Explicit Benchmark acceptance / non-offsettable intent；
+7. 显式 Benchmark acceptance / 不可抵消意图；
 8. 当前unresolved upstream issues；
 9. 已有Concept Model边界。
 
-### 6.2 Production Entry Gate
+### 6.2 Production 入口门禁
 
 Production Gate Design只有在下列条件满足时开始：
 
@@ -230,7 +230,7 @@ Production Gate Design只有在下列条件满足时开始：
 GATES_BLOCKED
 ```
 
-### 6.3 Method Validation Subset
+### 6.3 Method 验证 Subset
 
 如果production Entry Gate未满足，但存在明确、稳定、可追踪的validated subset，可以输出：
 
@@ -249,11 +249,11 @@ GATES_READY for validation subset
 
 ---
 
-## 7. Gate Scope
+## 7. Gate 范围
 
 每个Gate必须说明：
 
-> If this condition triggers, what declared evaluation scope becomes unacceptable?
+> 如果该条件触发，声明的哪个评估范围会变得不可接受？
 
 常见scope可能是：
 
@@ -261,7 +261,7 @@ GATES_READY for validation subset
 - Outcome evaluation scope；
 - Workflow evaluation scope；
 - capability-specific scope；
-- other explicitly named Benchmark-defined scope。
+- other 显式地 named Benchmark-defined 范围。
 
 v0使用required deterministic `scope: str`，不冻结scope taxonomy enum。Scope必须：
 
@@ -281,7 +281,7 @@ v0使用required deterministic `scope: str`，不冻结scope taxonomy enum。Sco
 
 ---
 
-## 8. Gate Input Types
+## 8. 技术主题：Gate Input Types
 
 v0直接支持两类Definition-level source families：
 
@@ -303,13 +303,13 @@ v0 Gate不得直接消费：
 - Scorecard；
 - Overall Score；
 - another Gate Result；
-- ad hoc Runtime field。
+- ad hoc Runtime 字段。
 
 Concept Model允许future predefined execution-state conditions，但当前没有冻结的execution-status vocabulary或Definition-level reference surface。因此v0不以human-readable hidden string临时实现execution-state Gate；真实need出现时，应先完成Run validity / execution-status modeling，再决定是否增加condition variant。
 
 ---
 
-## 9. Atomic Gate Principle
+## 9. 技术主题：Atomic Gate Principle
 
 v0采用：
 
@@ -337,7 +337,7 @@ Gate Mega:
 A OR B OR C AND NOT D
 ```
 
-### 9.1 Gate Atomicity Test
+### 9.1 Gate 原子性 Test
 
 每个Gate至少检查：
 
@@ -367,7 +367,7 @@ A OR B OR C AND NOT D
 
 ---
 
-## 10. Gate Condition Model
+## 10. 技术主题：Gate Condition Model
 
 Gate必须高度deterministic，因此v0使用discriminated condition union，而不是单个free-form condition string。
 
@@ -380,28 +380,28 @@ GateCondition =
 
 每个Gate只能选择一个variant。Condition variant决定：
 
-- Definition-level reference type；
+- Definition-level 引用类型；
 - predicate fields；
-- Structural / Cross-object validation path；
+- Structural / Cross-对象 验证 path；
 - future Gate Evaluator定位哪类actual Result。
 
 v0不支持：
 
 - arbitrary boolean DSL；
 - nested condition tree；
-- Gate-to-Gate reference；
+- Gate-to-Gate 引用；
 - custom executable expression；
 - raw Evidence predicate。
 
 ---
 
-## 11. Grader Result Gate Condition
+## 11. 技术主题：Grader Result Gate Condition
 
 Grader Result Gate回答：
 
-> Across explicitly selected ExpectedAssertion targets and their selected authoritative Grader Results, does the declared Result semantic predicate satisfy the quantifier?
+> 对于显式选定的 ExpectedAssertion targets 及其权威 Grader Results，声明的 Result 语义谓词是否满足 quantifier？
 
-### 11.1 Membership authority
+### 技术主题：11.1 Membership authority
 
 ```text
 GateTarget:
@@ -425,14 +425,14 @@ GateTarget pair
 → exactly one authoritative GraderTarget
 ```
 
-### 11.2 Result selection
+### 技术主题：11.2 Result selection
 
 一个GateTarget在同一Run semantic scope内可能关联多个distinct Episode / attempt Grader Results。Direct Grader Result Gate必须有required deterministic `result_selection_policy: str`，在quantifier前说明选择：
 
 - all distinct Results；
 - first distinct Result；
 - final distinct Result；
-- other explicitly bounded deterministic subset。
+- other 显式地 bounded 确定性 subset。
 
 Duplicate logical Result records必须先去重。Future Runtime提供Result identity、Episode identity、attempt ordering与Run association；Gate Specification不保存这些actual IDs。
 
@@ -444,7 +444,7 @@ Selection policy不得写：
 
 除非相关semantics已经完整且不会循环依赖Gate trigger judgment。
 
-### 11.3 Trigger semantics
+### 技术主题：11.3 Trigger semantics
 
 `trigger_result_semantics`必须是非空、明确、与referenced Grader Specification Result meanings兼容的list。
 
@@ -456,7 +456,7 @@ trigger_result_semantics: [violated]
 
 `insufficient_evidence`与`not_exercised`不得因criticality或risk concern自动加入该list。如果Benchmark需要阻断judgment insufficiency或exercise gap，应使用独立Metric与Gate，或在有明确独立blocking rationale时建立另一个atomic Gate。
 
-### 11.4 Per-input condition contribution
+### 技术主题：11.4 Per-input condition contribution
 
 Direct Grader Result Gate必须先按以下顺序形成required selected Result observations：
 
@@ -488,18 +488,18 @@ trigger_result_semantics: [violated]
 
 必须固定：
 
-| Selected Result state | Contribution |
+| Selected Result 状态 | Contribution |
 |---|---|
 | `violated` | `MATCH` |
 | `satisfied` | `NON_MATCH` |
 | `insufficient_evidence` | `NON_MATCH` |
 | `not_exercised` | `NON_MATCH` |
 | missing Result | `UNKNOWN` |
-| selection / identity / ordering unresolved | `UNKNOWN` |
+| 选择 / 身份 / 顺序 unresolved | `UNKNOWN` |
 
 `insufficient_evidence`与`not_exercised`是已经存在且semantic meaning已知的Results；只要它们不在trigger list中，就必须是`NON_MATCH`，不能因为risk或criticality被改成`UNKNOWN`。
 
-### 11.5 Quantifier domain
+### 技术主题：11.5 Quantifier domain
 
 v0结构化支持：
 
@@ -532,7 +532,7 @@ empty required domain
 → unavailable_handling
 ```
 
-### 11.6 Three-valued `any` / `all`
+### 技术主题：11.6 Three-valued `any` / `all`
 
 `any`使用Framework-wide frozen rules：
 
@@ -566,7 +566,7 @@ empty required domain
 
 ---
 
-## 12. Multiple Test Cases for One Contract
+## 12. 技术主题：Multiple Test Cases for One Contract
 
 同一个Contract可能出现在多个Test Cases。Gate不得因为`contract_id`相同而隐式聚合：
 
@@ -578,28 +578,28 @@ Contract C007
 
 如果policy是：
 
-> Any explicitly selected target violated triggers.
+> 任一显式选定 target 出现 violated 即触发。
 
 则两个pairs都必须显式进入`targets`，并使用`quantifier: any`。
 
 如果policy是：
 
-> Contract-level performance across Cases is below an acceptable threshold.
+> 跨 Cases 的 Contract 级表现低于可接受阈值。
 
 则Gate应引用已经完成Case multiplicity处理的Metric Specification，不在Gate里临时计算mean、ratio、worst-case或normalization。
 
 Case multiplicity必须在Gate Design Audit说明是：
 
-- explicit independent blocking observations；
+- 显式且独立的阻断观察；
 - 还是已经交给Metric处理的performance samples。
 
 ---
 
-## 13. Metric Threshold Gate Condition
+## 13. 技术主题：Metric Threshold Gate Condition
 
 Metric threshold Gate回答：
 
-> Does the available Metric Result for the referenced Metric Specification cross the explicit non-offsettable acceptability boundary?
+> 所引用 Metric Specification 的 available Metric Result 是否越过显式且不可抵消的可接受边界？
 
 最小字段：
 
@@ -611,7 +611,7 @@ MetricThresholdGateCondition:
 - threshold_value
 ```
 
-### 13.1 Comparator
+### 技术主题：13.1 Comparator
 
 v0支持结构化comparator enum：
 
@@ -632,7 +632,7 @@ actual != threshold
 
 Comparator表达的是trigger condition，而不是success condition。Spec必须避免“minimum 0.90”但又填写`gte`导致反向trigger。
 
-### 13.2 Threshold value
+### 技术主题：13.2 Threshold value
 
 `threshold_value`是Definition-time numeric value。必须满足：
 
@@ -663,7 +663,7 @@ Trigger iff actual Metric value < 0.90
 - 在Gate里重新计算Metric denominator；
 - 在Gate里把多个Metric Results加权平均。
 
-### 13.3 Canonical Metric Result value authority
+### 技术主题：13.3 Canonical Metric Result value authority
 
 Metric threshold comparison必须使用referenced Metric Result的canonical comparable numeric value。以下presentation-only representations不得成为Gate comparison authority：
 
@@ -671,7 +671,7 @@ Metric threshold comparison必须使用referenced Metric Result的canonical comp
 - UI percentage；
 - formatted text；
 - truncated representation；
-- report-only or presentation-only value。
+- report-仅 或 presentation-仅 值。
 
 例如：
 
@@ -689,25 +689,25 @@ Evaluator不得根据display `0.90`把该Gate改成OPEN。
 
 `eq`与`neq`只允许引用定义了exactly comparable canonical numeric domain的Metric。Canonical precision未定义、value是approximate、只有display precision或tolerance未声明时，Gate Definition invalid；Evaluator不得自行发明epsilon、rounding或tolerance。当前不增加precision字段。
 
-### 13.4 Discrete Metric threshold
+### 技术主题：13.4 Discrete Metric threshold
 
 Integer、count等离散Metric的`threshold_value`不一定必须是实际可取得值，但必须同时满足：
 
 - numeric unit compatible；
 - cut point deterministic；
-- Benchmark acceptance meaning explicit；
+- Benchmark acceptance meaning 显式；
 - no implicit normalization；
-- no hidden rate conversion。
+- 无 hidden rate conversion。
 
 例如`count < 0.5`可以数学上唯一表达`count = 0`，但Semantic Review仍必须确认`0.5`这个cut point具有明确Benchmark policy meaning。Gate不得把count自动归一化成rate。
 
 ---
 
-## 14. Metric Availability Gate Condition
+## 14. 技术主题：Metric Availability Gate Condition
 
 Metric availability Gate用于独立表达：
 
-> The referenced required Metric Result must have an available interpretable value; its unavailable / undefined semantic state is non-offsettable.
+> 所引用的必需 Metric Result 必须具有可解释的 available value；其 unavailable / undefined 语义状态不可抵消。
 
 最小字段：
 
@@ -722,11 +722,11 @@ MetricAvailabilityGateCondition:
 
 Metric availability condition contribution固定为：
 
-| Actual Metric Result state | Condition contribution |
+| Actual Metric Result 状态 | Condition contribution |
 |---|---|
 | Result exists且semantic state为unavailable / undefined | `MATCH` → `TRUE` → `TRIGGERED` |
 | Result exists且有available interpretable value | `NON_MATCH` → `FALSE` → `OPEN` |
-| No Metric Result exists | `UNKNOWN` → `unavailable_handling` |
+| 不存在 Metric Result | `UNKNOWN` → `unavailable_handling` |
 
 为什么与threshold Gate分开：
 
@@ -741,7 +741,7 @@ No Metric Result与Metric Result exists but unavailable不是同一actual state�
 
 ---
 
-## 15. Unavailable Input Handling
+## 15. 技术主题：Unavailable Input Handling
 
 每个Gate必须定义：
 
@@ -767,9 +767,9 @@ condition UNKNOWN
 
 `UNKNOWN`可能来自Gate无法取得评估condition所需的required direct input，例如：
 
-- required Grader Result missing；
+- 必需 Grader Result 缺失；
 - required target没有selected Result；
-- referenced Metric Result missing；
+- referenced Metric Result 缺失；
 - Metric threshold Gate收到unavailable Metric Result；
 - required Result identity或attempt order不足，无法执行selection；
 - actual Result与Definition reference无法可靠关联。
@@ -791,11 +791,11 @@ resolve required inputs
 - `ANY(NON_MATCH, UNKNOWN) = UNKNOWN`，适用unavailable handling；
 - `ALL(MATCH, UNKNOWN) = UNKNOWN`，适用unavailable handling。
 
-### `indeterminate`
+### 字段或协议值：`indeterminate`
 
 Gate Result为`INDETERMINATE`：当前证据不足以确定blocking condition是否成立。它不等于OPEN，也不等于TRIGGERED。
 
-### `triggered`
+### 字段或协议值：`triggered`
 
 Gate Result为`TRIGGERED`：Definition明确把required input unavailable本身定义为该Gate的non-offsettable condition。
 
@@ -816,7 +816,7 @@ missing required input
 
 ---
 
-## 16. Insufficient Evidence Propagation
+## 16. 技术主题：Insufficient Evidence Propagation
 
 对于condition：
 
@@ -834,14 +834,14 @@ insufficient_evidence ≠ violated
 
 如果selected Grader Result明确存在且meaning为insufficient，它不是missing direct input；Gate按condition semantic match得到non-match。若Benchmark认为critical judgment insufficiency本身不可接受，应建立：
 
-- Evidence / Judgment Sufficiency Metric + Metric threshold Gate；
+- Evidence / Judgment Sufficiency Metric + Metric 阈值 Gate；
 - 或具有独立blocking rationale的atomic direct condition，前提是upstream Result vocabulary与Benchmark intent明确支持。
 
 不要把violation risk与judgment availability混成一个Gate。
 
 ---
 
-## 17. Not-Exercised Propagation
+## 17. 技术主题：Not-Exercised Propagation
 
 同样：
 
@@ -862,7 +862,7 @@ Exercise / Coverage Metric
 
 ---
 
-## 18. Gate Result Semantics
+## 18. 技术主题：Gate Result Semantics
 
 v0使用以下conceptual Gate Result meanings：
 
@@ -872,13 +872,13 @@ TRIGGERED
 INDETERMINATE
 ```
 
-### OPEN
+### 字段或协议值：OPEN
 
 Required direct inputs可用，atomic condition经过declared policy计算后没有成立。
 
 `OPEN`只表示：
 
-> This Gate condition did not trigger for this Run.
+> 该 Gate condition 在本 Run 中未触发。
 
 它不表示：
 
@@ -888,11 +888,11 @@ Required direct inputs可用，atomic condition经过declared policy计算后没
 - Overall Score高；
 - 所有其他Gates OPEN。
 
-### TRIGGERED
+### 字段或协议值：TRIGGERED
 
 Atomic blocking condition成立，或Definition明确规定required input unavailable使Gate trigger。Declared scope因此不可接受，且不能被其他高分自动抵消。
 
-### INDETERMINATE
+### 字段或协议值：INDETERMINATE
 
 Required input、identity、ordering或compatible Result不足，无法确定condition是否成立。它不能静默显示为OPEN。
 
@@ -900,22 +900,22 @@ Required input、identity、ordering或compatible Result不足，无法确定con
 
 ---
 
-## 19. Gate Explanation Requirements
+## 19. 技术主题：Gate Explanation Requirements
 
 Gate Specification使用required `explanation_requirements: list[str]`，要求future Gate Result至少能说明：
 
 - gate identity；
 - declared scope；
 - condition type；
-- Definition-level source reference；
+- Definition-level 来源 reference；
 - actual Result(s) used或missing；
 - result selection与quantifier where applicable；
 - comparator、threshold与actual Metric value where applicable；
 - whether condition matched；
-- actual unavailable input where applicable；
+- 实际 不可用 输入 where applicable；
 - Gate Result meaning；
 - concise blocking或indeterminate reason；
-- traceability to source Result(s)。
+- traceability to 来源 Result(s)。
 
 Explanation不得保存到Specification中的actual fields，也不要求：
 
@@ -944,7 +944,7 @@ Contract criticality保留在Contract层。Gate的blocking rationale进入Audit�
 
 ---
 
-## 21. Gate vs Run Validity / Execution Status
+## 21. Gate vs Run 有效性 / Execution Status
 
 Run可能出现：
 
@@ -979,20 +979,20 @@ Metric Result missing可以触发Gate-level unavailable handling，但Gate不得
 
 Gate coverage回答：
 
-> Have all explicitly required non-offsettable acceptance conditions been represented by validated Gate Specifications?
+> 所有显式要求且不可抵消的 acceptance conditions，是否都已由经过验证的 Gate Specifications 表示？
 
 而不是：
 
-> Does every Contract have a Gate?
+> 每个 Contract 是否都有 Gate？
 
 Required Gate Set可能来自：
 
-- Benchmark Definition explicit acceptance policy；
-- explicit safety / authorization / prohibited-action blocking intent；
-- explicit mandatory completion policy；
-- explicit required Metric threshold；
-- explicit required Metric availability / evaluation coverage policy；
-- Contract criticality combined with authoritative blocking rationale。
+- Benchmark Definition 显式 acceptance 策略；
+- 显式 safety / authorization / prohibited-action 阻断 intent；
+- 显式 mandatory completion 策略；
+- 显式 必需 Metric 阈值；
+- 显式 必需 Metric availability / evaluation 覆盖 策略；
+- Contract criticality combined with 权威 阻断 理由。
 
 禁止因为看到`criticality: critical`自动创建Gate。
 
@@ -1004,7 +1004,7 @@ No non-offsettable acceptance condition is required for this Benchmark revision.
 
 不能因为没有authoring Gate而默认coverage complete。
 
-### Gate Coverage Review
+### 技术主题：Gate Coverage Review
 
 建议至少记录：
 
@@ -1022,18 +1022,18 @@ Coverage Review不是Core Object，也不成为Gate membership或blocking policy
 
 ---
 
-## 23. Gate Specification Candidate / Working Stage
+## 23. 技术主题：Gate Specification Candidate / Working Stage
 
 v0不引入mandatory Gate Specification Candidate对象或Candidate lifecycle。
 
 复杂authoring可以使用temporary Working Gate Drafts比较：
 
-- atomic split vs combined condition；
-- direct Grader Result vs Metric threshold source；
+- atomic split vs combined 条件；
+- 直接 Grader Result vs Metric 阈值 来源；
 - target membership；
 - `any` vs `all`；
 - threshold direction/value；
-- `indeterminate` vs explicit unavailable-trigger；
+- `indeterminate` vs 显式 不可用-trigger；
 - scope interpretation；
 - explanation requirements。
 
@@ -1049,7 +1049,7 @@ Working Draft：
 
 ---
 
-## 24. Gate Specification Design Audit
+## 24. 技术主题：Gate Specification Design Audit
 
 v0引入轻量、非Core、非authoritative的Gate Specification Design Audit，建议至少记录：
 
@@ -1083,9 +1083,9 @@ Audit：
 
 ---
 
-## 25. Minimal GateSpecification Schema Proposal
+## 25. 技术主题：Minimal GateSpecification Schema Proposal
 
-### 25.1 GateSpecification
+### 技术主题：25.1 GateSpecification
 
 ```text
 GateSpecification:
@@ -1098,7 +1098,7 @@ GateSpecification:
 - explanation_requirements: list[str]
 ```
 
-### 25.2 GateCondition union
+### 技术主题：25.2 GateCondition union
 
 ```text
 GateCondition =
@@ -1107,7 +1107,7 @@ GateCondition =
   | MetricAvailabilityGateCondition
 ```
 
-### 25.3 GraderResultGateCondition
+### 技术主题：25.3 GraderResultGateCondition
 
 ```text
 GraderResultGateCondition:
@@ -1118,7 +1118,7 @@ GraderResultGateCondition:
 - quantifier: any | all
 ```
 
-### 25.4 GateTarget
+### 技术主题：25.4 GateTarget
 
 ```text
 GateTarget:
@@ -1126,7 +1126,7 @@ GateTarget:
 - contract_id
 ```
 
-### 25.5 MetricThresholdGateCondition
+### 技术主题：25.5 MetricThresholdGateCondition
 
 ```text
 MetricThresholdGateCondition:
@@ -1136,7 +1136,7 @@ MetricThresholdGateCondition:
 - threshold_value: number
 ```
 
-### 25.6 MetricAvailabilityGateCondition
+### 技术主题：25.6 MetricAvailabilityGateCondition
 
 ```text
 MetricAvailabilityGateCondition:
@@ -1145,7 +1145,7 @@ MetricAvailabilityGateCondition:
 - trigger_on: unavailable
 ```
 
-### 25.7 GateResultSemantics
+### 技术主题：25.7 GateResultSemantics
 
 ```text
 GateResultSemantics:
@@ -1159,7 +1159,7 @@ GateResultSemantics:
 
 ---
 
-## 26. Schema Field Decisions
+## 26. Schema Field 决定s
 
 | 候选字段 | v0决定 | 理由 |
 |---|---|---|
@@ -1176,7 +1176,7 @@ GateResultSemantics:
 | `quantifier` | `any | all` enum | 支持当前真实atomic multi-target need，不引入count/boolean DSL |
 | `metric_id` | Metric conditions必填 | Definition-level reference；Runtime以后定位本Run Metric Result |
 | `comparator` | threshold condition enum | Gate determinism要求结构化comparison direction |
-| `threshold_value` | threshold condition number | Definition-time acceptability boundary |
+| `threshold_value` | 阈值 条件 number | Definition-time acceptability 边界 |
 | `trigger_on: unavailable` | availability condition固定literal | 独立表达required Metric unavailable blocker |
 | `unavailable_handling` | 必填enum | Missing input不能默认OPEN，也不能全局自动trigger |
 | `result_semantics` | 必填nested | OPEN/TRIGGERED/INDETERMINATE meaning必须scope-aware |
@@ -1189,7 +1189,7 @@ GateResultSemantics:
 | actual triggered/value/match | 禁止 | 属于Gate Result |
 | Scorecard/Overall refs | 禁止 | 属于downstream presentation/aggregation |
 
-### ID Rules
+### 技术主题：ID Rules
 
 推荐形式：
 
@@ -1211,39 +1211,39 @@ GATE003
 
 ---
 
-## 27. Schema Field Semantics
+## 27. Schema 字段语义
 
-### 27.1 gate_id
+### 技术主题：27.1 gate_id
 
 非空string，表示Definition-time Gate Specification identity，不是Runtime Gate Result ID。
 
-### 27.2 name
+### 技术主题：27.2 name
 
 非空、human-readable、meaningful。禁止只有`gate`、`quality check`、`acceptance`等无法区分condition和scope的名称。
 
-### 27.3 scope
+### 技术主题：27.3 scope
 
 非空deterministic string，说明`TRIGGERED`使哪个Benchmark-defined evaluation scope不可接受。不能保存actual Run ID或Subject ID。
 
-### 27.4 condition
+### 技术主题：27.4 condition
 
 必填且恰好匹配一个union variant。Condition fields不得跨variant混用。
 
-### 27.5 unavailable_handling
+### 技术主题：27.5 unavailable_handling
 
 必填enum，只能是`indeterminate`或`triggered`。它不定义actual missing原因，也不产生Runtime lifecycle `deferred`。
 
-### 27.6 result_semantics
+### 技术主题：27.6 result_semantics
 
 四个非空strings共同定义future OPEN、TRIGGERED、INDETERMINATE与blocking effect。`triggered_meaning`必须与declared scope和condition一致；`blocking_effect`必须明确non-offsettable。
 
-### 27.7 explanation_requirements
+### 技术主题：27.7 explanation_requirements
 
 必填非空list，定义future Gate Result必须提供的事实解释与traceability categories，不保存actual explanation。
 
 ---
 
-## 28. Gate Condition Determinism
+## 28. Gate Condition 确定性
 
 两个conforming implementers看到：
 
@@ -1259,17 +1259,17 @@ same current Benchmark Definition
 
 1. Resolve declared scope；
 2. Resolve condition variant；
-3. Resolve Definition-level source references；
-4. Locate actual Results for the current Run；
-5. Deduplicate duplicate logical direct Grader Results where applicable；
-6. Apply direct Grader `result_selection_policy` where applicable；
-7. Classify every required selected Grader Result observation as`MATCH / NON_MATCH / UNKNOWN`；
-8. Apply the frozen three-valued`any / all`over the complete required contribution domain；
-9. For Metric threshold, compare the canonical comparable numeric value；for Metric availability, classify exists-available / exists-unavailable / missing；
-10. Derive condition`TRUE / FALSE / UNKNOWN`；
-11. Apply`unavailable_handling`only when the overall atomic condition is`UNKNOWN`；
-12. Map`TRUE → TRIGGERED`and`FALSE → OPEN`；
-13. Verify blocking effect and explanation requirements。
+3. Resolve Definition-level 来源 references；
+4. Locate 实际 Results 用于 该 当前 Run；
+5. Deduplicate duplicate 逻辑 直接 Grader Results where applicable；
+6. Apply 直接 Grader `result_selection_policy` where applicable；
+7. Classify 每个 必需 选定 Grader Result observation 作为`MATCH / NON_MATCH / UNKNOWN`；
+8. Apply 该 frozen three-valued`any / all`over 该 完整 必需 contribution domain；
+9. For Metric 阈值, compare 该 canonical comparable 数值 值；用于 Metric availability, classify exists-可用 / exists-不可用 / 缺失；
+10. Derive 条件`TRUE / FALSE / UNKNOWN`；
+11. Apply`unavailable_handling`仅 when 该 overall atomic 条件 是`UNKNOWN`；
+12. Map`TRUE → TRIGGERED`与`FALSE → OPEN`；
+13. Verify 阻断 effect 与 解释 要求。
 
 不允许：
 
@@ -1287,9 +1287,9 @@ same current Benchmark Definition
 
 ---
 
-## 29. Three-Layer Gate Specification Validation
+## 29. Three-Layer Gate Specification 验证
 
-### 29.1 A. Structural / Field Validation
+### 29.1 A. Structural / Field 验证
 
 未来可deterministic检查：
 
@@ -1312,7 +1312,7 @@ same current Benchmark Definition
 - explanation requirements非空；
 - 不存在grader ID、Gate weight、severity、actual Result、Scorecard或Overall字段。
 
-### 29.2 B. Cross-object Validation
+### 29.2 B. Cross-object 验证
 
 需要完整Definition context：
 
@@ -1332,7 +1332,7 @@ same current Benchmark Definition
 - condition没有hidden Runtime ID、grader ID或Scorecard authority；
 - Gate Set、Coverage Review与Audit双向一致。
 
-### 29.3 C. Semantic Gate Review
+### 技术主题：29.3 C. Semantic Gate Review
 
 逐Gate至少检查：
 
@@ -1380,25 +1380,25 @@ Semantic Review需要Agent / Human judgment，不能伪装成Schema validation�
 
 至少区分：
 
-- missing authoritative blocking intent；
+- 缺失 权威 阻断 intent；
 - gate-purpose ambiguity；
 - scope ambiguity；
-- required Gate Set / coverage issue；
+- 必需 Gate Set / 覆盖 issue；
 - atomicity / composition issue；
 - target membership issue；
 - Metric reference issue；
-- Grader Result semantic compatibility issue；
-- result-selection / multiplicity issue；
+- Grader Result 语义 compatibility issue；
+- 结果-选择 / multiplicity issue；
 - quantifier issue；
-- threshold / comparator / scale issue；
+- 阈值 / comparator / scale issue；
 - Metric availability issue；
 - unavailable-input issue；
-- criticality-to-Gate leakage；
-- insufficient / not-exercised misclassification；
-- Run validity boundary issue；
+- criticality-to-Gate 泄漏；
+- insufficient / 不-exercised misclassification；
+- Run validity 边界 issue；
 - explanation issue；
 - Schema insufficiency；
-- downstream Scorecard / Overall concern；
+- 下游 Scorecard / Overall 问题；
 - Runtime implementation dependency。
 
 Rollback：
@@ -1430,46 +1430,46 @@ Gate policy clear but executable Result location unknown
 
 ---
 
-## 31. Gate Specification Design Workflow
+## 31. 技术主题：Gate Specification Design Workflow
 
-### Step 1 — Verify Inputs
+### 步骤 1 — Verify Inputs
 
 - 验证Benchmark Definition、Contracts、Graders、Metrics、statuses与versions；
 - production Entry Gate不满足时立即BLOCK；
 - validation subset保留限定边界。
 
-### Step 2 — Identify Required Non-Offsettable Conditions
+### 步骤 2 — Identify Required Non-Offsettable Conditions
 
 - 从authoritative acceptance intent收集required conditions；
 - 不因criticality自动造Gate；
 - 允许显式记录当前revision不需要Gate。
 
-### Step 3 — Define Gate Meaning and Scope
+### 步骤 3 — Define Gate Meaning and 范围
 
 - 写清condition为何non-offsettable；
 - 写清trigger会阻断什么scope；
 - 确认它不是Metric、warning、Run status或Scorecard policy。
 
-### Step 4 — Apply Atomicity Test
+### 步骤 4 — Apply 原子性 Test
 
 - 比较source、reason、remediation、scope、unavailable handling与explanation；
 - 独立conditions拆成独立Gates；
 - 不创建AND/OR mega Gate。
 
-### Step 5 — Choose Condition Variant
+### 步骤 5 — Choose Condition Variant
 
 - Grader Result semantic；
 - Metric threshold；
 - Metric availability；
 - 不使用raw Evidence或hidden Runtime fields。
 
-### Step 6 — Freeze Membership / Reference
+### 步骤 6 — Freeze Membership / Reference
 
 - Direct Grader Gate列explicit target pairs；
 - Metric Gate引用one metric ID；
 - 不使用grader ID、selector或Runtime discovery。
 
-### Step 7 — Define Result Selection and Quantifier
+### 步骤 7 — Define Result Selection and Quantifier
 
 - Direct Grader Gate定义deduplication invariant与selection intent；
 - 明确membership、deduplication与selection后形成的required contribution domain；
@@ -1479,7 +1479,7 @@ Gate policy clear but executable Result location unknown
 - empty required domain固定为`UNKNOWN`；
 - 不在Gate内做count/rate aggregation。
 
-### Step 8 — Define Threshold or Availability Predicate
+### 步骤 8 — Define Threshold or Availability Predicate
 
 - Threshold Gate写comparator与numeric value；
 - 验证Metric scale、direction、range、unit与precision；
@@ -1488,7 +1488,7 @@ Gate policy clear but executable Result location unknown
 - 离散Metric cut point必须unit-compatible、deterministic且没有implicit normalization；
 - Availability Gate只检查declared unavailable semantics。
 
-### Step 9 — Define Unavailable Handling
+### 步骤 9 — Define Unavailable Handling
 
 - 先把整个atomic condition计算为`TRUE / FALSE / UNKNOWN`；
 - 只有overall`UNKNOWN`才应用`unavailable_handling`；
@@ -1497,26 +1497,26 @@ Gate policy clear but executable Result location unknown
 - missing不默认OPEN；
 - 不猜Runtime root cause。
 
-### Step 10 — Define Result and Explanation Semantics
+### 步骤 10 — Define Result and Explanation Semantics
 
 - OPEN / TRIGGERED / INDETERMINATE；
-- non-offsettable blocking effect；
+- non-offsettable 阻断 effect；
 - required facts与traceability；
 - 不写actual values或Result IDs。
 
-### Step 11 — Build Gate Specifications
+### 步骤 11 — Build Gate Specifications
 
 - 分配`GATExxx`；
 - 使用Proposed Schema；
 - 不写Runtime、Scorecard、Overall或implementation。
 
-### Step 12 — Build Coverage Review and Audit
+### 步骤 12 — Build Coverage Review and Audit
 
 - required Gate Set与uncovered conditions；
 - purpose、scope、atomicity、membership、threshold、unavailable与criticality rationale；
 - 保留downstream concerns。
 
-### Step 13 — Validate and Determine Status
+### 步骤 13 — Validate and Determine Status
 
 - Structural / Field Validation；
 - Cross-object Validation；
@@ -1527,7 +1527,7 @@ Gate policy clear but executable Result location unknown
 
 ---
 
-## 32. Gate Specification Design Status
+## 32. Gate Specification 设计状态
 
 Production状态只保留：
 
@@ -1536,18 +1536,18 @@ GATES_READY
 GATES_BLOCKED
 ```
 
-### 32.1 GATES_READY
+### 技术主题：32.1 GATES_READY
 
 只有同时满足：
 
-- authoritative upstream Definition current；
-- required Grader / Metric Specifications validated；
+- 权威 upstream Definition 当前；
+- 必需 Grader / Metric Specifications 已验证；
 - required Gate Set明确；
 - explicit no-Gate decision或所有required conditions已覆盖；
 - 每个Gate具有独立blocking meaning与scope；
 - 每个condition atomic；
 - source references valid；
-- Grader target membership explicit；
+- Grader 目标 membership 显式；
 - result selection与quantifier明确；
 - contribution classification与quantifier domain deterministic；
 - partial-information`any / all`使用frozen three-valued semantics；
@@ -1560,14 +1560,14 @@ GATES_BLOCKED
 - criticality没有自动变Gate；
 - insufficient / not-exercised没有偷换；
 - OPEN / TRIGGERED / INDETERMINATE semantics清楚；
-- blocking effect non-offsettable；
+- 阻断 effect non-offsettable；
 - explanation requirements充分；
 - 所有Gates通过三层validation；
 - Gate Set、Coverage Review与Audit一致；
 - 没有unresolved blocker；
 - 没有Runtime、Scorecard或Overall leakage。
 
-### 32.2 GATES_BLOCKED
+### 技术主题：32.2 GATES_BLOCKED
 
 例如：
 
@@ -1596,7 +1596,7 @@ GATES_BLOCKED
 
 状态不是Gate Result，也不是Benchmark acceptance Result。
 
-### 32.3 Validation subset
+### 32.3 验证 subset
 
 只对明确validated subset完成Gate Design时，使用：
 
@@ -1608,11 +1608,11 @@ GATES_READY for validation subset
 
 ---
 
-## 33. Required Outputs
+## 33. 必需输出
 
 Gate Specification Design至少产生：
 
-1. **Gate Specification Set**：Definition-time atomic policies；
+1. **Gate Specification Set**：Definition-time atomic 策略；
 2. **Gate Coverage Review**：required non-offsettable conditions与coverage；
 3. **Gate Specification Design Audit**：purpose、scope、source、atomicity、membership、threshold与unavailable rationale；
 4. **Gate Design Issues**：blocking issues与downstream concerns；
@@ -1624,7 +1624,7 @@ Working Gate Drafts不是required final output，也不算Gate coverage。
 
 ---
 
-## 34. Gate Result Boundary
+## 34. 技术主题：Gate Result Boundary
 
 本轮不设计完整GateResult Schema，但必须保持：
 
@@ -1643,7 +1643,7 @@ Future Gate Result在概念上至少需要关联或表达：
 - resolved source Results；
 - actual input availability；
 - actual semantic matches、Metric value或availability state；
-- actual quantifier/comparison evaluation；
+- 实际 quantifier/比较 evaluation；
 - OPEN / TRIGGERED / INDETERMINATE；
 - blocking / indeterminate reason；
 - traceability。
@@ -1674,75 +1674,75 @@ Gate Specification不引用Scorecard。Gate Result进入Scorecard，但`TRIGGERE
 
 ---
 
-## 36. Schema Design Findings
+## 36. Schema Design 发现项
 
-### 36.1 A discriminated condition union is required
+### 技术主题：36.1 A discriminated condition union is required
 
 Grader semantic match、Metric numeric threshold与Metric availability具有不同fields、references和validation paths。单一human-readable condition string无法保证Gate-level determinism，因此v0采用三variant union。
 
-### 36.2 Atomic Gates avoid a boolean DSL
+### 技术主题：36.2 Atomic Gates avoid a boolean DSL
 
 当前真实method needs可通过one Gate / one condition与多个Gate Specifications表达。没有证据支持nested AND/OR graph、Gate dependency或condition language。
 
-### 36.3 GateTarget pair is the Grader membership authority
+### 技术主题：36.3 GateTarget pair is the Grader membership authority
 
 `(test_case_id, contract_id)`唯一定位ExpectedAssertion与authoritative GraderTarget。`grader_id`不进入Gate，避免shared Grader ambiguity与双authority。
 
-### 36.4 Direct Grader Gates need Result selection
+### 技术主题：36.4 Direct Grader Gates need Result selection
 
 同一target可能在一个Run semantic scope内产生多个Episode / attempt Results。Direct Gate必须定义deduplication后选择all / first / final等distinct Results；Runtime identity不进入Definition。
 
-### 36.5 Quantifier is structured but deliberately minimal
+### 技术主题：36.5 Quantifier is structured but deliberately minimal
 
 `any | all`覆盖当前atomic multi-target semantic match needs。Count、rate和normalized Contract performance应先成为Metric，不在Gate重复aggregation。
 
-### 36.6 Threshold comparator and value must be structured
+### 技术主题：36.6 Threshold comparator and value must be structured
 
 Gate是acceptability boundary，comparison direction错误会直接改变blocking Result。Comparator enum + numeric threshold优于free-form text，并支持scale compatibility validation。
 
-### 36.7 Metric availability is an independent atomic condition
+### 技术主题：36.7 Metric availability is an independent atomic condition
 
 Metric below threshold与Metric unavailable通常有不同reason/remediation，因此独立availability variant保持diagnosis清楚，也避免threshold condition藏两个trigger paths。
 
-### 36.8 Unavailable handling has no implicit OPEN
+### 技术主题：36.8 Unavailable handling has no implicit OPEN
 
 Missing required direct input只能显式形成INDETERMINATE或TRIGGERED。`DEFERRED`保留给future Runtime lifecycle，不进入Gate Result semantic enum。
 
-### 36.9 Scope remains deterministic string in v0
+### 36.9 范围 remains deterministic string in v0
 
 当前没有真实evidence要求冻结scope taxonomy。Required string足以表达whole Run、Outcome、Workflow或capability scope；future cross-Gate reuse evidence可触发structured scope finding。
 
-### 36.10 No Gate weight or severity
+### 技术主题：36.10 No Gate weight or severity
 
 Gate天然non-offsettable。Weight会把Gate重新变Metric；non-blocking severity/advisory不属于Gate。
 
-### 36.11 Execution status variant is deferred, not hidden
+### 技术主题：36.11 Execution status variant is deferred, not hidden
 
 Concept Model允许future predefined execution-state condition，但当前缺少冻结status vocabulary与validity model。v0拒绝用free-form Runtime string临时实现；真实need应先进入Run validity / execution-status design。
 
-### 36.12 No Candidate, Runtime IDs or actual Result fields
+### 技术主题：36.12 No Candidate, Runtime IDs or actual Result fields
 
 Working Draft + Audit足够。Episode/attempt/Result IDs与actual matches属于Runtime Gate Result evidence，不进入Gate Specification。
 
-### 36.13 Three-valued logic is a Framework invariant, not a field
+### 技术主题：36.13 Three-valued logic is a Framework invariant, not a field
 
 Real method validation发现partial-information`any / all`与unavailable handling作用阶段存在generic ambiguity。Focused hardening通过Framework-wide`MATCH / NON_MATCH / UNKNOWN → TRUE / FALSE / UNKNOWN → Gate Result`规则关闭该问题，不增加`three_valued_logic_policy`、`short_circuit_policy`或`unknown_policy`字段。允许每个Gate自行配置truth rules会破坏cross-Gate determinism。
 
-### 36.14 One Gate-level quantifier remains sufficient
+### 技术主题：36.14 One Gate-level quantifier remains sufficient
 
 `quantifier: any | all`只作用于selection后全部required Result contributions。当前不增加`target_quantifier`或`result_quantifier`。需要双层量化、至少N个targets或violation rate时，优先通过Metric形成独立measure，再由Metric Gate引用。
 
-### 36.15 Canonical Metric value authority needs no precision field
+### 技术主题：36.15 Canonical Metric value authority needs no precision field
 
 Threshold Gate只比较canonical comparable numeric value；display-rounded、formatted或presentation-only value不具有authority。`eq / neq`需要referenced Metric提供exactly comparable canonical numeric domain。当前finding要求normative method rule与Definition validation，不证明需要新增precision、epsilon或tolerance字段。
 
-### 36.16 Missing Metric Result remains Gate-level unavailable input
+### 技术主题：36.16 Missing Metric Result remains Gate-level unavailable input
 
 Existing unavailable Metric Result由Metric availability condition直接匹配；No Metric Result使condition为`UNKNOWN`并进入`unavailable_handling`。当前validation没有出现需要独立missing-result condition variant的blocking policy。
 
 ---
 
-## 37. Method Self-Review
+## 37. Method 自查
 
 | 检查问题 | v0结论 |
 |---|---|
@@ -1774,7 +1774,7 @@ Existing unavailable Metric Result由Metric availability condition直接匹配�
 | 26. 是否泄漏Runtime implementation？ | 未泄漏。没有actual IDs、values、evaluator code、CLI或serialization。 |
 | 27. real validation暴露并关闭了什么？ | 暴露partial-information ANY/ALL与unavailable handling阶段歧义；通过统一三值贡献、truth rules与canonical Metric authority完成focused hardening。 |
 
-### 37.1 Self-review corrections incorporated
+### 37.1 已纳入的自查修正
 
 本轮自审已在正文处理：
 
@@ -1797,7 +1797,7 @@ Existing unavailable Metric Result由Metric availability condition直接匹配�
 - 为防止Run status leakage，execution-state variant延后至合法status model；
 - 为防止Scorecard leakage，Gate只定义atomic condition和scope。
 
-### 37.2 Current method conclusion
+### 技术主题：37.2 Current method conclusion
 
 第一版method随后完成real validation。该validation保留完整Target`TRACE_BLOCKED`边界，并曾因partial-information quantifier semantics不唯一得到：
 
@@ -1815,11 +1815,11 @@ GATE_SPEC_DESIGN_V0_FREEZE_READY: YES
 
 ---
 
-## 38. Real Method Validation Hardening and Focused Re-validation
+## 38. Real Method 验证 Hardening and Focused Re-validation
 
 本节记录real method validation暴露的generic finding及修复后的focused regression。它不重跑完整Gate validation，不保存Runtime Results，也不把controlled Results解释为Target真实performance。
 
-### 38.1 ISSUE-GATE-001
+### 技术主题：38.1 ISSUE-GATE-001
 
 原始finding：
 
@@ -1844,9 +1844,9 @@ resolve inputs
 → OPEN / TRIGGERED / INDETERMINATE
 ```
 
-### 38.2 Focused regression — `unavailable_handling: indeterminate`
+### 技术主题：38.2 Focused regression — `unavailable_handling: indeterminate`
 
-| Quantifier | Contributions | Condition | Gate Result | Result |
+| Quantifier | Contributions | 条件 | Gate Result | 结果 |
 |---|---|---|---|---|
 | ANY | `MATCH + UNKNOWN` | `TRUE` | `TRIGGERED` | PASS |
 | ANY | `NON_MATCH + UNKNOWN` | `UNKNOWN` | `INDETERMINATE` | PASS |
@@ -1857,33 +1857,33 @@ resolve inputs
 | ALL | `MATCH + MATCH` | `TRUE` | `TRIGGERED` | PASS |
 | ALL | `MATCH + NON_MATCH` | `FALSE` | `OPEN` | PASS |
 
-### 38.3 Focused regression — `unavailable_handling: triggered`
+### 技术主题：38.3 Focused regression — `unavailable_handling: triggered`
 
-| Quantifier | Contributions | Condition | Gate Result | Reason | Result |
+| Quantifier | Contributions | 条件 | Gate Result | 原因 | 结果 |
 |---|---|---|---|---|---|
-| ANY | `MATCH + UNKNOWN` | `TRUE` | `TRIGGERED` | condition-triggered | PASS |
-| ANY | `NON_MATCH + UNKNOWN` | `UNKNOWN` | `TRIGGERED` | unavailable-policy-triggered | PASS |
-| ALL | `MATCH + UNKNOWN` | `UNKNOWN` | `TRIGGERED` | unavailable-policy-triggered | PASS |
-| ALL | `NON_MATCH + UNKNOWN` | `FALSE` | `OPEN` | condition determinately false | PASS |
+| ANY | `MATCH + UNKNOWN` | `TRUE` | `TRIGGERED` | 条件-triggered | PASS |
+| ANY | `NON_MATCH + UNKNOWN` | `UNKNOWN` | `TRIGGERED` | 不可用-策略-triggered | PASS |
+| ALL | `MATCH + UNKNOWN` | `UNKNOWN` | `TRIGGERED` | 不可用-策略-triggered | PASS |
+| ALL | `NON_MATCH + UNKNOWN` | `FALSE` | `OPEN` | 条件 determinately false | PASS |
 
 最后一行证明：存在`UNKNOWN`不能覆盖`ALL`已经由`NON_MATCH`确定的`FALSE`。
 
-### 38.4 Semantic Result and domain regression
+### 技术主题：38.4 Semantic Result and domain regression
 
 对于`trigger_result_semantics: [violated]`：
 
-| Selected state | Contribution | Result |
+| Selected 状态 | Contribution | Result |
 |---|---|---|
 | `violated` | `MATCH` | PASS |
 | `satisfied` | `NON_MATCH` | PASS |
 | `insufficient_evidence` | `NON_MATCH` | PASS |
 | `not_exercised` | `NON_MATCH` | PASS |
-| missing Result | `UNKNOWN` | PASS |
-| selection / ordering unresolved | `UNKNOWN` | PASS |
+| 缺失 Result | `UNKNOWN` | PASS |
+| 选择 / 顺序 unresolved | `UNKNOWN` | PASS |
 
 Empty required quantifier domain固定为`UNKNOWN → unavailable_handling`，不使用`ANY([]) = FALSE`或`ALL([]) = TRUE`。一个`quantifier`只处理selection后全部required contributions；hidden per-target/cross-target dual quantification被拒绝。
 
-### 38.5 Metric regression
+### 技术主题：38.5 Metric regression
 
 Canonical threshold：
 
@@ -1900,44 +1900,44 @@ threshold:       0.90
 
 `eq 0.90`只在exact canonical equality semantics valid时执行；对canonical`0.8995`结果为FALSE / OPEN，不能根据display value变成TRUE。Canonical precision undefined、approximate-only或tolerance unspecified时，`eq / neq`Gate Definition invalid。
 
-| Metric actual state | Threshold condition | Availability condition | Result |
+| Metric 实际 状态 | Threshold 条件 | Availability 条件 | Result |
 |---|---|---|---|
-| exists + available canonical numeric value | comparator TRUE/FALSE | `NON_MATCH → OPEN` | PASS |
-| exists + unavailable / undefined | `UNKNOWN → unavailable_handling` | `MATCH → TRIGGERED` | PASS |
-| no Metric Result | `UNKNOWN → unavailable_handling` | `UNKNOWN → unavailable_handling` | PASS |
+| exists + 可用 canonical 数值 值 | comparator TRUE/FALSE | `NON_MATCH → OPEN` | PASS |
+| exists + 不可用 / undefined | `UNKNOWN → unavailable_handling` | `MATCH → TRIGGERED` | PASS |
+| 无 Metric Result | `UNKNOWN → unavailable_handling` | `UNKNOWN → unavailable_handling` | PASS |
 
 Exists-but-unavailable与missing继续保持不同source semantics；threshold Gate不把unavailable转换成numeric zero。
 
-### 38.6 Atomicity and expressiveness regression
+### 38.6 原子性 and expressiveness regression
 
 Authorization violation、workflow Metric threshold与workflow Metric availability仍是三个独立atomic Gates，因为source family、diagnosis、remediation与explanation不同。Three-valued logic没有引入mega Gate、nested boolean expression或Gate-to-Gate reference。
 
 当前`any / all`不直接表达：
 
-- all targets have any violated attempt；
-- at least N targets violated；
-- violation rate greater than X。
+- 所有 目标 have any violated attempt；
+- at least N 目标 violated；
+- violation rate 大于 X。
 
 这些需求优先进入Metric，再由Metric Gate引用。它们是future extension，不是当前blocker，因为validation-local Required Gate Set不依赖这些表达。
 
-### 38.7 Focused freeze decision
+### 技术主题：38.7 Focused freeze decision
 
 | Freeze requirement | Result |
 |---|---|
-| ISSUE-GATE-001 closed | PASS |
-| ANY partial UNKNOWN deterministic | PASS |
-| ALL partial UNKNOWN deterministic | PASS |
-| unavailable handling phase deterministic | PASS |
-| contribution model stable | PASS |
-| insufficient / not-exercised classification stable | PASS |
-| empty domain deterministic | PASS |
-| canonical Metric value authority stable | PASS |
-| `eq / neq`precision boundary stable | PASS |
-| Metric unavailable / missing separation stable | PASS |
+| ISSUE-GATE-001 已关闭 | PASS |
+| ANY partial UNKNOWN 确定性 | PASS |
+| ALL partial UNKNOWN 确定性 | PASS |
+| 不可用 处理 phase 确定性 | PASS |
+| contribution model 稳定 | PASS |
+| insufficient / 不-exercised 分类 稳定 | PASS |
+| 空 domain 确定性 | PASS |
+| canonical Metric 值 权威 稳定 | PASS |
+| `eq / neq`precision 边界 稳定 | PASS |
+| Metric 不可用 / 缺失 separation 稳定 | PASS |
 | atomicity unchanged | PASS |
-| no Schema extension required | PASS |
-| no Runtime / Scorecard leakage | PASS |
-| new generic blocker | NONE |
+| 无 Schema extension 必需 | PASS |
+| 无 Runtime / Scorecard leakage | PASS |
+| 新的通用阻断项 | NONE |
 
 Final focused status：
 
@@ -1946,18 +1946,18 @@ ISSUE-GATE-001: CLOSED
 GATE_SPEC_DESIGN_V0_FREEZE_READY: YES
 ```
 
-Remaining nonblocking future limitations：
+仍保留以下不阻断当前工作的后续限制：
 
-- large-scale result-selection string auditability；
-- discrete-domain cut-point policy examples；
-- advanced/double quantifier needs；
+- large-scale 结果-选择 字符串 auditability；
+- discrete-domain cut-point 策略 examples；
+- advanced/double quantifier 需求；
 - concrete implementation validation。
 
 ---
 
-## 39. Final Decision Checklist
+## 39. 最终决定 检查清单
 
-### Inputs and Required Gate Set
+### 技术主题：Inputs and Required Gate Set
 
 - [ ] Upstream Grader / Metric Specifications validated且current
 - [ ] Inputs属于同一Benchmark Definition version
@@ -1965,7 +1965,7 @@ Remaining nonblocking future limitations：
 - [ ] Required Gate Set完整，或explicit no-Gate decision已记录
 - [ ] Validation subset保留full-Benchmark blocker
 
-### Identity、Scope and Membership
+### Identity、范围 and Membership
 
 - [ ] Gate name与blocking purpose清楚
 - [ ] Scope明确且属于当前Benchmark surface
@@ -1974,7 +1974,7 @@ Remaining nonblocking future limitations：
 - [ ] 没有grader ID、selector或Runtime discovery双authority
 - [ ] References通过Cross-object Validation
 
-### Atomicity and Condition
+### 原子性 and Condition
 
 - [ ] One Gate只有one atomic condition
 - [ ] 不需要AND/OR graph才能解释
@@ -1982,7 +1982,7 @@ Remaining nonblocking future limitations：
 - [ ] Condition variant与fields一致
 - [ ] Blocking确实non-offsettable
 
-### Grader Result Condition
+### 技术主题：Grader Result Condition
 
 - [ ] Result selection与duplicate invariant明确
 - [ ] Trigger semantics与Grader vocabulary兼容
@@ -1995,7 +1995,7 @@ Remaining nonblocking future limitations：
 - [ ] Case / Episode multiplicity处理清楚
 - [ ] Known insufficient与not-exercised Result是`NON_MATCH`而不是`UNKNOWN`，除非它们显式进入trigger list
 
-### Metric Conditions
+### 技术主题：Metric Conditions
 
 - [ ] Metric ref存在且validated
 - [ ] Comparator、threshold与Metric scale/direction/range/unit兼容
@@ -2008,7 +2008,7 @@ Remaining nonblocking future limitations：
 - [ ] Metric unavailable与numeric threshold condition分开
 - [ ] Gate没有重新计算Metric aggregation
 
-### Unavailable and Result Meaning
+### 技术主题：Unavailable and Result Meaning
 
 - [ ] Missing required input不默认OPEN
 - [ ] Unavailable handling明确为indeterminate或triggered
@@ -2020,7 +2020,7 @@ Remaining nonblocking future limitations：
 - [ ] Explanation requirements完整
 - [ ] 没有actual Result values、IDs或triggered boolean
 
-### Boundaries and Validation
+### Boundaries and 验证
 
 - [ ] Criticality没有自动变Gate
 - [ ] 没有Gate weight或severity averaging

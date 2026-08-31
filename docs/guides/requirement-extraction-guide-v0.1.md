@@ -1,4 +1,4 @@
-# 《Requirement Extraction Guide v0.1》
+# 《需求提取指南 v0.1》
 
 Status: Design Guide
 Version: v0.1
@@ -110,7 +110,7 @@ Agent 应先理解 Skill 的整体任务和正式行为，再识别主规范引�
 
 读取一个资源，不代表其中所有内容都自动具有规范性。Agent 必须判断规范委托了什么责任，以及哪些内容与该委托有关。
 
-### 4.3 Normative Source Inventory
+### 技术主题：4.3 Normative Source Inventory
 
 Normative Source Inventory 是 Pass 1 的明确中间产物，用于在 Requirement Candidate Collection 前回答：哪些资源为什么具有规范性，以及其规范范围是什么。
 
@@ -140,7 +140,7 @@ Capability Map 是 Pass 1 的阅读辅助产物，用于防止复杂 Skill 的�
 
 具体 capability 名称必须来自 Target Skill 本身，不得由 Framework 写死。对于复杂 Skill，Agent 应先识别：
 
-- shared / cross-cutting responsibilities；
+- 共享 / cross-cutting responsibilities；
 - 每一个主要 capability / task branch；
 - 分支特有的依赖、输入、输出与约束；
 - 明确不在范围内的能力或分支。
@@ -149,7 +149,7 @@ Capability Map 是 Pass 1 的阅读辅助产物，用于防止复杂 Skill 的�
 
 ## 5. Normative Source 与 Implementation Fact
 
-### 5.1 Normative Source
+### 技术主题：5.1 Normative Source
 
 Normative Source 用于理解“Skill 被要求怎样工作”，例如：
 
@@ -173,7 +173,7 @@ skill | user | project | interface | other
 
 具体文件、章节、指令或资源在存在稳定位置时记录到 `source_ref`。
 
-### 5.2 Implementation Fact
+### 技术主题：5.2 Implementation Fact
 
 Implementation Fact 描述当前实现实际上怎样工作，例如：
 
@@ -198,7 +198,7 @@ script、schema、validator、template、reference 或 config，只有在 Normat
 
 Agent 必须把被委托资源读取到足以理解被委托责任的程度。同一资源中的无关实现细节不会自动变成 Requirement。
 
-### 5.4 Normative Rule Resolution
+### 技术主题：5.4 Normative Rule Resolution
 
 当两个规范规则看起来存在差异时，不得直接按文件类型、文件名或固定层级决定权威。Agent 应按以下顺序判断它们属于 compatible、scoped exception、ambiguity 还是真正的 conflict：
 
@@ -225,7 +225,7 @@ Agent 不得仅因为当前实现如此、某条规则更方便、某个文件�
 
 四遍流程各有不同目标。不得把它们压缩成从原文直接生成正式 Requirement ID 的一次转换。
 
-### 6.1 Pass 1 — Understand
+### 技术主题：6.1 Pass 1 — Understand
 
 **唯一目标：**在开始 Requirement Candidate Extraction 前，建立对 Target Skill 的可靠整体理解。
 
@@ -275,13 +275,13 @@ Pass 1 完成后必须产生：
 7. **Uncertainties / Conflicts**：记录 normative conflict、ambiguity、missing information 和 implementation mismatch，并说明其影响。
 8. **Understanding Status**：只能是 `UNDERSTANDING_READY` 或 `UNDERSTANDING_BLOCKED`。
 
-#### READY / BLOCKED
+#### 技术主题：READY / BLOCKED
 
 `UNDERSTANDING_READY` 表示当前信息足以进入 Requirement Candidate Collection。READY 不要求 Skill 完全没有歧义；只要核心目的清楚、能力边界基本清楚、主要规范来源已识别，并且已知冲突已显式记录，即可 READY。
 
 `UNDERSTANDING_BLOCKED` 表示当前信息不足以可靠判断 Skill 的核心任务、规范来源、主要输入输出或关键能力边界。此时必须记录每个阻塞原因及其影响，不继续 Requirement Candidate Extraction，也不得假设缺失区域没有 Requirement。
 
-#### Pass 1 Completion Gate
+#### Pass 1 完成门禁
 
 进入 Pass 2 前确认：
 
@@ -298,7 +298,7 @@ Pass 1 完成后必须产生：
 - [ ] 已记录冲突和不确定项
 - [ ] 状态为 `UNDERSTANDING_READY`
 
-### 6.2 Pass 2 — Collect
+### 技术主题：6.2 Pass 2 — Collect
 
 **目标：**基于 Pass 1 已建立的 Skill Understanding，尽可能完整地收集所有可能构成 Requirement 的规范性责任。
 
@@ -323,7 +323,7 @@ Pass 2 使用 Pass 1 的全部产物：
 
 Pass 2 不预设具体 capability taxonomy。Agent 必须依据 Pass 1 动态识别出的下列区域逐一扫描：
 
-- shared / cross-cutting responsibilities；
+- 共享 / cross-cutting responsibilities；
 - 每一个 in-scope capability / task branch。
 
 对每个区域，都检查下列通用规范维度：
@@ -385,7 +385,7 @@ Implementation Fact 可以帮助定位或理解可能责任，但不能独立支
 
 真正的 merge、remove、demote 和 granularity normalization 留给 Pass 3。Pass 2 只允许为了忠实表达原规范，将一句明显包含两个完全不同责任的陈述初步记录为两个 Candidate；这不代表最终粒度已经确定。
 
-#### Candidate Statement
+#### 技术主题：Candidate Statement
 
 每条 `candidate_statement` 应：
 
@@ -397,7 +397,7 @@ Implementation Fact 可以帮助定位或理解可能责任，但不能独立支
 
 来源原文应以最小但足以审查的上下文保存在 `source_excerpt`，而不是全部塞入 Candidate Statement。
 
-#### Tentative Evaluation Type
+#### 技术主题：Tentative Evaluation Type
 
 Pass 2 可以把 `tentative_evaluation_type` 暂定为：
 
@@ -433,7 +433,7 @@ Pass 2 不是不可回退的线性流程。Collect 过程中发现新的理解�
 
 不得为了维持线性流程而禁止回退，也不得仅因局部非核心不确定项就把整个 Collection 自动判为 blocked。
 
-#### Pass 2 Coverage Matrix
+#### Pass 2 覆盖矩阵
 
 Pass 2 结束前必须建立轻量的二维 Collection Coverage Matrix：
 
@@ -470,7 +470,7 @@ Pass 2 必须产生：
 
 `COLLECTION_BLOCKED` 表示至少一个 in-scope 区域因缺失或不可访问的规范来源、无法判定的扫描边界或其他明确阻塞而无法完成可靠收集。必须记录阻塞区域、原因和影响，不得以局部 Candidate 集合宣布 READY。
 
-#### Pass 2 Completion Gate
+#### Pass 2 完成门禁
 
 进入 Pass 3 前确认：
 
@@ -487,7 +487,7 @@ Pass 2 必须产生：
 - [ ] 新发现的核心理解缺口已按规则回退 Pass 1 或明确阻塞
 - [ ] 状态为 `COLLECTION_READY`
 
-### 6.3 Pass 3 — Normalize
+### 技术主题：6.3 Pass 3 — Normalize
 
 **目标：**把 Pass 2 的高召回 Requirement Candidate Ledger 整理为语义清晰、来源支持、粒度合理、重复受控、类型明确、冲突保留，并能够进入 Pass 4 Trace 的 Normalized Candidate Set。
 
@@ -515,7 +515,7 @@ Pass 2 采用 Recall first；Pass 3 转向 **Precision + Diagnostic Value**。Ag
 
 不得为了减少数量而人为合并。粒度必须由规范语义、适用 scope 和独立失败模式决定，不能由目标数量、缩减比例或版面长度决定。合法的 SPLIT 与 MERGE 可能相互抵消，Normalized Candidate 数量不是成功指标。
 
-#### Candidate Dispositions
+#### 技术主题：Candidate Dispositions
 
 Pass 3 必须为每一条 Pass 2 Candidate 给出一个明确的 `primary_disposition`：
 
@@ -550,7 +550,7 @@ NEEDS_CLARIFICATION
 
 `secondary_transformations` 可以记录 `edited`、`merged_with`、`split_into`、`evidence_consolidated`、`child_demoted`、`scope_narrowed`、`reclassified` 等简短动作及其目标或关联 ID。该列表是 Candidate-level audit information，不是 Framework Core Object，也不修改 Final Requirement Schema。具体序列化格式本 Guide 不冻结，但每项 transformation 必须能够从 rationale、目标 IDs 和来源关系中得到解释。
 
-#### Disposition Precedence
+#### 技术主题：Disposition Precedence
 
 当多个 disposition 同时适用时，先判断 unresolved semantic state：
 
@@ -586,10 +586,10 @@ NEEDS_CLARIFICATION
 4. Parent / Child Rule；
 5. Over-fragmentation Test；
 6. Statement Normalization；
-7. Outcome / Workflow Final Classification；
+7. Outcome / Workflow 最终分类；
 8. Contractability Check；
 9. Conflict、Uncertainty 和 Implementation Mismatch 关联审查；
-10. Multi-source evidence consolidation；
+10. Multi-来源 evidence consolidation；
 11. 在 Candidate Disposition Matrix 中记录 `primary_disposition`、适用的 `secondary_transformations` 和目标关系，并生成或更新 Normalized Candidate。
 
 处理顺序是审查路径，不代表每一步都必须改变 Candidate。任何 SPLIT、MERGE、REMOVE 或 wording 修改都必须保留原 Candidate、来源证据和 extraction issue 的可追溯关系。
@@ -602,7 +602,7 @@ Pass 3 必须产生：
 2. **Candidate Disposition Matrix**：确保每条原始 `RC-` Candidate 都有 `primary_disposition`、适用的 `secondary_transformations`、目标 Normalized Candidate 或无目标原因。
 3. **Normalization Status**：只能是 `NORMALIZATION_READY` 或 `NORMALIZATION_BLOCKED`。
 
-#### Pass 3 Completion Gate
+#### Pass 3 完成门禁
 
 进入 Pass 4 前确认：
 
@@ -626,7 +626,7 @@ Pass 3 必须产生：
 
 全部满足时输出 `NORMALIZATION_READY`。如果存在无法给出处置的 Candidate、无法完成类型终判、关键来源问题未被正确保留，或其他条件导致 Normalized Candidate Set 不可进入 Pass 4，则输出 `NORMALIZATION_BLOCKED`，并记录原因和影响。
 
-### 6.4 Pass 4 — Trace
+### 技术主题：6.4 Pass 4 — Trace
 
 **目标：**对已经完成 Normalize 的 Requirement 候选执行最终的双向规范追溯审计，确认每一项应覆盖的 Normative Responsibility 都有明确去向，并确认每一条 Normalized Candidate 的全部实际规范语义都有充分来源支持。
 
@@ -678,7 +678,7 @@ TRACE_BLOCKED
 
 `TRACE_READY` 和 `TRACE_READY_WITH_UNRESOLVED_ISSUES` 都表示双向 trace 已完整；二者只在 unresolved semantic state 是否仍阻止相关责任 finalization 上不同。`TRACE_BLOCKED` 表示 trace 不完整、输入无效或必须回退前序 Pass。
 
-#### Pass 4 Completion Gate
+#### Pass 4 完成门禁
 
 结束 Pass 4 前确认：
 
@@ -700,9 +700,9 @@ TRACE_BLOCKED
 - [ ] 未分配 `R001` 等正式 Requirement ID
 - [ ] 未进入 Contract Design
 
-## 7. Pass 2 Working Ledgers
+## 7. 技术主题：Pass 2 Working Ledgers
 
-### 7.1 Requirement Candidate Ledger
+### 技术主题：7.1 Requirement Candidate Ledger
 
 Candidate Ledger 是 Pass 2 必需、可审查的中间产物。它是 Extraction 工作记录，不是 Frozen Requirement Schema，也不会为冻结的 Requirement 对象增加字段。
 
@@ -734,7 +734,7 @@ Candidate Ledger 是 Pass 2 必需、可审查的中间产物。它是 Extractio
 
 拆分 Candidate 时，每个结果都必须保留适用的来源追溯。合并 Candidate 时，合并记录必须保留足以支持合并陈述的全部来源。
 
-### 7.2 Extraction Issue Ledger
+### 技术主题：7.2 Extraction Issue Ledger
 
 Extraction Issue Ledger 是 Pass 2 的独立中间产物，用于记录 Candidate Collection 中发现的问题。它不是 Framework Core Object，不是 Requirement Schema，也不自动产生 Requirement。
 
@@ -762,9 +762,9 @@ CONFLICT | UNCERTAIN | IMPLEMENTATION_MISMATCH
 
 `IMPLEMENTATION_MISMATCH` 本身不是 Requirement Candidate。只有存在独立 Normative Source 支持的责任才能进入 Candidate Ledger；当前实现事实只进入 issue 的 `related_sources` 和审查说明。
 
-## 8. Pass 3 Normalize Rules
+## 8. 技术主题：Pass 3 Normalize Rules
 
-### 8.1 Normative Support Check
+### 技术主题：8.1 Normative Support Check
 
 Normalize 首先确认 Candidate 是否有足够的 Normative Source 支持。至少检查：
 
@@ -779,7 +779,7 @@ Normalize 首先确认 Candidate 是否有足够的 Normative Source 支持。�
 
 如果规范责任成立，但 Candidate wording 加入了没有来源支持的强化语义，使用 `KEEP_WITH_EDIT`，删除或收缩超出来源的部分。例如，来源只要求产生某个目标产物，Candidate 不得自行增加“非空”“通过某项校验”或其他没有独立规范依据的条件。
 
-### 8.2 Atomic Responsibility Test
+### 技术主题：8.2 Atomic Responsibility Test
 
 Atomicity 不由动词数量、句子长度、标点或 bullet 数量决定。对于 Candidate 中可能包含的责任 A 和 B，先检查：
 
@@ -800,7 +800,7 @@ Artifact package、metadata block、正式结构中的普通字段以及 checkli
 
 抽象地说，“必须执行规定的验证，并且最终结果必须满足该验证要求”可能包含两个可独立失败的责任：执行验证属于 workflow，最终结果满足要求属于 outcome。是否拆分仍取决于实际 Normative Source 是否分别支持这两个责任。
 
-### 8.3 Merge Test
+### 技术主题：8.3 Merge Test
 
 多个 Candidate 满足以下任一情形时，考虑 `MERGE`：
 
@@ -813,7 +813,7 @@ Artifact package、metadata block、正式结构中的普通字段以及 checkli
 
 合并后必须保存所有适用的 `source_evidence`、`related_issue_ids` 和原 Candidate 关系。Normalized Candidate 的 `derived_from_candidate_ids` 必须包含全部被合并 Candidate。不存在 unresolved semantic state 时，Candidate Disposition Matrix 对每条原 Candidate 记录 `MERGE` 作为 `primary_disposition` 并指向同一个目标 `NR-` ID；存在 unresolved state 时，按 Disposition Precedence 记录主处置，并把 merge 写入 `secondary_transformations`。
 
-### 8.4 Parent / Child Rule
+### 技术主题：8.4 Parent / Child Rule
 
 当一个 Candidate 表达整体约束，另一个 Candidate 只表达其中一个细节约束时，不得默认把每个普通组成部分都保留为独立 Requirement 候选。
 
@@ -828,7 +828,7 @@ Artifact package、metadata block、正式结构中的普通字段以及 checkli
 
 正式 schema、checklist、template 或 validator 包含很多细项，不代表每个普通字段或步骤都必须成为独立 Candidate。是否独立保留仍由规范强调和失败意义决定。
 
-### 8.5 Over-fragmentation Test
+### 技术主题：8.5 Over-fragmentation Test
 
 如果一个 Candidate 只是另一责任的低层实现动作、顺序中的细碎步骤或无独立意义的机械分片，并且删除它不会失去独立规范失败模式，则使用 `REMOVE` 或 `DEMOTE_TO_NOTE`。
 
@@ -836,7 +836,7 @@ Artifact package、metadata block、正式结构中的普通字段以及 checkli
 
 不得仅因为 Candidate 难以测试就删除它。如果它确属 normative，但当前 wording、scope 或失败含义不足，应使用 `KEEP_WITH_EDIT` 或 `NEEDS_CLARIFICATION`。
 
-### 8.6 Statement Normalization
+### 技术主题：8.6 Statement Normalization
 
 每条 `normalized_statement` 应满足：
 
@@ -850,7 +850,7 @@ Artifact package、metadata block、正式结构中的普通字段以及 checkli
 
 如果 Normative Source 本身只提供无法进一步明确的模糊表达，不得由 Agent 自行发明精确含义。保留最忠实的语义，并使用 `NEEDS_CLARIFICATION`。
 
-### 8.7 Contractability Check
+### 技术主题：8.7 Contractability Check
 
 Pass 3 不写 Contract，但每条状态为 `NORMALIZED` 的 Candidate 必须具备被 Contract 化的潜力。判断问题是：
 
@@ -862,7 +862,7 @@ Pass 3 只要求能够描述“违反这条责任时会出现什么类型的可�
 
 Contractability 不等于已经可自动测试，也不要求在 Pass 3 选择验证方法。
 
-### 8.8 Multi-source Normalization
+### 技术主题：8.8 Multi-source Normalization
 
 一个 Normalized Candidate 可以由多个 Normative Sources 支持。Normalize 时必须：
 
@@ -894,7 +894,7 @@ source_evidence:
 
 如果一个来源已经完整支持整个 statement，不强制建立 `statement_clauses`。不得按连词、标点或普通语法片段机械拆 clause；只有具有实际规范语义、且其来源支持不同的部分才需要映射。Clause-to-evidence mapping 是 Pass 3 audit information，不是 Framework Core Object，也不修改 Final Requirement Schema。
 
-## 9. Outcome / Workflow Final Classification
+## 9. 技术主题：Outcome / Workflow Final Classification
 
 Pass 2 的 `tentative_evaluation_type` 在 Pass 3 必须重新判断。Normalized Candidate 的 `evaluation_type` 只能是：
 
@@ -904,25 +904,25 @@ outcome | workflow
 
 `undetermined` 不能进入 Normalized Candidate Set 的 `NORMALIZED` 状态，也不得成为正式 Requirement 类型。不得新增 `constraint`、`mixed` 或任何第三种最终类别。
 
-### 9.1 Outcome
+### 技术主题：9.1 Outcome
 
 当责任主要通过最终输出或最终状态判断时，分类为 `outcome`。
 
-### 9.2 Workflow
+### 技术主题：9.2 Workflow
 
 当责任主要通过执行轨迹、动作、顺序、工具使用、授权、禁止行为或中间步骤判断时，分类为 `workflow`。
 
 禁止行为和约束不是第三类。禁止某个动作通常属于 `workflow`；禁止最终结果具有某种属性通常属于 `outcome`。
 
-### 9.3 Outcome / Workflow Composite
+### 技术主题：9.3 Outcome / Workflow Composite
 
 如果一个 Candidate 同时包含 Outcome 与 Workflow，执行 Atomic Responsibility Test。两项责任能够独立失败且分别具有诊断价值时，使用 `SPLIT`，生成分别分类为 `outcome` 和 `workflow` 的 Normalized Candidate。不能使用 `mixed` 逃避粒度判断。
 
 如果两部分只是同一责任不可分离的表达，应根据主要判定对象选择一个类型，并在 normalization rationale 中解释，而不是机械拆分。
 
-## 10. Extraction Issue Handling in Pass 3
+## 10. 技术主题：Extraction Issue Handling in Pass 3
 
-### 10.1 Conflict Handling
+### 技术主题：10.1 Conflict Handling
 
 Pass 3 不得擅自解决 unresolved true conflict。如果 Extraction Issue Ledger 中的 `CONFLICT` 在再次执行 Normative Rule Resolution 后仍无法消解：
 
@@ -934,7 +934,7 @@ Pass 3 不得擅自解决 unresolved true conflict。如果 Extraction Issue Led
 
 如果 Pass 3 确认原 issue 实际属于 compatible rules、scoped exception 或不同 scope，可以按正式 authority、delegation 和 scope 关系解除 conflict，但必须在 Extraction Issue Ledger 中记录 resolution rationale、更新 `resolution_status`，并在 normalization rationale 中说明对 Candidate 的影响。
 
-### 10.2 Uncertainty Handling
+### 技术主题：10.2 Uncertainty Handling
 
 对于 `UNCERTAIN` issue，Pass 3 应根据现有来源选择明确处置：
 
@@ -946,15 +946,15 @@ Pass 3 不得擅自解决 unresolved true conflict。如果 Extraction Issue Led
 
 不得让模糊的 uncertainty 无解释地进入 Pass 4。每个相关 issue 的 resolution status、处置理由和 Candidate 影响都必须记录。
 
-### 10.3 Implementation Mismatch
+### 技术主题：10.3 Implementation Mismatch
 
 Implementation mismatch 本身仍不得成为 Requirement Candidate，也不得改变 Normative Source 的正式含义。Normalized Candidate 可以继续关联相关 `IMPLEMENTATION_MISMATCH` issue，以保留当前实现差异和后续审查上下文。
 
 如果 Candidate 只有 Implementation Fact 支持，使用 `REMOVE` 或 `DEMOTE_TO_NOTE`；如果 Candidate 有独立规范支持，则按规范正常化，并保留 mismatch issue 关联。Pass 3 不修复实现，也不根据 mismatch 改写规范责任。
 
-## 11. Pass 3 Output Artifacts
+## 11. 技术主题：Pass 3 Output Artifacts
 
-### 11.1 Normalized Candidate Set
+### 技术主题：11.1 Normalized Candidate Set
 
 Normalized Candidate Set 使用临时 ID：
 
@@ -984,7 +984,7 @@ NR-002
 
 Normalized Candidate Set 不是 Final Requirement Set，不修改 Frozen Requirement Schema，也不证明 source-level completeness。
 
-### 11.2 Candidate Disposition Matrix
+### 技术主题：11.2 Candidate Disposition Matrix
 
 Candidate Disposition Matrix 是 Pass 3 的必需审计产物，用于证明每一条原始 Candidate 都有明确去向。至少记录：
 
@@ -1024,7 +1024,7 @@ Normative Source → Requirement completeness
 
 Pass 3 不分配正式 Requirement ID，不冻结 Final Requirement Set，也不把 Candidate Disposition Matrix 当作 Traceability Review。
 
-## 12. Pass 4 Traceability Audit
+## 12. Pass 4 可追溯性 Audit
 
 ### 12.1 Pass 2 Collection Coverage 与 Pass 4 Trace 的边界
 
@@ -1068,7 +1068,7 @@ Source snapshot identity 不依赖 Git。如果存在稳定 revision，优先记
 
 Trace Run Metadata 属于 Requirement Extraction audit metadata，不是 Framework Core Object，也不会修改 Frozen Requirement Schema。
 
-### 12.2 Source Trace Item
+### 技术主题：12.2 Source Trace Item
 
 Pass 4 使用 **Source Trace Item** 作为 source-level audit unit，并使用临时 ID：
 
@@ -1086,7 +1086,7 @@ Source Trace Item 可以在审查后确认为 normative responsibility，也可�
 
 Source Trace Item 是 Pass 4 的临时审计结构，不是 Framework Core Object、Frozen Requirement、Contract、Test Case 或 Grader，也不会进入 Frozen Requirement Schema。
 
-#### Trace Item Granularity
+#### 技术主题：Trace Item Granularity
 
 Trace Item 不得机械按每一行、每一句、每个 bullet 或每个普通结构字段生成。应按“具有独立规范意义、需要确认其是否被 Requirement 覆盖”来划分。
 
@@ -1125,7 +1125,7 @@ changed
 
 这些 relation 只用于解释“本次 Trace Item 为什么与上一次不同”，不是 Framework Core Object，也不要求建立复杂版本图。
 
-### 12.3 Source Trace Inventory
+### 技术主题：12.3 Source Trace Inventory
 
 Pass 4 首先建立 Source Trace Inventory。每个 Trace Item 至少记录：
 
@@ -1157,7 +1157,7 @@ authority / delegation reference（需要时）
 
 Source Trace Inventory 必须基于已识别的 Normative Sources 和 delegated resources 做 source responsibility-level 审查；不能只把 Normalized Candidate 的 statements 反向复制成 Trace Items，否则无法独立发现 source-side omission。
 
-### 12.4 Forward Trace
+### 技术主题：12.4 Forward Trace
 
 Forward Trace 执行：
 
@@ -1183,7 +1183,7 @@ Source Trace Item
 
 `MAPPED` 必须表示 Trace Item 的完整 normative meaning 已经被解释。如果只有部分语义得到覆盖，应先按 Trace Item Granularity 规则判断能否重新划分 source audit unit；无法合理拆分时，必须记录 `TRACE_GAP`，并明确 covered 与 uncovered portions，不增加模糊的 partial-mapped 状态。
 
-#### `EXCLUDED` Audit Boundary
+#### 技术主题：`EXCLUDED` Audit Boundary
 
 `EXCLUDED` 只用于审查后确认不应成为 Requirement 的 source item。每个 `EXCLUDED` item 至少记录：
 
@@ -1211,7 +1211,7 @@ other
 
 发现 `TRACE_GAP` 时，不得在 Pass 4 现场创建新的 Candidate 或 Normalized Candidate。
 
-#### Forward Trace Matrix
+#### 技术主题：Forward Trace Matrix
 
 Forward Trace Matrix 至少记录：
 
@@ -1231,7 +1231,7 @@ Forward Trace Matrix 至少记录：
 
 Matrix 不得静默跳过 Trace Item。一个 Trace Item 只能有一个主 `trace_result`；其他关联通过 Candidate IDs、Issue IDs 和 rationale 表达。
 
-### 12.5 Backward Trace
+### 技术主题：12.5 Backward Trace
 
 Backward Trace 执行：
 
@@ -1255,7 +1255,7 @@ Normalized Candidate / clause
 
 `ISSUE_BOUND` 只能用于 traceable but unresolved 的 Candidate。`CONFLICT` / `NEEDS_CLARIFICATION` 不自动等于 unsupported；同样，它们也不得掩盖实际 support gap。如果问题状态 Candidate 仍有未获支持的 clause，应记录 `PARTIALLY_SUPPORTED` 或 `UNSUPPORTED`，并把 unresolved issue 作为关联信息保留。
 
-#### Clause-level Backward Trace
+#### 技术主题：Clause-level Backward Trace
 
 如果 Normalized Candidate 已有 `statement_clauses` 和 `supporting_evidence_ids`，Pass 4 必须使用它们进行 clause-level audit，并把 evidence 对应到 Source Trace Items。
 
@@ -1270,7 +1270,7 @@ Normalized Candidate / clause
 
 不得按普通语法片段机械拆 clause。Clause-level audit 的目的，是防止“来源列表很多，但某个实际规范 clause 没有来源支持”。如果任何实际 clause 没有充分支持，Candidate 不得评为 `SUPPORTED`。
 
-#### Backward Trace Matrix
+#### 技术主题：Backward Trace Matrix
 
 Backward Trace Matrix 至少记录：
 
@@ -1338,7 +1338,7 @@ Pass 4 不得：
 
 发现问题时，Pass 4 只记录审计结果、报告影响并回退到正确前序 Pass。修复后必须重新执行受影响的后续 Pass，不能在旧 Trace Matrix 上局部掩盖变更。
 
-#### Rollback Rules
+#### 技术主题：Rollback Rules
 
 | 发现 | 回退位置 | 必需处理 |
 |---|---|---|
@@ -1349,7 +1349,7 @@ Pass 4 不得：
 
 如果 Normalized Candidate Set 本身不稳定或 Pass 3 的必需 artifact 不完整，Pass 4 输出 `TRACE_BLOCKED` 并回退 Pass 3，不得继续拼接 Trace 结果。
 
-#### Trace Run Staleness
+#### 技术主题：Trace Run Staleness
 
 Pass 4 artifacts 不是永久有效的。如果以下任何输入发生实质变化，相关 Trace artifacts 必须视为 `stale`，不能沿用旧结论：
 
@@ -1369,8 +1369,8 @@ Pass 4 至少产生：
 
 1. **Trace Run Metadata**：run、target、source snapshot 与 Guide revision 的最小审计身份；
 2. **Source Trace Inventory**：`TI-` source-level audit units 及适用的 rerun reconciliation；
-3. **Forward Trace Matrix**：Trace Item → NR / Issue / Exclusion / Gap；
-4. **Backward Trace Matrix**：NR / clause → Trace Item / source support；
+3. **正向追溯矩阵（Forward Trace Matrix）**：Trace Item → NR / Issue / Exclusion / Gap；
+4. **Backward Trace Matrix**：NR / clause → Trace Item / 来源 support；
 5. **Trace Issues**：汇总 `TRACE_GAP`、`PARTIALLY_SUPPORTED`、`UNSUPPORTED`、unresolved `CONFLICT` 和 unresolved `NEEDS_CLARIFICATION`；
 6. **Trace Review**：数量审计、trace completion、finalization readiness 和已知限制；
 7. **Finalization Eligibility Summary**：逐项记录 Normalized Candidate 的晋升资格，并给出整体 readiness；
@@ -1391,9 +1391,9 @@ Trace Review 至少记录：
 
 这些数量只用于审计集合完整性，不是质量评分，不得设置目标数量、通过比例或缩减指标。
 
-### 12.9 Trace Status
+### 技术主题：12.9 Trace Status
 
-#### `TRACE_READY`
+#### 字段或协议值：`TRACE_READY`
 
 同时满足：
 
@@ -1405,7 +1405,7 @@ Trace Review 至少记录：
 
 它表示 trace complete，并且所有有资格进入 Final Requirement Set 的责任已经 resolved。
 
-#### `TRACE_READY_WITH_UNRESOLVED_ISSUES`
+#### 字段或协议值：`TRACE_READY_WITH_UNRESOLVED_ISSUES`
 
 同时满足：
 
@@ -1416,7 +1416,7 @@ Trace Review 至少记录：
 
 这些 issue 阻止对应责任晋升为正式 Frozen Requirement，但不构成 traceability failure。已 resolved 且 traceable 的候选可以保留为 partial progress；只要仍有影响 benchmark definition 的 unresolved issue，整体 Benchmark / Final Requirement Set 就不得宣称 fully frozen。
 
-#### `TRACE_BLOCKED`
+#### 字段或协议值：`TRACE_BLOCKED`
 
 存在以下任一情形时使用：
 
@@ -1429,7 +1429,7 @@ Trace Review 至少记录：
 
 `TRACE_BLOCKED` 必须记录阻塞项、影响和应回退的 Pass。不得把局部 trace 完整解释为整个 Pass 4 完成。
 
-### 12.10 Final Requirement Finalization Boundary
+### 技术主题：12.10 Final Requirement Finalization Boundary
 
 Pass 4 结束后，不得自动把所有 `NR-` 编号为正式 `R-` Requirement。只有同时满足以下条件的 Normalized Candidate，才具有晋升资格：
 
@@ -1441,7 +1441,7 @@ status = NORMALIZED
 
 状态为 `CONFLICT` 或 `NEEDS_CLARIFICATION` 的 Candidate 不得直接晋升。它们必须保留在 Extraction Issues 和 Trace artifacts 中，等待 authoritative resolution；不得丢失，也不得伪装成普通 Requirement。
 
-#### Finalization Eligibility Summary
+#### 技术主题：Finalization Eligibility Summary
 
 Pass 4 必须产生结构化 Finalization Eligibility Summary。它不是 Final Requirement Set，不分配 `R-` ID，也不修改 Frozen Requirement Schema。
 
@@ -1484,7 +1484,7 @@ Final Requirement ID assignment 和 freeze 是 Requirement Extraction 的确定�
 
 Pass 4 的 Trace Run Metadata、Trace Item、rerun reconciliation、Forward Matrix、Backward Matrix、Trace Issues、Trace Review、Finalization Eligibility Summary 和 Trace Status 都是 Requirement Extraction working / audit structures，不是新的 Core Objects，也不会为 Frozen Final Requirement Schema 增加字段。
 
-## 13. Final Requirement Finalization
+## 13. 技术主题：Final Requirement Finalization
 
 ### 13.1 定位与边界
 
@@ -1497,11 +1497,11 @@ eligible Normalized Candidate
 
 Finalization 是确定性收尾步骤，不进行新的语义设计。发现需要重新理解、补充 Candidate、修改 statement、重新分类、补全 trace 或解决 extraction issue 时，必须回到对应 Pass；不得在 Finalization 中现场修复。
 
-### 13.2 Preconditions
+### 技术主题：13.2 Preconditions
 
 只有 Pass 4 已完成且其 Trace artifacts 当前有效时，才考虑 Finalization：
 
-| Trace Status | Finalization behavior |
+| Trace Status | Finalization 行为 |
 |---|---|
 | `TRACE_READY` | 允许进入完整 Requirement Finalization |
 | `TRACE_READY_WITH_UNRESOLVED_ISSUES` | 可以保留 individually eligible、已经 resolved 的 Candidate 及其 projection audit，但 unresolved `CONFLICT` / `NEEDS_CLARIFICATION` 不得晋升；整体 Requirement Set / Benchmark Definition 不得宣称 fully frozen，直到 blocking issues 被解决并重新 Trace |
@@ -1509,7 +1509,7 @@ Finalization 是确定性收尾步骤，不进行新的语义设计。发现需�
 
 `TRACE_READY_WITH_UNRESOLVED_ISSUES` 下形成的 eligible projection 只能作为可审查的 partial progress 保留；只要 blocking unresolved issue 仍存在，整体 Finalization Status 必须是 `FINALIZATION_BLOCKED`，不得产出 authoritative、complete Frozen Requirement Set。
 
-### 13.3 Candidate Eligibility
+### 技术主题：13.3 Candidate Eligibility
 
 一个 Normalized Candidate 只有同时满足以下全部条件才可晋升：
 
@@ -1535,7 +1535,7 @@ normalization_status = NORMALIZED
 
 Finalization 必须使用 Pass 4 的 Finalization Eligibility Summary，不得在本步骤重新解释 eligibility。
 
-### 13.4 Projection to Frozen Requirement Schema
+### 技术主题：13.4 Projection to Frozen Requirement Schema
 
 Frozen Requirement Schema 保持不变：
 
@@ -1549,7 +1549,7 @@ evaluation_type
 
 NR 到 Requirement 的 projection 规则如下：
 
-| Requirement field | Projection rule |
+| Requirement 字段 | Projection 规则 |
 |---|---|
 | `requirement_id` | 按 Requirement ID Assignment 规则确定性分配 |
 | `statement` | 直接使用最终、已获 Trace support 的 `normalized_statement`；不得在 Finalization 中 rewrite |
@@ -1559,7 +1559,7 @@ NR 到 Requirement 的 projection 规则如下：
 
 如果 `statement` 需要修改或 `evaluation_type` 需要重新分类，回退 Pass 3，并在修改后重新执行 Pass 4。Finalization 不得通过 projection 隐式改变 Requirement 语义。
 
-#### Primary Provenance Projection
+#### Primary 来源追踪 Projection
 
 Normalized Candidate 可以具有 multi-source 或 clause-level evidence，但 Frozen Requirement Schema 仍只保留单一 `source` 和 `source_ref`。Projection 按以下顺序执行：
 
@@ -1572,7 +1572,7 @@ Normalized Candidate 可以具有 multi-source 或 clause-level evidence，但 F
 
 当 authoritative source system 本身没有稳定可写入的 reference 时，`source_ref` 可以按 Frozen Schema 保持为空，但 Finalization Mapping 必须记录可审查的 evidence identity、缺少 stable ref 的原因和 primary provenance 决策。无法唯一确定 primary provenance 不属于“没有 stable ref”，仍然必须阻塞。
 
-### 13.5 Finalization Mapping
+### 技术主题：13.5 Finalization Mapping
 
 Finalization 必须保留 Finalization Mapping，至少记录：
 
@@ -1595,7 +1595,7 @@ Mapping 应覆盖本次 Finalization 考虑的全部 Normalized Candidates。`FI
 
 Finalization Mapping 保留 `NR → R` 关系和完整 provenance，但不是 Framework Core Object，也不会修改 Frozen Requirement Schema。
 
-### 13.6 Requirement ID Assignment
+### 技术主题：13.6 Requirement ID Assignment
 
 正式 Requirement ID 使用：
 
@@ -1616,7 +1616,7 @@ ID 必须在当前 benchmark 内唯一、确定、可审计，不得依赖随机
 
 Requirement Set 尚未 frozen 时，ID 可以在完整 re-finalization 中重新生成。一旦某个 benchmark version 已 frozen，其 Requirement IDs 不得因无关 rerun 被静默重编号。Source 或 Requirement 发生实质变化时，应通过新的 benchmark version 或既有 lifecycle 处理；本 Guide 不建立复杂 ID registry。
 
-### 13.7 Final Requirement Validation
+### 13.7 Final Requirement 验证
 
 Finalization 完成前至少确认：
 
@@ -1636,7 +1636,7 @@ Finalization 完成前至少确认：
 
 任一检查失败都必须阻塞 Finalization；不得使用 quality score、通过比例或人工补分覆盖 validation failure。
 
-### 13.8 Finalization Status
+### 技术主题：13.8 Finalization Status
 
 Finalization Status 只能是：
 
@@ -1679,7 +1679,7 @@ Contract Design 只消费 Frozen Requirements，不直接把 RC、NR 或 TI 当�
 
 本节不开始 Contract Design，也不定义 Test Case、Grader、Metric 或任何后续评价对象。
 
-## 14. Final Requirement Set
+## 14. 技术主题：Final Requirement Set
 
 只有 Finalization Status 为 `FINALIZATION_READY` 时，才能产生 authoritative Final Requirement Set。Final Requirement Set 只使用已经冻结的 Requirement Schema，不增加字段：
 
@@ -1704,7 +1704,7 @@ Contract Design 只消费 Frozen Requirements，不直接把 RC、NR 或 TI 当�
 - 分类为 `outcome` 或 `workflow`；
 - 后续能够进入 Contract Design，且没有嵌入 Grader assertion。
 
-## 15. Decision Checklist
+## 15. 决定 检查清单
 
 完成 Requirement Extraction 前逐项检查：
 

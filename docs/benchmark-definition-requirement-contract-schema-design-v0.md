@@ -1,4 +1,4 @@
-# 《Benchmark Definition → Requirement → Contract Schema Design v0》
+# 技术主题：《Benchmark Definition → Requirement → Contract Schema Design v0》
 
 ## 1. 文档范围
 
@@ -44,7 +44,7 @@ Contract
 不为尚未出现的需求预留字段
 ```
 
-## 2. Repository Baseline Check
+## 2. 仓库基线 Check
 
 设计开始时的仓库状态：
 
@@ -97,7 +97,7 @@ Requirement 到 Contracts 的关系通过反向查询得到：
 
 这样可以避免双向关系分别编辑后发生漂移。
 
-## 4. Benchmark Definition Schema
+## 4. 技术主题：Benchmark Definition Schema
 
 ### 4.1 对象职责
 
@@ -192,13 +192,13 @@ draft
 frozen
 ```
 
-#### draft
+#### 字段或协议值：draft
 
 表示 Definition 仍可修改。
 
 `draft` 不等于“允许任意错误类型或残缺对象”。一个 draft Definition 仍应符合基本 Schema；它可以尚未通过完整 Eval Design Validation。
 
-#### frozen
+#### 字段或协议值：frozen
 
 表示该版本已经完成必要验证并作为执行规则冻结。
 
@@ -229,7 +229,7 @@ v0 不加入：
 
 这些状态目前没有阻塞 Requirement → Contract Schema 的真实需求。
 
-## 5. Requirement Schema
+## 5. 技术主题：Requirement Schema
 
 ### 5.1 对象职责
 
@@ -337,7 +337,7 @@ workflow
 
 如果一段自然语言同时包含 Outcome 与 Workflow 两个独立责任，Agent 应将其拆成两个 Requirement，而不是新增 `mixed` 或 `shared` 类型。
 
-## 6. Contract Schema
+## 6. 技术主题：Contract Schema
 
 ### 6.1 对象职责
 
@@ -452,11 +452,11 @@ normal
 critical
 ```
 
-#### normal
+#### 字段或协议值：normal
 
 失败会影响评分或某个能力维度，但不自动表示整个 Benchmark 不可接受。
 
-#### critical
+#### 字段或协议值：critical
 
 失败会改变后续设计决策，例如：
 
@@ -546,7 +546,7 @@ Failure Mode 仍然不是一等对象。字符串列表已经足够支撑第一�
 
 ## 7. 最终推荐 Schema 总表
 
-### 7.1 Benchmark Definition
+### 技术主题：7.1 Benchmark Definition
 
 | 字段 | 类型 | 必填 | 用途 |
 |---|---|---:|---|
@@ -558,7 +558,7 @@ Failure Mode 仍然不是一等对象。字符串列表已经足够支撑第一�
 | `requirements` | `list[Requirement]` | 是 | Requirement 集合 |
 | `contracts` | `list[Contract]` | 是 | Contract 集合 |
 
-### 7.2 Requirement
+### 技术主题：7.2 Requirement
 
 | 字段 | 类型 | 必填 | 用途 |
 |---|---|---:|---|
@@ -568,7 +568,7 @@ Failure Mode 仍然不是一等对象。字符串列表已经足够支撑第一�
 | `source_ref` | `string` | 否 | 来源位置或说明 |
 | `evaluation_type` | `outcome | workflow` | 是 | Outcome / Workflow 分类 |
 
-### 7.3 Contract
+### 技术主题：7.3 Contract
 
 | 字段 | 类型 | 必填 | 用途 |
 |---|---|---:|---|
@@ -581,7 +581,7 @@ Failure Mode 仍然不是一等对象。字符串列表已经足够支撑第一�
 | `failure_criteria` | `list[string]` | 是 | 人类可理解的失败条件 |
 | `failure_modes` | `list[string]` | 是 | 主要失败方式 |
 
-## 8. Validation Rules
+## 8. 验证规则
 
 验证分成三个层次：
 
@@ -593,11 +593,11 @@ C. Agent Design Judgment
 
 只有 A 和 B 可以作为确定性规则。C 不能伪装成 Schema Validator。
 
-### 8.1 A. Field Validation
+### 8.1 A. Field 验证
 
 Field Validation 负责单个对象和单个字段的类型、格式及基础局部约束。
 
-#### Benchmark Definition
+#### 技术主题：Benchmark Definition
 
 - `benchmark_id` 必须是非空字符串。
 - `benchmark_id` 必须以字母开头，后续只使用字母、数字、点、下划线或连字符。
@@ -608,7 +608,7 @@ Field Validation 负责单个对象和单个字段的类型、格式及基础局
 - `requirements` 必须是 Requirement 列表且至少一个元素。
 - `contracts` 必须是 Contract 列表且至少一个元素。
 
-#### Requirement
+#### 字段或协议值：Requirement
 
 - `requirement_id` 必须符合 `R` 加至少三位十进制数字的格式。
 - `statement` 去除首尾空白后必须非空。
@@ -616,7 +616,7 @@ Field Validation 负责单个对象和单个字段的类型、格式及基础局
 - `source_ref` 存在时去除首尾空白后必须非空。
 - `evaluation_type` 必须是 `outcome` 或 `workflow`。
 
-#### Contract
+#### 字段或协议值：Contract
 
 - `contract_id` 必须符合 `C` 加至少三位十进制数字的格式。
 - `requirement_ids` 至少包含一个 ID。
@@ -630,7 +630,7 @@ Field Validation 负责单个对象和单个字段的类型、格式及基础局
 
 Field Validation 可以确定完全相同的重复值，但不能可靠判断两个不同自然语言句子是否语义重复。
 
-### 8.2 B. Cross-object / Definition Validation
+### 8.2 B. Cross-object / Definition 验证
 
 这些规则需要看到完整 Benchmark Definition，不能只验证单个 Requirement 或 Contract。
 
@@ -665,7 +665,7 @@ Field Validation 可以确定完全相同的重复值，但不能可靠判断两
 
 “是否发生原地修改”和“版本组合是否已存在”需要版本库或上层管理边界提供历史上下文，不是单个文件的局部类型检查。
 
-### 8.3 C. Agent Design Judgment
+### 技术主题：8.3 C. Agent Design Judgment
 
 以下问题需要 Agent 或 Human 进行语义判断，不能由确定性 Schema Validator 保证：
 
@@ -717,7 +717,7 @@ Schema Validation
 
 后续模块加入后，完整 Eval Design Validator 还将负责：
 
-- Contract → Test Case Coverage；
+- Contract → Test Case 覆盖；
 - Critical Contract Coverage；
 - Evidence Producer；
 - Grader / Evidence Compatibility；
@@ -847,7 +847,7 @@ contracts:
 
 > Skill 必须在生成最终结果前执行 validator。
 
-### 12.1 Requirement
+### 技术主题：12.1 Requirement
 
 ```text
 requirement_id: R001
@@ -863,7 +863,7 @@ evaluation_type: workflow
 
 因为这是 Skill 自己声明的 Workflow Requirement。
 
-### 12.2 Contract
+### 技术主题：12.2 Contract
 
 ```text
 contract_id: C001
@@ -903,7 +903,7 @@ evaluation_type: workflow
 
 这些属于后续模块。
 
-## 13. Open Questions
+## 13. 待决问题
 
 当前没有阻塞下一轮 Pydantic Implementation 的 Concept 或字段问题。
 

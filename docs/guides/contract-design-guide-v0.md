@@ -1,4 +1,4 @@
-# 《Contract Design Guide v0》
+# 《Contract 设计指南 v0》
 
 Status: Design Guide
 
@@ -12,11 +12,11 @@ Status: Design Guide
 
 Requirement 回答：
 
-> What is required?
+> 需要满足哪些要求？
 
 Contract 回答：
 
-> What counts as satisfying or violating that requirement for evaluation purposes?
+> 在评估中，什么情况算满足或违反该需求？
 
 Contract 是 Requirement 与后续 Test / Evidence / Grader machinery 之间的 **evaluation-semantics layer**：
 
@@ -106,7 +106,7 @@ Requirement:
 
 `RC`、`NR`、`TI`、Trace Matrix、Finalization Mapping 和 Extraction Issue Ledger 可以作为审计与理解上下文，但不能替代 Frozen Requirement，也不能作为正式 `Contract.requirement_ids` 的引用目标。
 
-### 3.2 Entry Gate
+### 3.2 入口门禁
 
 开始设计前必须确认：
 
@@ -131,7 +131,7 @@ Contract Design Status = CONTRACTS_BLOCKED
 - 用 Contract wording 暗中解决上游冲突；
 - 宣称 Contract coverage 已完成。
 
-### 3.3 Contract Method Validation Subset
+### 3.3 Contract Method 验证 Subset
 
 生产 Contract Design 的 authoritative input 始终是完整、当前有效的 `Frozen Requirement Set`。本节不改变该 Entry Gate，也不允许 production workflow 使用 partial Requirements。
 
@@ -143,9 +143,9 @@ Contract Method Validation Subset
 
 它只能用于：
 
-- Contract Design method validation；
+- Contract Design 方法验证；
 - granularity analysis；
-- success / failure / failure-mode criteria analysis；
+- 成功 / 失败 / 失败-mode criteria analysis；
 - criticality analysis；
 - Schema adequacy analysis；
 - method research 或 review。
@@ -153,7 +153,7 @@ Contract Method Validation Subset
 它不得用于：
 
 - 生产 Benchmark Definition；
-- authoritative complete Contract Set；
+- 权威 完整 Contract Set；
 - 正式 Requirement 或 Contract coverage 声明；
 - Benchmark freeze；
 - downstream production Test Case、Evidence 或 Grader generation；
@@ -248,7 +248,7 @@ many-to-many 是 Framework 必须支持的关系，不是鼓励尽可能合并�
 
 ---
 
-## 6. Contract Atomicity：Atomic Verification Commitment Test
+## 6. Contract 原子性：Atomic Verification Commitment Test
 
 一个 Contract 应尽量表达一个具有清晰 evaluation meaning 的 **atomic verification commitment**。
 
@@ -342,7 +342,7 @@ Maximum Fragmentation
 
 ---
 
-## 9. Granularity Decision Procedure
+## 9. Granularity 决定 Procedure
 
 对每条 Frozen Requirement 执行以下过程：
 
@@ -366,7 +366,7 @@ Maximum Fragmentation
 
 ---
 
-## 10. Contract Statement
+## 10. 技术主题：Contract Statement
 
 ### 10.1 职责
 
@@ -419,7 +419,7 @@ Contract statement 不得：
 
 ---
 
-## 11. Success Criteria
+## 11. 成功标准
 
 `success_criteria` 定义：
 
@@ -447,7 +447,7 @@ Contract statement 不得：
 
 ---
 
-## 12. Failure Criteria
+## 12. 失败标准
 
 `failure_criteria` 定义：
 
@@ -489,7 +489,7 @@ Success 与 Failure 不要求覆盖未来所有 runtime states。Contract Design
 
 ---
 
-## 13. Failure Modes
+## 13. 失败模式
 
 `failure_modes` 定义：
 
@@ -609,7 +609,7 @@ NOT_APPLICABLE 与 NOT_EXERCISED 的最终编码、谁负责判定以及如何�
 
 ## 15. Outcome Contract 与 Workflow Contract
 
-### 15.1 Outcome Contract
+### 技术主题：15.1 Outcome Contract
 
 Outcome Contract 承接 `evaluation_type = outcome` 的 Requirements，主要评价：
 
@@ -622,14 +622,14 @@ Outcome Contract 承接 `evaluation_type = outcome` 的 Requirements，主要评
 
 其 statement 和 criteria 关注最终可观察结果应当具有的语义，不得偷偷加入来源未要求的执行方式。
 
-### 15.2 Workflow Contract
+### 技术主题：15.2 Workflow Contract
 
 Workflow Contract 承接 `evaluation_type = workflow` 的 Requirements，主要评价：
 
 - required action；
 - action ordering；
 - authorization；
-- required tool / resource use；
+- 必需的工具 / 资源使用；
 - validation occurrence；
 - forbidden action；
 - retry / recovery；
@@ -660,11 +660,11 @@ Workflow Requirement → Workflow Contract
 
 ---
 
-## 16. Criticality
+## 16. 字段或协议值：Criticality
 
 `criticality = normal | critical` 表达 Contract violation 的 benchmark-level evaluation severity / significance。
 
-### 16.1 normal
+### 技术主题：16.1 normal
 
 违反会影响对 Skill 能力或合规性的判断，但没有足够依据表明它需要作为关键失败被特别对待。
 
@@ -678,15 +678,15 @@ Workflow Requirement → Workflow Contract
 
 则通常保持 `normal`。`normal` 不表示不重要，也不表示该 Contract 可以被忽略；它只表示当前没有充分依据将 violation 提升为 benchmark-level critical failure。
 
-### 16.2 critical
+### 技术主题：16.2 critical
 
 只有存在明确理由时才使用 `critical`。典型依据包括 violation 会直接涉及：
 
 - destructive 或 irreversible side effect；
 - authorization 或 consent boundary；
 - safety 或 security boundary；
-- material data integrity loss；
-- explicit normative task-completion boundary；
+- 实质性数据完整性损失；
+- 显式 normative task-completion 边界；
 - core result invalidation，使任务即使其他方面正确也不能被合理视为完成；
 - benchmark intent 明确指定为不可被普通成功抵消的责任。
 
@@ -702,7 +702,7 @@ Workflow Requirement → Workflow Contract
 
 每个 Contract 都必须在 Contract Design Audit 中保留简短 criticality rationale，而不只记录 `critical` 决定。
 
-### 16.3 Ambiguous Criticality
+### 技术主题：16.3 Ambiguous Criticality
 
 如果根据以下输入仍无法可靠决定 `normal` 或 `critical`：
 
@@ -735,7 +735,7 @@ Critical Contract 失败不自动等于整个 Benchmark 失败。哪些结果真
 
 ---
 
-## 17. Requirement → Contract Coverage Mapping
+## 17. Requirement → Contract 覆盖映射
 
 Contract Design 必须产生双向可检查的 traceability。
 
@@ -748,13 +748,13 @@ Contract Design 必须产生双向可检查的 traceability。
 
 不得静默遗漏 Requirement。
 
-### 17.2 Coverage Matrix
+### 17.2 覆盖矩阵
 
 最小 working artifact：
 
 | 字段 | 含义 |
 |---|---|
-| `requirement_id` | Frozen Requirement ID |
+| `requirement_id` | Frozen Requirement ID（冻结需求 ID） |
 | `contract_ids` | 覆盖它的一个或多个 Contract IDs；阻塞时为空 |
 | `coverage_status` | `COVERED` 或 `BLOCKED` |
 | `rationale` | split / merge / direct mapping 理由，或阻塞原因 |
@@ -822,7 +822,7 @@ v0 **不引入 mandatory `Contract Candidate` 对象或 Candidate lifecycle**。
 
 ---
 
-## 19. Contract Design Audit
+## 19. 技术主题：Contract Design Audit
 
 Contract Design Audit 是非 Core、非冻结 Schema 的工作记录，用来保存 Frozen Contract Set 本身无法表达、但方法审查需要的设计理由。
 
@@ -869,12 +869,12 @@ Rationale 不需要长篇文字，但不能只写“很重要”“安全相关�
 
 - Requirement 无法在不脑补的情况下 contractize；
 - Requirement wording 太模糊，无法确定满足 / 违反边界；
-- suspected mixed outcome / workflow responsibility；
+- 疑似混合的结果 / 工作流责任；
 - mapping 或 granularity 无法合理决定；
 - Contract statement 或 criteria 缺少 Requirement support；
 - criticality 无法可靠判断；
 - conditional applicability 无法清楚表达；
-- downstream evidence / grader implementability concern。
+- 下游 Evidence / Grader 可实现性问题。
 
 Issue 至少说明：
 
@@ -912,11 +912,11 @@ Contract Design 不得直接 rewrite Frozen Requirement。上游 Requirement 被
 
 ---
 
-## 21. Contract Validation
+## 21. Contract 验证
 
 Validation 分为三个层次。三者必须保持边界：结构合法不代表语义设计正确，语义审查也不代表后续 Test / Evidence / Grader 已可执行。
 
-### 21.1 A. Structural / Field Validation
+### 21.1 A. Structural / Field 验证
 
 至少检查：
 
@@ -931,7 +931,7 @@ Validation 分为三个层次。三者必须保持边界：结构合法不代表
 
 这一层只能验证 shape、enum、format 和局部约束。
 
-### 21.2 B. Cross-object Validation
+### 21.2 B. Cross-object 验证
 
 至少检查：
 
@@ -947,7 +947,7 @@ Validation 分为三个层次。三者必须保持边界：结构合法不代表
 
 “Contract 没超出 Requirement support”需要语义审查，不应伪装成纯确定性 validator；Cross-object validation 只能确定引用与类型等可机械验证部分，并确认该语义审查已完成且没有 unresolved finding。
 
-### 21.3 C. Semantic Contract Review
+### 技术主题：21.3 C. Semantic Contract Review
 
 逐个 Contract 至少检查：
 
@@ -970,34 +970,34 @@ Semantic Review 需要 Agent / Human judgment，不能仅由 Schema validator �
 
 ---
 
-## 22. Contract Design Workflow
+## 22. 技术主题：Contract Design Workflow
 
-### Step 1 — Verify Input
+### 步骤 1 — Verify Input
 
 - 验证 Frozen Requirement Set 的 authority、completeness、status 和 staleness；
 - 建立 Requirement inventory；
 - 输入不合法时立即 `CONTRACTS_BLOCKED`。
 
-### Step 2 — Understand Evaluation Responsibilities
+### 步骤 2 — Understand Evaluation Responsibilities
 
 - 逐条读取 Requirement；
 - 仅在需要澄清时读取 authoritative provenance / audit context；
 - 不重新进行 Requirement discovery 或 normalization。
 
-### Step 3 — Draft Verification Commitments
+### 步骤 3 — Draft Verification Commitments
 
 - 为每条 Requirement 列出来源支持的最小 commitments；
 - 执行 Atomic Verification Commitment Test；
 - 标记可能的 split / merge；
 - 复杂备选方案可使用 Working Contract Drafts。
 
-### Step 4 — Resolve Mapping and Granularity
+### 步骤 4 — Resolve Mapping and Granularity
 
 - 对 1→N split 执行独立满足 / 违反与 Diagnostic Value 检查；
 - 对 N→1 merge 执行 coherent commitment 与 traceability 检查；
 - 在 Coverage Mapping 和 Audit 中记录 rationale。
 
-### Step 5 — Write Contracts
+### 步骤 5 — Write Contracts
 
 - 分配稳定 `contract_id`；
 - 写入 authoritative `requirement_ids`；
@@ -1007,21 +1007,21 @@ Semantic Review 需要 Agent / Human judgment，不能仅由 Schema validator �
 - 写 success criteria、failure criteria 和 failure modes；
 - 对 conditional responsibility 保留 exercise condition。
 
-### Step 6 — Build Coverage Mapping
+### 步骤 6 — Build 覆盖映射
 
 - 每个 Requirement 建立一行；
 - 从 Requirement 正向检查 Contract coverage；
 - 从 Contract 反向检查 references 和 semantic support；
 - 不用 coverage percentage 掩盖 BLOCKED row。
 
-### Step 7 — Validate
+### 步骤 7 — Validate
 
 - 执行 Structural / Field Validation；
 - 执行 Cross-object Validation；
 - 执行 Semantic Contract Review；
 - unresolved issue 必须进入 Issues，不得以 reviewer silence 当作通过。
 
-### Step 8 — Determine Status
+### 步骤 8 — Determine Status
 
 - 全部 coverage 和 validation 完成后输出 `CONTRACTS_READY`；
 - 任一 required condition 不满足时输出 `CONTRACTS_BLOCKED`；
@@ -1029,7 +1029,7 @@ Semantic Review 需要 Agent / Human judgment，不能仅由 Schema validator �
 
 ---
 
-## 23. Contract Design Status
+## 23. Contract 设计状态
 
 状态只保留：
 
@@ -1038,7 +1038,7 @@ CONTRACTS_READY
 CONTRACTS_BLOCKED
 ```
 
-### 23.1 CONTRACTS_READY
+### 技术主题：23.1 CONTRACTS_READY
 
 只有同时满足以下条件才能 READY：
 
@@ -1051,7 +1051,7 @@ CONTRACTS_BLOCKED
 - Contract Set、Coverage Mapping、Issues、Validation Summary 和 Audit 彼此一致；
 - 没有提前设计 Test Case、Evidence、Grader、Metric 或 Gate。
 
-### 23.2 CONTRACTS_BLOCKED
+### 技术主题：23.2 CONTRACTS_BLOCKED
 
 以下情况会 BLOCK：
 
@@ -1060,7 +1060,7 @@ CONTRACTS_BLOCKED
 - mixed type 无法合理处理；
 - coverage gap；
 - unsupported Contract semantics；
-- unresolved mapping / granularity issue；
+- 未解决的 mapping / granularity 问题；
 - required criticality 无法可靠判断；
 - validation failure；
 - 上游 Requirement 需要合法修订。
@@ -1119,7 +1119,7 @@ Contract 本身不得定义：
 - testcase prompt；
 - user scenario；
 - Fixture；
-- exact tool trace assertion；
+- 精确工具轨迹断言；
 - Evidence path 或 encoding；
 - regex；
 - JSONPath；
@@ -1133,29 +1133,29 @@ Contract 本身不得定义：
 
 ---
 
-## 26. Schema Design Findings
+## 26. Schema Design 发现项
 
 本轮方法设计没有证明 Frozen Contract Schema 存在必须立即修改的缺口。
 
-### 26.1 Applicability / precondition
+### 技术主题：26.1 Applicability / precondition
 
 当前可通过 `statement`、`success_criteria` 和 `failure_criteria` 表达 conditional responsibility 的 exercise condition。暂不增加字段。
 
 潜在风险是：未来跨大量 Contracts 的结构化 applicability 查询、统一 runtime 判定或自动 coverage generation 可能需要独立字段。该风险需要真实 Contract / Test / Result 设计证据后再评估。
 
-### 26.2 Design rationale
+### 技术主题：26.2 Design rationale
 
 `requirement_ids` 能表达 authoritative mapping，但 Frozen Schema 不保存 split / merge 与 criticality rationale。当前由非 Core 的 Contract Design Audit 解决，避免把过程元数据塞进核心对象。
 
 只有未来证明 Audit 与 Contract 频繁漂移、且 rationale 是所有下游消费者的稳定必需输入时，才考虑 Schema change。
 
-### 26.3 Runtime non-binary states
+### 技术主题：26.3 Runtime non-binary states
 
 PASS、FAIL、NOT_APPLICABLE、NOT_EXERCISED、BLOCKED 和 INSUFFICIENT_EVIDENCE 的区别对评价是必要概念，但它们属于后续 Runtime / Result Design，不属于 Contract Schema 字段。本指南不提前冻结 enum。
 
 ---
 
-## 27. Method Self-Review
+## 27. Method 自查
 
 | 检查问题 | v0 结论 |
 |---|---|
@@ -1186,7 +1186,7 @@ PASS、FAIL、NOT_APPLICABLE、NOT_EXERCISED、BLOCKED 和 INSUFFICIENT_EVIDENCE
 - 为避免 criticality 偷偷成为 Gate 或 weight，明确三者属于不同设计阶段；
 - 为避免机械复制 Requirement Candidate 架构，取消 mandatory Contract Candidate lifecycle。
 
-### 27.2 Method Validation Coverage Notes
+### 27.2 Method 验证 Coverage Notes
 
 Real validation 已支持本指南的核心 Contract definition、Atomicity / Diagnostic Value、criteria 分离、conditional semantics、Outcome / Workflow boundary、Coverage Mapping、轻量 Audit 和不引入 mandatory Contract Candidate 的当前设计。
 
@@ -1203,9 +1203,9 @@ Real validation 已支持本指南的核心 Contract definition、Atomicity / Di
 
 ---
 
-## 28. Final Decision Checklist
+## 28. 最终决定 检查清单
 
-### Input
+### 字段或协议值：Input
 
 - [ ] 输入是 authoritative Frozen Requirement Set
 - [ ] Requirement Finalization 为 `FINALIZATION_READY`
@@ -1220,7 +1220,7 @@ Real validation 已支持本指南的核心 Contract definition、Atomicity / Di
 - [ ] Subset scope 与完整 Target / Benchmark readiness 边界已明确
 - [ ] Status 完整写为 `CONTRACTS_READY for validation subset` 或 `CONTRACTS_BLOCKED for validation subset`
 
-### Mapping and Granularity
+### 技术主题：Mapping and Granularity
 
 - [ ] 每条 Requirement 都执行了 mapping 判断
 - [ ] 1→N split 具有独立 verification commitment 与 diagnostic value
@@ -1230,7 +1230,7 @@ Real validation 已支持本指南的核心 Contract definition、Atomicity / Di
 - [ ] 没有为减少数量而强行合并
 - [ ] 没有按逗号、字段或动词机械拆分
 
-### Contract Semantics
+### 技术主题：Contract Semantics
 
 - [ ] statement 忠实且没有 strengthen / weaken Requirement
 - [ ] success criteria 描述满足语义
@@ -1243,7 +1243,7 @@ Real validation 已支持本指南的核心 Contract definition、Atomicity / Di
 - [ ] unresolved criticality uncertainty 已记录并阻塞，没有用默认值或新增 enum 绕过
 - [ ] criticality 有依据且不等于 Gate / weight / score
 
-### Boundaries
+### 字段或协议值：Boundaries
 
 - [ ] 没有写 Test Case、Fixture 或 scenario
 - [ ] 没有写 Evidence path / encoding / trace schema
@@ -1251,7 +1251,7 @@ Real validation 已支持本指南的核心 Contract definition、Atomicity / Di
 - [ ] 没有写 Metric、score weight 或 Gate expression
 - [ ] 没有修改 Frozen Requirement 或 Frozen Contract Schema
 
-### Production Validation and Outputs
+### Production 验证 and Outputs
 
 - [ ] Structural / Field Validation 已完成
 - [ ] Cross-object Validation 已完成

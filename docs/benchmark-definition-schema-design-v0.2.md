@@ -1,10 +1,10 @@
-# 《Benchmark Definition Schema Design v0.2 — Authority and Digest Hardening》
+# 《Benchmark Definition Schema 设计 v0.2 — Authority and Digest Hardening》
 
 Version: v0.2
-Status: Architecture Authority Defined and Validated
+状态：架构权威已定义并完成验证（Architecture Authority Defined and Validated）
 Date: 2026-08-27
 
-## 1. Scope and predecessor
+## 1. 范围 and predecessor
 
 本文是`docs/benchmark-definition-requirement-contract-schema-design-v0.md`的versioned hardening successor。
 
@@ -19,10 +19,10 @@ Contract
 本文不无痕改写该baseline，也不重新设计Requirement、Contract、Test Case、Evidence Specification、Grader Specification、Metric Specification或Gate Specification。已有object schemas继续由各自frozen schema / Guide提供authority；本文只补齐：
 
 1. 完整Benchmark Definition composition；
-2. Overall Score Definition-time authority；
-3. whole-benchmark Acceptance Definition-time authority；
-4. external semantic resource binding；
-5. Frozen Definition content closure；
+2. Overall Score Definition-time 权威；
+3. whole-benchmark Acceptance Definition-time 权威；
+4. external 语义 resource binding；
+5. Frozen Definition 内容闭包；
 6. canonical serialization与digest protocol；
 7. composition / policy / closure层validation。
 
@@ -43,7 +43,7 @@ Definition digest production protocol is not yet frozen
 
 ---
 
-## 2. Preserved architecture boundary
+## 2. 技术主题：Preserved architecture boundary
 
 16个Core Objects保持不变：
 
@@ -76,25 +76,25 @@ Canonical closure profile
 
 ---
 
-## 3. Imported object schema authorities
+## 3. 技术主题：Imported object schema authorities
 
 本文引用而不复制重写以下object schemas：
 
 | Object | Existing authority |
 |---|---|
-| Requirement | `docs/benchmark-definition-requirement-contract-schema-design-v0.md` |
-| Contract | `docs/benchmark-definition-requirement-contract-schema-design-v0.md` |
-| Test Case | `docs/guides/test-case-design-guide-v0.md` |
-| Evidence Specification | `docs/guides/evidence-specification-guide-v0.md` |
-| Grader Specification | `docs/guides/grader-specification-guide-v0.md` |
-| Metric Specification | `docs/guides/metric-specification-guide-v0.md` |
-| Gate Specification | `docs/guides/gate-specification-guide-v0.md` |
+| 需求（Requirement） | `docs/benchmark-definition-requirement-contract-schema-design-v0.md` |
+| 契约（Contract） | `docs/benchmark-definition-requirement-contract-schema-design-v0.md` |
+| 测试用例（Test Case） | `docs/guides/test-case-design-guide-v0.md` |
+| 证据规范（Evidence Specification） | `docs/guides/evidence-specification-guide-v0.md` |
+| 评分器规范（Grader Specification） | `docs/guides/grader-specification-guide-v0.md` |
+| 指标规范（Metric Specification） | `docs/guides/metric-specification-guide-v0.md` |
+| 门禁规范（Gate Specification） | `docs/guides/gate-specification-guide-v0.md` |
 
 如果任一imported object authority未来形成新frozen version，Benchmark Definition必须明确使用与本closure profile兼容的schema interpretation；不能由Runtime临时混合不同版本语义。
 
 ---
 
-## 4. Final Benchmark Definition composition
+## 4. 技术主题：Final Benchmark Definition composition
 
 ```text
 BenchmarkDefinition:
@@ -115,7 +115,7 @@ BenchmarkDefinition:
 - semantic_resource_bindings: list[DefinitionResourceBinding]
 ```
 
-### 4.1 Existing identity and lifecycle fields
+### 技术主题：4.1 Existing identity and lifecycle fields
 
 `benchmark_id`、`name`、`version`、`description`与`status`继续使用predecessor v0语义：
 
@@ -125,7 +125,7 @@ BenchmarkDefinition:
 - Frozen Definition不得原地修改；
 - 修改任何closure content必须创建新version。
 
-### 4.2 Complete composition
+### 技术主题：4.2 Complete composition
 
 八类Definition Core Objects现在全部进入同一Benchmark Definition content boundary。各collection使用既有individual object schemas；本文件只承担：
 
@@ -135,19 +135,19 @@ BenchmarkDefinition:
 - nested Benchmark policies；
 - freeze content identity。
 
-### 4.3 Required policy decisions
+### 技术主题：4.3 Required policy decisions
 
 `overall_score_policy`与`acceptance_policy`都是required。
 
 Benchmark不需要Overall或whole-benchmark acceptance时，必须显式使用`mode: disabled`。禁止通过field absent或`null`表达disabled，因为absence可能表示author遗漏、旧schema或migration未完成。
 
-### 4.4 Semantic resource bindings
+### 技术主题：4.4 Semantic resource bindings
 
 `semantic_resource_bindings`是required list，允许空列表。空列表只在Definition没有external semantic resource，或所有相关content已经inline / content-addressed时合法。
 
 ---
 
-## 5. OverallScorePolicy union
+## 5. 技术主题：OverallScorePolicy union
 
 ```text
 OverallScorePolicy =
@@ -167,7 +167,7 @@ overall_score_enabled: bool
 
 ---
 
-## 6. DisabledOverallScorePolicy
+## 6. 字段或协议值：DisabledOverallScorePolicy
 
 ```text
 DisabledOverallScorePolicy:
@@ -189,7 +189,7 @@ DisabledOverallScorePolicy:
 
 ---
 
-## 7. WeightedNormalizedMeanOverallScorePolicy
+## 7. 字段或协议值：WeightedNormalizedMeanOverallScorePolicy
 
 ```text
 WeightedNormalizedMeanOverallScorePolicy:
@@ -213,11 +213,11 @@ explicit Metric membership
 
 不设计formula DSL、Metric-to-Metric graph、arbitrary expression、Runtime selector或implicit default aggregation。
 
-### 7.1 metric_contributions
+### 技术主题：7.1 metric_contributions
 
 必须非空。每项显式引用一个当前Benchmark `metric_id`。同一个`metric_id`不得重复。
 
-### 7.2 minimum_available_weight_fraction
+### 技术主题：7.2 minimum_available_weight_fraction
 
 必须是finite canonical decimal，范围：
 
@@ -227,7 +227,7 @@ explicit Metric membership
 
 它是exclude-and-renormalize之后仍能保留Overall declared meaning的minimum actual available Metric weight coverage。
 
-### 7.3 canonical_scale
+### 技术主题：7.3 canonical_scale
 
 v0固定为：
 
@@ -237,7 +237,7 @@ unit_interval
 
 其canonical numeric range为`[0,1]`。0–100等display scale不是authority，不进入本policy。
 
-### 7.4 canonical_precision
+### 技术主题：7.4 canonical_precision
 
 必须是integer，范围：
 
@@ -249,7 +249,7 @@ unit_interval
 
 ---
 
-## 8. OverallMetricContribution
+## 8. 字段或协议值：OverallMetricContribution
 
 ```text
 OverallMetricContribution:
@@ -262,19 +262,19 @@ OverallMetricContribution:
     overall_unavailable | exclude_and_renormalize
 ```
 
-### 8.1 Explicit membership
+### 技术主题：8.1 Explicit membership
 
 `metric_id`是唯一membership authority。禁止：
 
 - all metrics；
 - all Outcome metrics；
-- tag / name / evaluation_type selector；
+- tag / name / evaluation_type 选择器；
 - Runtime selector；
-- future metrics auto-inclusion。
+- 后续 metrics auto-inclusion。
 
 新增Metric Specification不会自动改变旧Benchmark Overall Score。
 
-### 8.2 Weight
+### 技术主题：8.2 Weight
 
 `weight`必须是positive finite decimal：
 
@@ -299,7 +299,7 @@ Metric weighting_policy
 ≠ Overall Metric weight
 ```
 
-### 8.3 Separate unavailable and missing handling
+### 技术主题：8.3 Separate unavailable and missing handling
 
 必须分别保存两种handling，因为：
 
@@ -312,7 +312,7 @@ Metric Result exists + status=unavailable
 
 ---
 
-## 9. MetricNormalization union
+## 9. 技术主题：MetricNormalization union
 
 ```text
 MetricNormalization =
@@ -324,7 +324,7 @@ Discriminator是`type`。
 
 ---
 
-## 10. IdentityUnitIntervalNormalization
+## 10. 字段或协议值：IdentityUnitIntervalNormalization
 
 ```text
 IdentityUnitIntervalNormalization:
@@ -350,7 +350,7 @@ Runtime不得因为值“看起来像百分比”而隐式使用identity normali
 
 ---
 
-## 11. LinearBoundedNormalization
+## 11. 字段或协议值：LinearBoundedNormalization
 
 ```text
 LinearBoundedNormalization:
@@ -367,7 +367,7 @@ source_min and source_max are finite
 source_max > source_min
 ```
 
-### 11.1 Higher is better
+### 技术主题：11.1 Higher is better
 
 ```text
 normalized
@@ -375,7 +375,7 @@ normalized
   / (source_max - source_min)
 ```
 
-### 11.2 Lower is better
+### 技术主题：11.2 Lower is better
 
 ```text
 normalized
@@ -383,7 +383,7 @@ normalized
   / (source_max - source_min)
 ```
 
-### 11.3 Compatibility rules
+### 11.3 兼容性 rules
 
 - bounds必须与Metric Specification declared scale、range与unit兼容；
 - direction必须与Metric Result semantics兼容；
@@ -396,7 +396,7 @@ normalized
 
 ---
 
-## 12. Overall unavailable and missing handling
+## 12. 技术主题：Overall unavailable and missing handling
 
 v0只允许：
 
@@ -411,11 +411,11 @@ exclude_and_renormalize
 - assume zero；
 - assume worst；
 - assume best；
-- use previous Run value；
-- fall back to display value；
-- treat missing as semantic unavailable。
+- use previous Run 值；
+- fall back to display 值；
+- treat 缺失 作为 语义 不可用。
 
-### 12.1 overall_unavailable
+### 技术主题：12.1 overall_unavailable
 
 如果相应selected Metric unavailable或missing：
 
@@ -425,7 +425,7 @@ exclude_and_renormalize
 - 保留Metric Result ref或missing application；
 - 不继续用剩余Metrics伪造available score。
 
-### 12.2 exclude_and_renormalize
+### 技术主题：12.2 exclude_and_renormalize
 
 如果相应selected Metric unavailable或missing：
 
@@ -435,13 +435,13 @@ exclude_and_renormalize
 - 重新归一化剩余included weights；
 - 只有available weight coverage满足minimum时才产生available Overall。
 
-### 12.3 Why fixed contribution is excluded
+### 技术主题：12.3 Why fixed contribution is excluded
 
 Fixed contribution会把availability、engine failure或missing Result转换为synthetic performance。当前没有真实validation证明这种语义必要，因此v0拒绝该扩展。
 
 ---
 
-## 13. Available weight coverage
+## 13. 技术主题：Available weight coverage
 
 ```text
 available_weight_fraction
@@ -475,7 +475,7 @@ Overall outcome = unavailable
 
 ---
 
-## 14. Overall canonical calculation authority
+## 14. 技术主题：Overall canonical calculation authority
 
 对于所有included available Metrics：
 
@@ -507,7 +507,7 @@ Rules：
 
 ---
 
-## 15. AcceptancePolicy union
+## 15. 技术主题：AcceptancePolicy union
 
 ```text
 AcceptancePolicy =
@@ -521,7 +521,7 @@ v0不包含`validity_only`。原因见第20节。
 
 ---
 
-## 16. DisabledAcceptancePolicy
+## 16. 字段或协议值：DisabledAcceptancePolicy
 
 ```text
 DisabledAcceptancePolicy:
@@ -542,7 +542,7 @@ DisabledAcceptancePolicy:
 
 ---
 
-## 17. GateBasedAcceptancePolicy
+## 17. 字段或协议值：GateBasedAcceptancePolicy
 
 ```text
 GateBasedAcceptancePolicy:
@@ -556,7 +556,7 @@ GateBasedAcceptancePolicy:
 
 - all-gates selector；
 - scope selector；
-- current / future Gates auto-inclusion；
+- 当前 / 后续 Gates auto-inclusion；
 - Gate name matching；
 - Runtime selection；
 - empty-list truth。
@@ -565,7 +565,7 @@ Membership本身是local Gate scope向whole-benchmark acceptance传播的Definit
 
 ---
 
-## 18. AcceptanceGateContribution
+## 18. 字段或协议值：AcceptanceGateContribution
 
 ```text
 AcceptanceGateContribution:
@@ -576,7 +576,7 @@ AcceptanceGateContribution:
     overall_indeterminate | overall_blocked
 ```
 
-### 18.1 Actual TRIGGERED
+### 技术主题：18.1 Actual TRIGGERED
 
 ```text
 participating Gate Result = TRIGGERED
@@ -585,7 +585,7 @@ participating Gate Result = TRIGGERED
 
 该effect固定，不增加weight、penalty、severity或offset。
 
-### 18.2 Actual OPEN
+### 技术主题：18.2 Actual OPEN
 
 ```text
 participating Gate Result = OPEN
@@ -594,7 +594,7 @@ participating Gate Result = OPEN
 
 OPEN只对该Gate成立，不单独证明whole Benchmark acceptable。
 
-### 18.3 Actual INDETERMINATE
+### 技术主题：18.3 Actual INDETERMINATE
 
 根据`indeterminate_handling`：
 
@@ -608,7 +608,7 @@ overall_blocked
 
 后者必须解释为AcceptancePolicy fail-closed handling，不得改写原Gate Result为TRIGGERED。
 
-### 18.4 Missing Gate Result
+### 技术主题：18.4 Missing Gate Result
 
 Missing表示required Gate Result object不存在，可能来自Gate evaluator failure或application未产生。它不是Gate Result semantic。
 
@@ -631,7 +631,7 @@ missing → fabricate GateResult(INDETERMINATE)
 
 ---
 
-## 19. Whole-benchmark acceptance aggregation
+## 19. 技术主题：Whole-benchmark acceptance aggregation
 
 本policy只适用于valid Run。对explicit participating Gates解析actual states：
 
@@ -666,17 +666,17 @@ MISSING
 
 Explanation必须区分：
 
-- blocked by actual Gate TRIGGERED；
-- blocked by INDETERMINATE fail-closed policy；
-- blocked by missing-result fail-closed policy；
-- indeterminate due to actual Gate INDETERMINATE；
-- indeterminate due to missing required Gate Result。
+- 已阻断 由 实际 Gate TRIGGERED；
+- 已阻断 由 INDETERMINATE fail-已关闭 策略；
+- 已阻断 由 缺失-结果 fail-已关闭 策略；
+- indeterminate due to 实际 Gate INDETERMINATE；
+- indeterminate due to 缺失 必需 Gate Result。
 
 AcceptancePolicy不重新evaluate Gate condition，不读取Metric、Grader或Evidence。
 
 ---
 
-## 20. validity_only decision
+## 20. 技术主题：validity_only decision
 
 Controlled architecture review没有发现必须保留`validity_only`的真实ordinary Benchmark need。
 
@@ -721,7 +721,7 @@ Future真实Benchmark若证明“valid execution itself就是acceptance policy�
 
 ---
 
-## 21. Acceptance and Overall remain independent
+## 21. 技术主题：Acceptance and Overall remain independent
 
 AcceptancePolicy不消费Overall Score。
 
@@ -750,7 +750,7 @@ Overall threshold → BLOCKED
 
 ---
 
-## 22. Run validity precedence
+## 22. 技术主题：Run validity precedence
 
 Definition-time policy冻结以下Runtime application prerequisite：
 
@@ -761,14 +761,14 @@ authoritative whole-benchmark Acceptance
 require Run validity = valid
 ```
 
-### 22.1 Invalid Run
+### 技术主题：22.1 Invalid Run
 
 当Run invalid：
 
 - Scorecard可以保留audit inventory；
 - existing Results可以显示；
 - no authoritative Overall；
-- no ACCEPTABLE / BLOCKED / INDETERMINATE acceptance semantic；
+- 无 ACCEPTABLE / BLOCKED / INDETERMINATE acceptance 语义；
 - invalid不转换为blocked；
 - invalid不转换为Gate triggered；
 - policy不得消费non-authoritative Results形成final view。
@@ -779,17 +779,17 @@ Run invalid
 ≠ Acceptance BLOCKED
 ```
 
-### 22.2 Pending validity
+### 技术主题：22.2 Pending validity
 
 Pending Run同样不能产生final authoritative Overall或Acceptance。
 
-### 22.3 Scope boundary
+### 22.3 范围 boundary
 
 本文只冻结policy application prerequisite，不设计Runtime Scorecard wrapper、production status fields或UI。
 
 ---
 
-## 23. Gate scope propagation
+## 23. 技术主题：Gate scope propagation
 
 Gate Specification的required`scope: str`保持不变。AcceptancePolicy explicit membership提供另一层、不同问题的authority：
 
@@ -814,7 +814,7 @@ Semantic validation必须检查：
 
 ---
 
-## 24. Zero-Gate behavior
+## 24. 技术主题：Zero-Gate behavior
 
 合法配置：
 
@@ -827,7 +827,7 @@ acceptance_policy:
 结果语义：
 
 - valid Run仍只是valid Run；
-- no whole-benchmark acceptance produced；
+- 无 whole-benchmark acceptance produced；
 - no vacuous ACCEPTABLE；
 - Scorecard仍可展示Metrics与diagnostics。
 
@@ -844,7 +844,7 @@ acceptance_policy:
 
 ---
 
-## 25. DefinitionResourceBinding
+## 25. 字段或协议值：DefinitionResourceBinding
 
 ```text
 DefinitionResourceBinding:
@@ -853,7 +853,7 @@ DefinitionResourceBinding:
 - content_digest: str
 ```
 
-### 25.1 Purpose
+### 25.1 目的
 
 任何external resource，只要其content影响以下任一语义，就必须进入Frozen Definition transitive closure：
 
@@ -864,9 +864,9 @@ DefinitionResourceBinding:
 - Gate semantics；
 - Overall policy semantics；
 - Acceptance policy semantics；
-- other authoritative Benchmark policy semantics。
+- other 权威 Benchmark 策略 语义。
 
-### 25.2 Three valid forms
+### 技术主题：25.2 Three valid forms
 
 每个semantic resource必须满足至少一种：
 
@@ -881,7 +881,7 @@ Definition closure incomplete
 → Definition cannot freeze
 ```
 
-### 25.3 Field rules
+### 技术主题：25.3 Field rules
 
 - `resource_ref`非空、在当前Definition中unique；
 - `resource_ref`是Definition内logical reference，不得使用machine-specific absolute filesystem path；
@@ -891,13 +891,13 @@ Definition closure incomplete
 - locator不证明content identity；
 - Runtime Artifact digest不能替代Definition-time resource binding。
 
-### 25.4 No Fixture Core Object
+### 技术主题：25.4 No Fixture Core Object
 
 Binding只证明external content identity，不创建Fixture lifecycle、Fixture Result或Fixture registry Core Object。
 
 ---
 
-## 26. Frozen Definition content identity decision
+## 26. 技术主题：Frozen Definition content identity decision
 
 `definition_digest`在v0.2明确表示：
 
@@ -929,7 +929,7 @@ complete Frozen Definition content identity
 
 ---
 
-## 27. Frozen Definition Closure
+## 27. 技术主题：Frozen Definition Closure
 
 Closure至少包含：
 
@@ -954,17 +954,17 @@ Benchmark Definition schema-declared fields
 
 并包含任何future schema-declared authoritative Benchmark policies，但只有在closure profile升级并明确字段规则后才允许新增。
 
-### 27.1 Included
+### 技术主题：27.1 Included
 
-- every schema-declared Frozen Definition field；
-- all nested Definition objects；
-- all nested policy values；
-- all source references that are object fields；
-- all semantic resource content digests；
+- 每个 schema-declared Frozen Definition 字段；
+- 所有 nested Definition 对象；
+- 所有 nested 策略 值；
+- 所有 来源 references that 是 对象 字段；
+- 所有 语义 resource content digests；
 - explicit empty lists；
-- explicit disabled policy variants。
+- 显式 disabled 策略 variants。
 
-### 27.2 Excluded
+### 技术主题：27.2 Excluded
 
 - Run、Episode、Artifact、Evidence；
 - Grader / Metric / Gate Results；
@@ -985,7 +985,7 @@ Design Audit如果包含尚未进入schema的决定，不能靠hash Audit偷偷�
 
 ---
 
-## 28. Canonical closure profile
+## 28. 技术主题：Canonical closure profile
 
 v0 profile固定为：
 
@@ -1016,9 +1016,9 @@ CanonicalFrozenDefinition:
 
 ---
 
-## 29. Canonical serialization rules
+## 29. 技术主题：Canonical serialization rules
 
-### 29.1 Encoding
+### 技术主题：29.1 Encoding
 
 - UTF-8；
 - no BOM；
@@ -1026,13 +1026,13 @@ CanonicalFrozenDefinition:
 - string line endings规范化为LF；
 - no comments；
 - no presentation whitespace；
-- exactly one canonical byte sequence。
+- 恰好 一个 canonical byte sequence。
 
-### 29.2 Object keys
+### 技术主题：29.2 Object keys
 
 Object keys按Unicode code-point lexical order排序。不得依赖YAML source order、JSON pretty printer、Python insertion order或filesystem order。
 
-### 29.3 Strings
+### 技术主题：29.3 Strings
 
 - 使用第29.9节固定的JSON string encoding；
 - NFC normalization在escaping前完成；
@@ -1040,7 +1040,7 @@ Object keys按Unicode code-point lexical order排序。不得依赖YAML source o
 - 不删除string内部semantic spaces；
 - field validation负责禁止非法empty或leading/trailing-only values。
 
-### 29.4 Absent and null
+### 技术主题：29.4 Absent and null
 
 ```text
 absent != null
@@ -1054,15 +1054,15 @@ absent != null
 - empty list与absent不同；
 - empty string与absent不同。
 
-### 29.5 Canonical decimals
+### 技术主题：29.5 Canonical decimals
 
 - only finite decimal；
 - NaN与Infinity非法；
 - no leading plus；
-- no insignificant leading zeros；
+- 无 insignificant leading zeros；
 - `-0`规范化为`0`；
 - no exponent notation；
-- remove insignificant fractional trailing zeros；
+- 移除无意义的小数尾随零；
 - decimal point只在存在non-zero fractional part时保留。
 
 因此：
@@ -1080,13 +1080,13 @@ absent != null
 1
 ```
 
-### 29.6 Booleans and enums
+### 技术主题：29.6 Booleans and enums
 
 - booleans使用lowercase`true | false`；
 - enums使用schema-declared exact lowercase token，除非既有frozen schema明确使用其他case；
 - implementation不得case-fold enum values。
 
-### 29.7 Unknown fields
+### 技术主题：29.7 Unknown fields
 
 Unknown Definition或policy field使canonicalization blocked。禁止某实现hash unknown field而另一实现忽略。
 
@@ -1098,11 +1098,11 @@ unknown field
 → cannot freeze
 ```
 
-### 29.8 Ordered vs set-like lists
+### 技术主题：29.8 Ordered vs set-like lists
 
 每个list field必须由profile明确分类。Implementation不得根据当前值自行猜测。
 
-### 29.9 Canonical JSON container and string encoding
+### 技术主题：29.9 Canonical JSON container and string encoding
 
 Canonical bytes使用固定JSON data-model encoding：
 
@@ -1132,113 +1132,113 @@ Canonical string encoding：
 
 ---
 
-## 30. Collection ordering classification
+## 30. 技术主题：Collection ordering classification
 
 Canonical string sort在NFC与LF normalization后，按Unicode code-point lexical order执行。
 
 Pair sort使用tuple lexical order。
 
-### 30.1 Benchmark-level collections
+### 技术主题：30.1 Benchmark-level collections
 
-| Field | Classification | Canonical ordering |
+| Field | Classification | Canonical 顺序 |
 |---|---|---|
-| `requirements` | set-like identified collection | `requirement_id` ascending |
-| `contracts` | set-like identified collection | `contract_id` ascending |
-| `test_cases` | set-like identified collection | `test_case_id` ascending |
-| `evidence_specifications` | set-like identified collection | `evidence_spec_id` ascending |
-| `grader_specifications` | set-like identified collection | `grader_id` ascending |
-| `metric_specifications` | set-like identified collection | `metric_id` ascending |
-| `gate_specifications` | set-like identified collection | `gate_id` ascending |
-| `semantic_resource_bindings` | set-like identified collection | `resource_ref` ascending |
+| `requirements` | 类集合的已标识集合 | `requirement_id` 升序 |
+| `contracts` | 类集合的已标识集合 | `contract_id` 升序 |
+| `test_cases` | 类集合的已标识集合 | `test_case_id` 升序 |
+| `evidence_specifications` | 类集合的已标识集合 | `evidence_spec_id` 升序 |
+| `grader_specifications` | 类集合的已标识集合 | `grader_id` 升序 |
+| `metric_specifications` | 类集合的已标识集合 | `metric_id` 升序 |
+| `gate_specifications` | 类集合的已标识集合 | `gate_id` 升序 |
+| `semantic_resource_bindings` | 类集合的已标识集合 | `resource_ref` 升序 |
 
-### 30.2 Requirement and Contract
+### 技术主题：30.2 Requirement and Contract
 
-| Field | Classification | Canonical ordering |
+| Field | Classification | Canonical 顺序 |
 |---|---|---|
-| `Contract.requirement_ids` | set-like ID references | ID ascending |
-| `Contract.success_criteria` | set-like semantic statements | canonical string ascending |
-| `Contract.failure_criteria` | set-like semantic statements | canonical string ascending |
-| `Contract.failure_modes` | set-like semantic statements | canonical string ascending |
+| `Contract.requirement_ids` | set-like ID references | ID 升序 |
+| `Contract.success_criteria` | set-like 语义 statements | canonical 字符串 升序 |
+| `Contract.failure_criteria` | set-like 语义 statements | canonical 字符串 升序 |
+| `Contract.failure_modes` | set-like 语义 statements | canonical 字符串 升序 |
 
 Requirement没有list fields。
 
-### 30.3 Test Case
+### 技术主题：30.3 Test Case
 
-| Field | Classification | Canonical ordering |
+| Field | Classification | Canonical 顺序 |
 |---|---|---|
-| `TestCase.preconditions` | set-like semantic statements | canonical string ascending |
-| `TestCase.fixtures` | set-like semantic statements / refs | canonical string ascending |
-| `TestCase.initial_state` | set-like semantic statements | canonical string ascending |
-| `TestCase.interaction_steps` | ordered semantic sequence | preserve declared order |
-| `TestCase.expected_assertions` | set-like target collection | `contract_id` ascending |
+| `TestCase.preconditions` | set-like 语义 statements | canonical 字符串 升序 |
+| `TestCase.fixtures` | set-like 语义 statements / refs | canonical 字符串 升序 |
+| `TestCase.initial_state` | set-like 语义 statements | canonical 字符串 升序 |
+| `TestCase.interaction_steps` | ordered 语义 sequence | 保留 declared order |
+| `TestCase.expected_assertions` | set-like 目标 集合 | `contract_id` 升序 |
 
-Reversing `interaction_steps` changes semantics and digest。Reordering fixtures without changing content does not。
+反转 `interaction_steps` 会改变语义和 digest；在内容不变时，仅调整 fixtures 的顺序不会改变二者。
 
-### 30.4 Evidence Specification
+### 技术主题：30.4 Evidence Specification
 
-| Field | Classification | Canonical ordering |
+| Field | Classification | Canonical 顺序 |
 |---|---|---|
-| `EvidenceSpecification.targets` | set-like target pairs | `(test_case_id, contract_id)` ascending |
-| `observation_requirements` | set-like semantic statements | canonical string ascending |
-| `provenance_requirements` | set-like semantic statements | canonical string ascending |
-| `context_requirements` | set-like semantic statements | canonical string ascending |
-| `qualification_requirements` | set-like semantic statements | canonical string ascending |
+| `EvidenceSpecification.targets` | set-like 目标 pairs | `(test_case_id, contract_id)` 升序 |
+| `observation_requirements` | set-like 语义 statements | canonical 字符串 升序 |
+| `provenance_requirements` | set-like 语义 statements | canonical 字符串 升序 |
+| `context_requirements` | set-like 语义 statements | canonical 字符串 升序 |
+| `qualification_requirements` | set-like 语义 statements | canonical 字符串 升序 |
 
 需要表达temporal order时，order必须写入statement semantics；列表本身不是execution sequence。
 
-### 30.5 Grader Specification
+### 技术主题：30.5 Grader Specification
 
-| Field | Classification | Canonical ordering |
+| Field | Classification | Canonical 顺序 |
 |---|---|---|
-| `GraderSpecification.targets` | set-like target pairs | `(test_case_id, contract_id)` ascending |
-| `GraderTarget.evidence_spec_ids` | set-like ID references | ID ascending |
-| `judgment_criteria` | set-like semantic statements | canonical string ascending |
-| `insufficiency_handling` | set-like semantic statements | canonical string ascending |
-| `explanation_requirements` | set-like semantic statements | canonical string ascending |
-| `Rubric.dimensions` | ordered rubric semantics | preserve declared order |
-| `RubricDimension.anchors` | ordered rubric semantics | preserve declared order |
+| `GraderSpecification.targets` | set-like 目标 pairs | `(test_case_id, contract_id)` 升序 |
+| `GraderTarget.evidence_spec_ids` | set-like ID references | ID 升序 |
+| `judgment_criteria` | set-like 语义 statements | canonical 字符串 升序 |
+| `insufficiency_handling` | set-like 语义 statements | canonical 字符串 升序 |
+| `explanation_requirements` | set-like 语义 statements | canonical 字符串 升序 |
+| `Rubric.dimensions` | ordered rubric 语义 | 保留 declared order |
+| `RubricDimension.anchors` | ordered rubric 语义 | 保留 declared order |
 
 Rubric dimension / anchor order保留，因为当前schema没有独立IDs，且ordered interpretation可能影响reviewer application。若future schema证明order非语义并增加stable IDs，需升级profile。
 
-### 30.6 Metric Specification
+### 技术主题：30.6 Metric Specification
 
-| Field | Classification | Canonical ordering |
+| Field | Classification | Canonical 顺序 |
 |---|---|---|
-| `MetricSpecification.inputs` | set-like target pairs | `(test_case_id, contract_id)` ascending |
-| `eligibility_policy.eligible_result_semantics` | set-like semantic tokens | canonical string ascending |
-| `eligibility_policy.non_substantive_handling` | set-like semantic statements | canonical string ascending |
-| `eligibility_policy.unavailable_input_handling` | set-like semantic statements | canonical string ascending |
-| `contribution_mapping` | set-like mapping entries | `(source_semantics, contribution_semantics)` ascending |
-| `completeness_policy.transparency_requirements` | set-like semantic statements | canonical string ascending |
+| `MetricSpecification.inputs` | set-like 目标 pairs | `(test_case_id, contract_id)` 升序 |
+| `eligibility_policy.eligible_result_semantics` | set-like 语义 tokens | canonical 字符串 升序 |
+| `eligibility_policy.non_substantive_handling` | set-like 语义 statements | canonical 字符串 升序 |
+| `eligibility_policy.unavailable_input_handling` | set-like 语义 statements | canonical 字符串 升序 |
+| `contribution_mapping` | set-like mapping entries | `(source_semantics, contribution_semantics)` 升序 |
+| `completeness_policy.transparency_requirements` | set-like 语义 statements | canonical 字符串 升序 |
 
 `result_selection_policy`、`aggregation_unit`、`unit_reduction`、`aggregation_rule`、`weighting_policy`与other Metric policy fields是scalar strings / nested objects，不是ordered lists。
 
-### 30.7 Gate Specification
+### 技术主题：30.7 Gate Specification
 
-| Field | Classification | Canonical ordering |
+| Field | Classification | Canonical 顺序 |
 |---|---|---|
-| `GateSpecification.explanation_requirements` | set-like semantic statements | canonical string ascending |
-| `GraderResultGateCondition.targets` | set-like target pairs | `(test_case_id, contract_id)` ascending |
-| `trigger_result_semantics` | set-like semantic tokens | canonical string ascending |
+| `GateSpecification.explanation_requirements` | set-like 语义 statements | canonical 字符串 升序 |
+| `GraderResultGateCondition.targets` | set-like 目标 pairs | `(test_case_id, contract_id)` 升序 |
+| `trigger_result_semantics` | set-like 语义 tokens | canonical 字符串 升序 |
 
 Metric threshold与availability Gate conditions没有list fields。
 
-### 30.8 Benchmark nested policies
+### 技术主题：30.8 Benchmark nested policies
 
-| Field | Classification | Canonical ordering |
+| Field | Classification | Canonical 顺序 |
 |---|---|---|
-| `OverallScorePolicy.metric_contributions` | set-like identified collection | `metric_id` ascending |
-| `AcceptancePolicy.participating_gates` | set-like identified collection | `gate_id` ascending |
+| `OverallScorePolicy.metric_contributions` | 类集合的已标识集合 | `metric_id` 升序 |
+| `AcceptancePolicy.participating_gates` | 类集合的已标识集合 | `gate_id` 升序 |
 
-### 30.9 Duplicate rule
+### 技术主题：30.9 Duplicate rule
 
 Canonical sorting不负责隐藏duplicates。Duplicates必须先使Structural Validation失败；不能通过sort + deduplicate静默修复。
 
 ---
 
-## 31. Digest protocol
+## 31. 技术主题：Digest protocol
 
-### 31.1 Algorithm
+### 技术主题：31.1 Algorithm
 
 固定：
 
@@ -1246,7 +1246,7 @@ Canonical sorting不负责隐藏duplicates。Duplicates必须先使Structural Va
 SHA-256
 ```
 
-### 31.2 Format
+### 技术主题：31.2 Format
 
 ```text
 sha256:<64 lowercase hexadecimal characters>
@@ -1254,7 +1254,7 @@ sha256:<64 lowercase hexadecimal characters>
 
 Algorithm identifier保存在digest string中。v0不做algorithm negotiation。
 
-### 31.3 Calculation
+### 技术主题：31.3 Calculation
 
 ```text
 complete BenchmarkDefinition closure
@@ -1268,18 +1268,18 @@ complete BenchmarkDefinition closure
 → sha256:<lowercase hex>
 ```
 
-### 31.4 Exclusions
+### 技术主题：31.4 Exclusions
 
 - digest不包含自身；
 - `definition_snapshot_ref`不进入closure；
 - storage path与checkout location不进入closure；
 - source YAML / JSON whitespace不具有authority。
 
-### 31.5 Meaning
+### 技术主题：31.5 Meaning
 
 SHA-256在本Framework只表示：
 
-- Frozen Definition content identity；
+- Frozen Definition content 身份；
 - drift detection；
 - Run binding；
 - audit comparison。
@@ -1292,7 +1292,7 @@ SHA-256在本Framework只表示：
 - trust decision；
 - confidentiality mechanism。
 
-### 31.6 Freeze output metadata
+### 技术主题：31.6 Freeze output metadata
 
 Freeze process至少输出：
 
@@ -1305,7 +1305,7 @@ definition_digest: sha256:<64 lowercase hex>
 
 ---
 
-## 32. Snapshot reference boundary
+## 32. 技术主题：Snapshot reference boundary
 
 Future Run可以保存：
 
@@ -1317,7 +1317,7 @@ definition_snapshot_ref
 
 - retrieval；
 - audit；
-- locating canonical source content。
+- locating canonical 来源 content。
 
 它不能：
 
@@ -1334,7 +1334,7 @@ snapshot ref helps locate content
 
 ---
 
-## 33. Same-version drift
+## 33. 技术主题：Same-version drift
 
 Frozen Definition identity由：
 
@@ -1362,7 +1362,7 @@ same benchmark_id
 invalid frozen-definition identity state
 ```
 
-### 33.1 Definition freeze / registry validation
+### 技术主题：33.1 Definition freeze / registry validation
 
 ```text
 same-version content drift
@@ -1371,7 +1371,7 @@ same-version content drift
 
 必须创建新version；Framework不得自动改版本、覆盖旧digest或选择“最新文件”。
 
-### 33.2 Runtime validation
+### 技术主题：33.2 Runtime validation
 
 ```text
 expected digest != loaded snapshot computed digest
@@ -1389,9 +1389,9 @@ expected digest != loaded snapshot computed digest
 
 ---
 
-## 34. Structural Validation
+## 34. Structural 验证
 
-### 34.1 BenchmarkDefinition
+### 技术主题：34.1 BenchmarkDefinition
 
 - 所有required composition fields存在；
 - `description` absent或non-empty；
@@ -1401,109 +1401,109 @@ expected digest != loaded snapshot computed digest
 - two policy fields不得absent或null；
 - unknown fields rejected。
 
-### 34.2 OverallScorePolicy
+### 技术主题：34.2 OverallScorePolicy
 
 - valid `mode` discriminator；
 - disabled variant无extra fields；
-- weighted variant fields complete；
+- weighted variant 字段 完整；
 - contributions non-empty；
 - metric IDs unique；
-- weight positive finite decimal；
+- 权重 positive finite decimal；
 - normalization discriminator与conditional fields一致；
 - linear bounds finite且max > min；
 - availability handling只使用two v0 values；
 - minimum fraction在`(0,1]`；
-- canonical scale exactly`unit_interval`；
+- canonical scale 恰好`unit_interval`；
 - precision integer在`[1,12]`；
-- no selector / formula / fixed contribution field；
-- no unknown policy fields。
+- 无 selector / formula / fixed contribution 字段；
+- 无 未知 策略 字段。
 
-### 34.3 AcceptancePolicy
+### 技术主题：34.3 AcceptancePolicy
 
 - valid `mode` discriminator；
 - disabled variant无participating gates；
-- gate-based list non-empty；
+- gate-based 列表 non-空；
 - Gate IDs unique；
-- both handling fields required；
+- both 处理 字段 必需；
 - handling只允许`overall_indeterminate | overall_blocked`；
 - no selector、weight、penalty、Overall threshold或unknown field。
 
-### 34.4 Semantic resources
+### 技术主题：34.4 Semantic resources
 
-- resource ref non-empty、unique；
-- semantic role non-empty；
-- content digest matches `sha256:<64 lowercase hex>`；
-- no conflicting duplicate binding。
+- resource ref non-空、unique；
+- 语义 role non-空；
+- content digest 匹配 `sha256:<64 lowercase hex>`；
+- 无 conflicting duplicate binding。
 
-### 34.5 Freeze metadata
+### 技术主题：34.5 Freeze metadata
 
-- closure profile exactly`skill-eval-frozen-definition-closure-v0`；
-- digest matches required format；
+- closure profile 恰好`skill-eval-frozen-definition-closure-v0`；
+- digest matches 必需 format；
 - digest field不出现在closure中。
 
 ---
 
-## 35. Cross-object Validation
+## 35. Cross-object 验证
 
-### 35.1 Complete Definition references
+### 技术主题：35.1 Complete Definition references
 
-- all IDs unique within object namespace；
-- all refs resolve within current Benchmark Definition；
-- no cross-Benchmark refs；
-- no stale target pairs；
+- 所有 IDs unique 在…内 对象 namespace；
+- 所有 refs resolve 在…内 当前 Benchmark Definition；
+- 无 cross-Benchmark refs；
+- 无 stale 目标 pairs；
 - imported object-level validations全部通过。
 
-### 35.2 Overall policy
+### 技术主题：35.2 Overall policy
 
-- every contribution metric exists；
-- normalization compatible with Metric Result semantics；
+- 每个 contribution metric exists；
+- normalization compatible with Metric Result 语义；
 - identity normalization只用于`[0,1]`higher-is-better numeric Metric；
-- linear bounds compatible with declared range/unit/direction；
+- linear bounds compatible with declared range/单元/direction；
 - ordinal / unbounded Metric没有未经证明进入；
 - membership不会因future Metrics自动扩展。
 
-### 35.3 Acceptance policy
+### 技术主题：35.3 Acceptance policy
 
-- every participating Gate exists；
+- 每个 participating Gate exists；
 - each Gate属于current Benchmark；
 - membership不使用scope/name selector；
 - whole-benchmark scope与membership没有unresolved conflict；
 - local Gate propagation有explicit membership；
-- no stale Gate ref。
+- 无 stale Gate ref。
 
-### 35.4 Semantic resources
+### 技术主题：35.4 Semantic resources
 
 - every external semantic resource reference可被识别；
 - each is inline、content-addressed或有binding；
 - mutable locator没有被当成content identity；
 - referenced digest与freeze-time resolved content一致；
-- no runtime Artifact substitution。
+- 无 runtime Artifact substitution。
 
-### 35.5 Closure and version
+### 技术主题：35.5 Closure and version
 
 - all schema-declared fields进入closure；
 - closure使用one profile；
 - same ID/version没有different digest；
-- no unknown field silently excluded；
-- no definition snapshot from another version mixed in。
+- 无 未知 字段 silently excluded；
+- 无 definition snapshot 来自 another version mixed in。
 
 ---
 
-## 36. Semantic Validation
+## 36. Semantic 验证
 
-### 36.1 Overall
+### 技术主题：36.1 Overall
 
 - Overall具有独立、可解释purpose；
 - selected Metrics适合共同形成Overall；
-- normalization preserves declared meaning；
+- normalization 保留声明含义；
 - weights有Benchmark rationale且不从upstream attributes机械推导；
 - unavailable与missing handling诚实；
 - minimum weight coverage保持interpretation；
-- no display or Runtime fallback authority；
+- 无 display 或 Runtime fallback 权威；
 - empty included set为unavailable；
 - Overall与Acceptance独立。
 
-### 36.2 Acceptance
+### 技术主题：36.2 Acceptance
 
 - participating Gates具有whole-benchmark propagation rationale；
 - Gate scope与propagation兼容；
@@ -1515,20 +1515,20 @@ expected digest != loaded snapshot computed digest
 - zero-Gate + disabled清楚；
 - no vacuous truth。
 
-### 36.3 Digest
+### 技术主题：36.3 Digest
 
 - closure确实完整；
 - content identity与semantic subset概念没有混用；
 - ordered / set-like classification完整；
-- external resource content immutable；
-- numeric / string normalization deterministic；
+- 外部资源内容不可变；
+- 数值 / 字符串 normalization 确定性；
 - same-version drift处理明确；
-- no Runtime / Scorecard implementation leakage；
+- 无 Runtime / Scorecard implementation leakage；
 - two conforming implementations原则上产生same bytes。
 
 ---
 
-## 37. Architecture-level controlled validation method
+## 37. 架构-level controlled validation method
 
 本轮validation是Definition / architecture-level paper execution：
 
@@ -1546,19 +1546,19 @@ expected digest != loaded snapshot computed digest
 
 ---
 
-## 38. Controlled validation results
+## 38. 受控验证结果
 
-### A — Overall disabled
+### 技术主题：A — Overall disabled
 
-Setup：valid Definition，multiple Metrics，`overall_score_policy.mode=disabled`。
+设置：有效 Definition、多个 Metrics，且 `overall_score_policy.mode=disabled`。
 
 Expected：Metrics保留；no numeric Overall；disabled不等于unavailable。
 
 Result：`PASS`。
 
-### B — Two compatible Metrics, equal weight
+### 技术主题：B — Two compatible Metrics, equal weight
 
-Setup：M001 normalized 0.8 weight 1；M002 normalized 0.6 weight 1；minimum coverage 1。
+设置：M001 归一化值为 0.8、权重为 1；M002 归一化值为 0.6、权重为 1；最低覆盖率为 1。
 
 ```text
 (0.8×1 + 0.6×1) / 2 = 0.7
@@ -1568,9 +1568,9 @@ Expected：canonical Overall 0.7，explicit refs与weights可追踪。
 
 Result：`PASS`。
 
-### C — Two compatible Metrics, unequal weight
+### 技术主题：C — Two compatible Metrics, unequal weight
 
-Setup：M001 normalized 0.8 weight 3；M002 normalized 0.6 weight 1。
+设置：M001 归一化值为 0.8、权重为 3；M002 归一化值为 0.6、权重为 1。
 
 ```text
 (0.8×3 + 0.6×1) / 4 = 0.75
@@ -1580,17 +1580,17 @@ Expected：canonical Overall 0.75；Metric内部weight不参与。
 
 Result：`PASS`。
 
-### D — Metric exists but unavailable
+### 技术主题：D — Metric exists but unavailable
 
-Setup：M001 Result exists but unavailable；M001 handling=`overall_unavailable`。
+设置：M001 Result 存在但不可用；M001 的处理方式为 `overall_unavailable`。
 
 Expected：Overall unavailable；no canonical value；M001不按0处理。
 
 Result：`PASS`。
 
-### D2 — Metric missing entirely
+### 技术主题：D2 — Metric missing entirely
 
-Setup：M001 available weight 3 value 0.8；M002 missing weight 1；M002 missing handling=`exclude_and_renormalize`；minimum fraction=0.75。
+设置：M001 可用，权重为 3、值为 0.8；M002 缺失，权重为 1；M002 的缺失处理方式为 `exclude_and_renormalize`；最低比例为 0.75。
 
 ```text
 available weight fraction = 3 / 4 = 0.75
@@ -1600,7 +1600,7 @@ Expected：coverage threshold met；Overall=0.8；missing application保留且�
 
 Result：`PASS`。
 
-### D3 — Exclusion below coverage threshold
+### 技术主题：D3 — Exclusion below coverage threshold
 
 Setup同D2，但minimum fraction=0.8。
 
@@ -1612,39 +1612,39 @@ Expected：Overall unavailable；不从M001单独伪造available score。
 
 Result：`PASS`。
 
-### E — High Overall plus Gate TRIGGERED
+### 技术主题：E — High Overall plus Gate TRIGGERED
 
-Setup：Overall=0.95；participating G001 actual Result=TRIGGERED。
+设置：Overall=0.95；参与验收的 G001 实际 Result=TRIGGERED。
 
 Expected：Overall保持0.95；Acceptance=BLOCKED；Gate不置零Overall。
 
 Result：`PASS`。
 
-### F1 — Gate INDETERMINATE to overall indeterminate
+### 技术主题：F1 — Gate INDETERMINATE to overall indeterminate
 
-Setup：G001=INDETERMINATE；handling=`overall_indeterminate`。
+设置：G001=INDETERMINATE；处理方式为 `overall_indeterminate`。
 
 Expected：Acceptance=INDETERMINATE。
 
 Result：`PASS`。
 
-### F2 — Gate INDETERMINATE fail closed
+### 技术主题：F2 — Gate INDETERMINATE fail closed
 
-Setup：G001=INDETERMINATE；handling=`overall_blocked`。
+设置：G001=INDETERMINATE；处理方式为 `overall_blocked`。
 
 Expected：Acceptance=BLOCKED；explanation为policy fail-closed，不篡改G001为TRIGGERED。
 
 Result：`PASS`。
 
-### G1 — Required Gate Result missing to indeterminate
+### 技术主题：G1 — Required Gate Result missing to indeterminate
 
 Setup：G001 required但无Result；missing handling=`overall_indeterminate`。
 
-Expected：Acceptance=INDETERMINATE；no fabricated Gate Result；diagnostic boundary preserved。
+预期：Acceptance=INDETERMINATE；不得伪造 Gate Result；保留诊断边界。
 
 Result：`PASS`。
 
-### G2 — Required Gate Result missing fail closed
+### 技术主题：G2 — Required Gate Result missing fail closed
 
 Setup同G1；handling=`overall_blocked`。
 
@@ -1652,9 +1652,9 @@ Expected：Acceptance=BLOCKED by missing-result policy；不表示Gate TRIGGERED
 
 Result：`PASS`。
 
-### H — Zero-Gate Benchmark with acceptance disabled
+### 技术主题：H — Zero-Gate Benchmark with acceptance disabled
 
-Setup：`gate_specifications=[]`；`acceptance_policy.mode=disabled`；conceptual Run valid。
+设置：`gate_specifications=[]`；`acceptance_policy.mode=disabled`；概念上的 Run 有效。
 
 Expected：Definition valid；Run仍只表示valid；no acceptance semantic。
 
@@ -1662,23 +1662,23 @@ Negative：`gate_based + participating_gates=[]`必须Structural INVALID。
 
 Result：`PASS`。没有发现`validity_only`不可替代need。
 
-### I — Invalid Run with otherwise good Results
+### 技术主题：I — Invalid Run with otherwise good Results
 
-Setup：conceptual Run invalid；Metrics high；Gates OPEN。
+设置：概念上的 Run 无效；Metrics 得分较高；Gates 为 OPEN。
 
 Expected：policy application prerequisite失败；audit inventory可保留；no authoritative Overall；no Acceptance semantic；invalid不等于BLOCKED。
 
 Result：`PASS`。
 
-### J — Same ID/version with different digest
+### 技术主题：J — Same ID/version with different digest
 
-Setup：same B001/v1.0/profile；digest A != digest B。
+设置：B001 / v1.0 / profile 相同；digest A != digest B。
 
 Expected：freeze / registry BLOCKED；Runtime expected-vs-loaded mismatch使Run invalid；不转Gate。
 
 Result：`PASS`。
 
-### K — External fixture path unchanged, content changed
+### 技术主题：K — External fixture path unchanged, content changed
 
 Setup：`resource_ref=fixtures/input.json`不变；content digest由A变B。
 
@@ -1686,7 +1686,7 @@ Expected：binding content改变→closure bytes改变→Definition digest改变
 
 Result：`PASS`。
 
-### L — Set-like lists in different source order
+### 技术主题：L — Set-like lists in different source order
 
 Setup：同一Requirements / Contracts / Overall contributions，以不同YAML source order表示。
 
@@ -1694,7 +1694,7 @@ Expected：stable identity sort后canonical arrays相同→same bytes→same dig
 
 Result：`PASS`。
 
-### M — Ordered interaction steps reversed
+### 技术主题：M — Ordered interaction steps reversed
 
 Setup：两个Test Cases只交换`interaction_steps`顺序。
 
@@ -1702,7 +1702,7 @@ Expected：ordered sequence保留→canonical bytes不同→digest不同。
 
 Result：`PASS`。
 
-### N — Canonical numeric equivalence
+### 技术主题：N — Canonical numeric equivalence
 
 Setup：同一weight分别以`1`、`1.0`、`1.000`输入并成功解析为decimal。
 
@@ -1710,117 +1710,117 @@ Expected：canonical decimal均为`1`→same bytes→same digest。
 
 Result：`PASS`。
 
-### O — Unknown Definition field
+### 技术主题：O — Unknown Definition field
 
 Setup：Definition包含profile未声明field `future_magic_policy`。
 
-Expected：schema invalid；canonicalization blocked；no digest；cannot freeze。
+预期：schema 无效；规范化被阻断；不生成 digest；无法冻结。
 
 Result：`PASS`。
 
 ---
 
-## 39. Controlled validation summary
+## 39. 受控验证摘要
 
 | Scenario | Boundary | Result |
 |---|---|---|
 | A | Overall disabled | PASS |
 | B | Equal weights | PASS |
 | C | Unequal weights | PASS |
-| D | Existing unavailable Metric | PASS |
-| D2 | Missing Metric + allowed exclusion | PASS |
-| D3 | Coverage below threshold | PASS |
-| E | High Overall + triggered Gate | PASS |
-| F1/F2 | Gate indeterminate handling | PASS |
-| G1/G2 | Missing Gate Result handling | PASS |
-| H | Zero Gates + disabled acceptance | PASS |
-| I | Invalid Run precedence | PASS |
-| J | Same-version digest mismatch | PASS |
-| K | External resource drift | PASS |
-| L | Set-like reorder invariance | PASS |
-| M | Ordered sequence sensitivity | PASS |
-| N | Decimal lexical equivalence | PASS |
-| O | Unknown field rejection | PASS |
+| D | Existing 不可用 Metric | PASS |
+| D2 | Metric 缺失 + 允许排除 | PASS |
+| D3 | Coverage below 阈值 | PASS |
+| E | 高 Overall + 已触发 Gate | PASS |
+| F1/F2 | Gate indeterminate 处理 | PASS |
+| G1/G2 | Missing Gate Result 处理 | PASS |
+| H | 零 Gate + disabled acceptance | PASS |
+| I | 无效 Run 优先级 | PASS |
+| J | 同版本 digest 不匹配 | PASS |
+| K | 外部资源漂移 | PASS |
+| L | 类集合重排不变性 | PASS |
+| M | 有序序列敏感性 | PASS |
+| N | Decimal 词法等价 | PASS |
+| O | Unknown 字段 rejection | PASS |
 
 Controlled validation发现：
 
-- no need for `validity_only`；
-- no need for new Core Object；
-- no need to reopen Metric Specification；
-- no need to reopen Gate Specification；
-- no need for formula DSL；
-- no need for fixed synthetic contribution；
-- no new generic architecture blocker。
+- 无 need 用于 `validity_only`；
+- 无 need 用于 new Core Object；
+- 无 need to reopen Metric Specification；
+- 无 need to reopen Gate Specification；
+- 无 need 用于 formula DSL；
+- 无 need 用于 fixed synthetic contribution；
+- 无 new generic architecture blocker。
 
 ---
 
-## 40. Schema Findings
+## 40. Schema 发现项
 
-### BDH-001 — Full composition is required
+### 技术主题：BDH-001 — Full composition is required
 
 Frozen Definition digest不能只覆盖Requirement与Contract。Benchmark Definition必须组合全部八类Definition Core Objects与Benchmark-level policies。
 
-### BDH-002 — Disabled policy is explicit authority
+### 技术主题：BDH-002 — Disabled policy is explicit authority
 
 Overall与Acceptance fields required；`mode: disabled`与absence、null、unavailable严格分开。
 
-### BDH-003 — Overall membership is explicit
+### 技术主题：BDH-003 — Overall membership is explicit
 
 `metric_id`list是唯一membership authority；禁止selector与future automatic expansion。
 
-### BDH-004 — Cross-Metric normalization must be bounded
+### 技术主题：BDH-004 — Cross-Metric normalization must be bounded
 
 v0只支持identity unit interval与bounded linear normalization，不支持implicit、ordinal或unbounded aggregation。
 
-### BDH-005 — Missing and unavailable remain separate
+### 技术主题：BDH-005 — Missing and unavailable remain separate
 
 OverallMetricContribution需要两个handling fields；system failure不能被semantic unavailable吞并。
 
-### BDH-006 — Available weight coverage is required
+### 技术主题：BDH-006 — Available weight coverage is required
 
 Exclude-and-renormalize没有minimum coverage会让相同Overall value隐藏完全不同population，因此coverage threshold是required authority。
 
-### BDH-007 — Fixed contribution is rejected in v0
+### 技术主题：BDH-007 — Fixed contribution is rejected in v0
 
 它会把availability转换为performance；没有真实need，不加入。
 
-### BDH-008 — Acceptance has only disabled and gate-based modes
+### 技术主题：BDH-008 — Acceptance has only disabled and gate-based modes
 
 `validity_only`重复Run validity，没有独立ordinary acceptance need，v0删除。
 
-### BDH-009 — Acceptance Gate membership is propagation authority
+### 技术主题：BDH-009 — Acceptance Gate membership is propagation authority
 
 Gate scope保持local authority；explicit participating Gate IDs决定whole-benchmark propagation。
 
-### BDH-010 — Missing Gate Result is not INDETERMINATE Result
+### 技术主题：BDH-010 — Missing Gate Result is not INDETERMINATE Result
 
 Acceptance可以把missing映射为overall indeterminate或blocked，但不得fabricate Gate Result。
 
-### BDH-011 — External semantic resources require digest binding
+### 技术主题：BDH-011 — External semantic resources require digest binding
 
 Mutable path不足以形成Frozen closure。Inline、content-addressed ref或nested resource binding三选一。
 
-### BDH-012 — Digest means complete content identity
+### 技术主题：BDH-012 — Digest means complete content identity
 
 所有schema-declared fields进入closure，包括name、description与source_ref；不混用semantic-subset digest。
 
-### BDH-013 — Collection ordering is schema-profile authority
+### 技术主题：BDH-013 — Collection ordering is schema-profile authority
 
 每个list field明确ordered或set-like；implementation不得猜测或静默deduplicate。
 
-### BDH-014 — Closure profile is required
+### 技术主题：BDH-014 — Closure profile is required
 
 Canonicalization rules改变必须使用新profile ID，避免同一digest format承载不同byte semantics。
 
-### BDH-015 — Digest is not a signature
+### 技术主题：BDH-015 — Digest is not a signature
 
 SHA-256只提供content identity与drift detection，不提供publisher authentication。
 
 ---
 
-## 41. Architecture Findings status
+## 41. 架构 发现项 status
 
-### AF-RR-001
+### 状态或审计标识：AF-RR-001
 
 ```text
 Status:
@@ -1834,7 +1834,7 @@ Evidence：disabled/enabled union、explicit membership、normalization、weight
 
 Not CLOSED：仍需Runtime Guide引用并完成Runtime real validation。
 
-### AF-RR-002
+### 状态或审计标识：AF-RR-002
 
 ```text
 Status:
@@ -1848,7 +1848,7 @@ Evidence：explicit participating Gates、TRIGGERED / INDETERMINATE / MISSING pr
 
 Not CLOSED：仍需Runtime Guide引用并完成Runtime real validation。
 
-### AF-RR-003
+### 状态或审计标识：AF-RR-003
 
 ```text
 Status:
@@ -1866,7 +1866,7 @@ Evidence：J–O覆盖same-version drift、external content drift、set reorder�
 
 Not CLOSED：仍需Runtime Guide引用、digest implementation independent conformance validation与Runtime binding validation。
 
-### Combined conclusion
+### 技术主题：Combined conclusion
 
 ```text
 new Core Object required: NO
@@ -1879,24 +1879,24 @@ Pydantic / implementation started: NO
 
 ---
 
-## 42. Hardening readiness decision
+## 42. 技术主题：Hardening readiness decision
 
 Readiness conditions：
 
 | Condition | Result |
 |---|---|
-| AF-RR-001 structurally expressible | PASS |
-| AF-RR-002 structurally expressible | PASS |
-| AF-RR-003 protocol deterministic | PASS |
-| zero-Gate behavior clear | PASS |
-| Run validity separate | PASS |
-| Overall / Acceptance independent | PASS |
-| canonical digest reproducible by rules | PASS |
-| external semantic resources covered | PASS |
-| no new Core Object | PASS |
-| no Metric / Gate reopen | PASS |
-| A–O controlled scenarios deterministic | PASS |
-| new generic blocker | NONE |
+| AF-RR-001 在结构上可表达 | PASS |
+| AF-RR-002 在结构上可表达 | PASS |
+| AF-RR-003 protocol 确定性 | PASS |
+| zero-Gate 行为 清晰 | PASS |
+| Run validity 保持分离 | PASS |
+| Overall / Acceptance 独立 | PASS |
+| canonical digest reproducible 由 规则 | PASS |
+| external 语义 resources covered | PASS |
+| 无 new Core Object | PASS |
+| 无 Metric / Gate reopen | PASS |
+| A–O controlled scenarios 确定性 | PASS |
+| 新的通用阻断项 | NONE |
 
 Final decision：
 
@@ -1920,69 +1920,69 @@ YES
 
 ---
 
-## 43. Final validation checklist
+## 43. 最终验证检查清单
 
-### Composition
+### 字段或协议值：Composition
 
-- [ ] all eight Definition object collections present
-- [ ] existing object schemas imported, not rewritten
+- [ ] 所有 eight Definition 对象 集合 存在
+- [ ] existing 对象 schemas imported, 不 rewritten
 - [ ] overall policy present
 - [ ] acceptance policy present
-- [ ] resource binding list present
+- [ ] resource binding 列表 存在
 
-### Overall
+### 字段或协议值：Overall
 
 - [ ] mode valid
 - [ ] explicit Metric membership
-- [ ] weights positive and finite
+- [ ] 权重 positive 与 finite
 - [ ] normalization compatible
-- [ ] unavailable and missing separate
-- [ ] available weight threshold valid
-- [ ] unit interval canonical scale
+- [ ] 不可用 与 缺失 separate
+- [ ] 可用 权重 阈值 有效
+- [ ] 单元 interval canonical scale
 - [ ] precision in range
-- [ ] no intermediate display rounding
-- [ ] no formula DSL or fixed contribution
+- [ ] 无 intermediate display rounding
+- [ ] 无 formula DSL 或 fixed contribution
 
-### Acceptance
+### 字段或协议值：Acceptance
 
 - [ ] mode valid
-- [ ] zero-Gate uses disabled
-- [ ] gate-based membership non-empty
-- [ ] Gate refs explicit and unique
+- [ ] zero-Gate 使用 disabled
+- [ ] gate-based membership non-空
+- [ ] Gate refs 显式 与 unique
 - [ ] indeterminate handling explicit
 - [ ] missing handling explicit
-- [ ] no missing-to-OPEN
-- [ ] actual trigger vs fail-closed explanation separate
+- [ ] 无 缺失-to-OPEN
+- [ ] 实际 trigger vs fail-已关闭 解释 separate
 - [ ] no Overall threshold
-- [ ] no validity-only duplication
+- [ ] 无 validity-仅 duplication
 
-### Closure and resources
+### 技术主题：Closure and resources
 
-- [ ] all schema fields included
-- [ ] external semantic resources inline, content-addressed or bound
-- [ ] mutable resource path not accepted alone
-- [ ] excluded artifacts remain non-authoritative
-- [ ] digest and snapshot ref excluded from closure
+- [ ] 所有 schema 字段 included
+- [ ] external 语义 resources inline, content-addressed 或 bound
+- [ ] mutable resource path 不 accepted alone
+- [ ] excluded artifacts 保持 non-权威
+- [ ] digest 与 snapshot ref excluded 来自 closure
 
-### Canonicalization
+### 字段或协议值：Canonicalization
 
 - [ ] closure profile exact
 - [ ] UTF-8 no BOM
-- [ ] NFC and LF normalization
+- [ ] NFC 与 LF normalization
 - [ ] keys deterministic
 - [ ] every list classified
-- [ ] absent and null distinct
+- [ ] absent 与 null 不同
 - [ ] decimal canonical
 - [ ] unknown fields rejected
-- [ ] duplicate lists rejected before sorting
+- [ ] duplicate 列表 rejected 之前 sorting
 
-### Digest and version
+### 技术主题：Digest and version
 
 - [ ] SHA-256 format valid
-- [ ] digest computed over canonical bytes
-- [ ] same closure produces same digest
-- [ ] ordered semantic change produces different digest
-- [ ] same-version drift blocked
-- [ ] mismatch makes future Run invalid, not Gate-triggered
+- [ ] digest 计算得到 over canonical bytes
+- [ ] 相同 closure 生成 相同 digest
+- [ ] ordered 语义 change 生成 不同 digest
+- [ ] 相同-version drift 已阻断
+- [ ] mismatch makes 后续 Run 无效, 不 Gate-triggered
 
 只有全部required checks通过，某个具体Benchmark Definition才可以`status=frozen`并产生freeze output metadata。

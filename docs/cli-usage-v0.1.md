@@ -1,40 +1,36 @@
-# Skill Eval CLI usage v0.1
+# Skill Eval CLI 使用说明 v0.1
 
-## Scope
+## 范围
 
-The v0.1 CLI is a thin JSON entry point over the existing schema, validation,
-digest, Runtime, and evaluation APIs. It supports explicit executable
-`BenchmarkDefinitionV03` inputs only. It is not a subject executor, grader
-platform, registry, or reporting application.
+v0.1 CLI 是现有 schema、validation、digest、Runtime 和 evaluation API 之上的轻量 JSON 入口，只支持显式可执行的 `BenchmarkDefinitionV03` input。它不是 Subject executor、grader platform、registry 或 reporting application。
 
-This document describes the repository-local installation and the supported
-v0.1 CLI contract.
+本文说明仓库本地安装方式与受支持的 v0.1 CLI 契约。
 
-## Development installation
+## 开发环境安装
 
-From the repository root on Windows:
+在 Windows 仓库根目录执行：
 
 ```powershell
 uv sync --frozen --extra dev
 ```
 
-This installs the `skill-eval` console entry point into `.venv\Scripts`.
+该命令会把 `skill-eval` console entry point 安装到 `.venv\Scripts`。
 
-## Commands
+## 命令
 
-Validate the structure and cross-object graph of an executable v0.3 Definition:
+验证可执行 v0.3 Definition 的结构与跨对象 graph：
 
 ```powershell
 .venv\Scripts\skill-eval.exe validate assets\examples\minimal\definition.json
 ```
 
-Compute its canonical v1 digest:
+计算规范 v1 digest：
 
 ```powershell
 .venv\Scripts\skill-eval.exe digest assets\examples\minimal\definition.json
 ```
 
-Run the deterministic evaluation pipeline and write a complete JSON bundle:
+运行确定性 evaluation pipeline，并写入完整 JSON bundle：
 
 ```powershell
 .venv\Scripts\skill-eval.exe evaluate `
@@ -43,56 +39,39 @@ Run the deterministic evaluation pipeline and write a complete JSON bundle:
   --output evaluation.json
 ```
 
-Success writes a compact JSON summary to stdout and the full result bundle to
-the requested output path. Failures write a structured JSON object to stderr
-and return a non-zero exit code.
+成功时向 stdout 写入精简 JSON 摘要，并把完整 result bundle 写到指定 output path。失败时向 stderr 写入结构化 JSON object，并返回非零 exit code。
 
-## Evaluation input contract
+## Evaluation input 契约
 
-The root `input_version` must be `skill-eval-evaluation-input/v0.1`. The input
-contains only caller-controlled identity, fixed timestamps and IDs, execution
-plan, completed Episode facts, Artifacts, qualified Evidence, GraderResults,
-and Runtime diagnostics.
+根 `input_version` 必须是 `skill-eval-evaluation-input/v0.1`。Input 只包含调用方控制的 identity、固定 timestamps 与 IDs、execution plan、已完成 Episode facts、Artifacts、合格 Evidence、GraderResults 和 Runtime diagnostics。
 
-The `definition_ref` must bind all of these fields explicitly:
+`definition_ref` 必须显式绑定：
 
-- the same benchmark ID and benchmark version as the Definition;
-- `skill-eval-frozen-definition-closure-v1`;
-- the exact digest printed by `skill-eval digest`;
-- an optional snapshot reference.
+- 与 Definition 相同的 benchmark ID 和 benchmark version；
+- `skill-eval-frozen-definition-closure-v1`；
+- `skill-eval digest` 打印的精确 digest；
+- 可选 snapshot reference。
 
-`result_ids` supplies stable IDs for the MetricResults, GateResults, and
-Scorecard that the framework will produce. Its Metric and Gate keys must
-exactly match the Definition.
+`result_ids` 为 Framework 将生成的 MetricResults、GateResults 与 Scorecard 提供稳定 IDs；其中 Metric 和 Gate keys 必须与 Definition 完全一致。
 
-The input schema forbids extra fields. In particular, it does not accept
-caller-provided `metric_results`, `gate_results`, `overall_score_outcome`, or
-`acceptance_evaluation`.
+Input schema 禁止额外字段，尤其不接受调用方提供的 `metric_results`、`gate_results`、`overall_score_outcome` 或 `acceptance_evaluation`。
 
-## Evaluation output contract
+## Evaluation output 契约
 
-The output root is `skill-eval-evaluation-output/v0.1` and includes:
+Output root 是 `skill-eval-evaluation-output/v0.1`，包含：
 
-- Definition identity and closure profile;
-- the finalized valid Run and completed Episodes;
-- upstream Artifacts, Evidence, GraderResults, and diagnostics;
-- framework-produced MetricResults and GateResults;
-- framework-produced OverallScoreOutcome and AcceptanceEvaluation;
-- the finalized Scorecard and complete actual/missing inventory.
+- Definition identity 与 closure profile；
+- 最终确认有效的 Run 和 completed Episodes；
+- 上游 Artifacts、Evidence、GraderResults 与 diagnostics；
+- Framework 生成的 MetricResults 与 GateResults；
+- Framework 生成的 OverallScoreOutcome 与 AcceptanceEvaluation；
+- 最终 Scorecard，以及完整 actual/missing inventory。
 
-All IDs and timestamps that enter authoritative output come from the input.
-The CLI does not call `uuid4`, `datetime.now`, or random generators. Repeating
-an evaluation with the same files produces byte-identical output JSON.
+进入权威 output 的全部 IDs 与 timestamps 都来自 input。CLI 不调用 `uuid4`、`datetime.now` 或随机数生成器。使用相同文件重复评估会产生字节完全相同的 output JSON。
 
-## Real Skill example
+## 真实 Skill 示例
 
-The `real-skill` fixture represents a small Structured Task Summary Skill. The
-Skill instructions require a JSON object with exactly `summary`, `priority`,
-and `next_action`. Subject execution is deliberately represented by the
-pre-generated `subject-output.json` fixture; it is separate from framework
-evaluation.
-
-Run it with:
+`real-skill` fixture 表示一个小型 Structured Task Summary Skill。Skill instructions 要求 JSON object 只包含 `summary`、`priority` 和 `next_action`。Subject execution 由预生成的 `subject-output.json` fixture 表示，并与 Framework evaluation 分离。
 
 ```powershell
 .venv\Scripts\skill-eval.exe evaluate `
@@ -101,37 +80,16 @@ Run it with:
   --output real-skill-evaluation.json
 ```
 
-The qualified evidence supports a `satisfied` GraderResult. The deterministic
-Metric therefore equals `1`; the Gate checks whether that value is less than
-`1`, so it remains `OPEN`; Overall is `1.00`; Acceptance is `ACCEPTABLE`; and
-the Scorecard is `finalized_evaluation` with no missing applications.
+合格 Evidence 支持 `satisfied` GraderResult。确定性 Metric 因此等于 `1`；Gate 检查该值是否小于 `1`，所以保持 `OPEN`；Overall 为 `1.00`；Acceptance 为 `ACCEPTABLE`；Scorecard 为 `finalized_evaluation`，且没有 missing applications。
 
-## Error categories
+## 错误类别
 
-Structured stderr distinguishes:
+结构化 stderr 区分：`io_error`、`input_schema_error`、`definition_schema_error`、带 Definition issue codes 的 `definition_validation_error`、带 digest/profile binding issue codes 的 `definition_identity_error`、带 Runtime issue codes 的 `runtime_graph_error`、`evaluation_error` 和 `finalization_error`。
 
-- `io_error`;
-- `input_schema_error`;
-- `definition_schema_error`;
-- `definition_validation_error` with Definition issue codes;
-- `definition_identity_error` with digest/profile binding issue codes;
-- `runtime_graph_error` with Runtime issue codes;
-- `evaluation_error`;
-- `finalization_error`.
+## 可信边界限制
 
-## Trusted-boundary limitation
+`AUDIT-001` 仍是可信内部运行环境中的 accepted risk。受支持的 CLI path 会执行缓解措施：调用方提供的 GraderResults 是最后一类外部语义产物；随后 CLI 在 Runtime 与 Scorecard finalization 前调用 Framework 的确定性 Metric、Gate、Overall 与 Acceptance authority。
 
-AUDIT-001 remains an accepted risk for trusted internal operation. The
-supported CLI path enforces its mitigation: caller-provided GraderResults are
-the final externally supplied semantic products, and the CLI then invokes the
-framework's deterministic Metric, Gate, Overall, and Acceptance authorities
-before Runtime and Scorecard finalization.
+CLI 不证明任意调用方构造的派生 Results 已经过语义重算；绕过受支持路径的调用方不在受支持的 trust boundary 内。
 
-The CLI does not prove semantic recomputation for arbitrary caller-constructed
-derived Results. Callers that bypass this supported path remain outside the
-supported trust boundary.
-
-`AUDIT-006` is closed. The aggregate unsuffixed public schema API now selects
-the current executable v0.3 models; historical v0.2 compatibility uses explicit
-`*V02` names. The CLI continues to select `BenchmarkDefinitionV03` and closure
-profile v1 explicitly. See `docs/public-api-version-policy-v0.1.md`.
+`AUDIT-006` 已关闭。无版本后缀的聚合 Public Schema API 现在选择当前可执行 v0.3 models；历史 v0.2 兼容使用显式 `*V02` names。CLI 继续显式选择 `BenchmarkDefinitionV03` 与 closure profile v1。详见 `docs/public-api-version-policy-v0.1.md`。
