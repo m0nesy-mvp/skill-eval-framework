@@ -1,0 +1,196 @@
+{
+  "benchmark_id": "structured-task-summary.skill",
+  "name": "Structured Task Summary Skill benchmark",
+  "version": "1.0.0",
+  "description": "Evaluates a deterministic structured task-summary Skill fixture.",
+  "status": "frozen",
+  "requirements": [
+    {
+      "requirement_id": "R001",
+      "statement": "The Skill returns a structured task summary with summary, priority, and next_action.",
+      "source": "skill",
+      "source_ref": "subject-instructions.txt",
+      "evaluation_type": "outcome"
+    }
+  ],
+  "contracts": [
+    {
+      "contract_id": "C001",
+      "requirement_ids": ["R001"],
+      "statement": "The response is a JSON object containing exactly summary, priority, and next_action with an allowed priority and a concrete next action.",
+      "evaluation_type": "outcome",
+      "criticality": "critical",
+      "success_criteria": [
+        "The response is a JSON object.",
+        "The object has exactly summary, priority, and next_action.",
+        "priority is low, medium, or high.",
+        "next_action describes a concrete action."
+      ],
+      "failure_criteria": [
+        "The response is not JSON or omits a required key.",
+        "priority is outside the allowed vocabulary.",
+        "next_action is not concrete."
+      ],
+      "failure_modes": [
+        "The Skill returns prose instead of the required object.",
+        "The Skill invents an unsupported priority value.",
+        "The Skill returns a vague next action."
+      ]
+    }
+  ],
+  "test_cases": [
+    {
+      "test_case_id": "TC001",
+      "task": "Summarize the task: Prepare slides for the Monday product demo.",
+      "preconditions": ["Structured Task Summary Skill v1 instructions are active."],
+      "fixtures": ["The source task text is fixed."],
+      "initial_state": [],
+      "interaction_steps": [
+        {
+          "trigger": "Submit the fixed source task to the Skill.",
+          "response": "Capture the Skill's JSON response without transformation."
+        }
+      ],
+      "expected_assertions": [
+        {
+          "contract_id": "C001",
+          "expectation": "The response is the required three-field JSON object with an allowed priority and concrete next action."
+        }
+      ]
+    }
+  ],
+  "evidence_specifications": [
+    {
+      "evidence_spec_id": "ES001",
+      "targets": [{"test_case_id": "TC001", "contract_id": "C001"}],
+      "observation_requirements": [
+        "Parse the captured response as JSON.",
+        "Record the exact keys and values."
+      ],
+      "provenance_requirements": [
+        "Retain the captured subject-output.json artifact reference."
+      ],
+      "context_requirements": ["Record the fixed source task."],
+      "qualification_requirements": [
+        "The captured artifact is attributable to the single scheduled Episode."
+      ]
+    }
+  ],
+  "grader_specifications": [
+    {
+      "grader_id": "G001",
+      "targets": [
+        {
+          "test_case_id": "TC001",
+          "contract_id": "C001",
+          "evidence_spec_ids": ["ES001"]
+        }
+      ],
+      "judgment_criteria": [
+        "Confirm the artifact parses as JSON.",
+        "Confirm the exact key set is summary, priority, and next_action.",
+        "Confirm priority is allowed and next_action is concrete."
+      ],
+      "result_semantics": {
+        "satisfied": "All structured-output assertions are supported.",
+        "violated": "At least one structured-output assertion is contradicted.",
+        "insufficient_evidence": "The captured response cannot support a decision.",
+        "not_exercised": "The Skill was not exercised."
+      },
+      "insufficiency_handling": ["List the missing artifact or observation."],
+      "explanation_requirements": ["Cite the captured output evidence."],
+      "rubric": null
+    }
+  ],
+  "metric_specifications": [
+    {
+      "metric_id": "M001",
+      "name": "Structured output satisfaction rate",
+      "inputs": [{"test_case_id": "TC001", "contract_id": "C001"}],
+      "execution_policy": {
+        "selection": {"mode": "all_distinct", "order": null},
+        "eligibility": {
+          "eligible_semantics": ["satisfied", "violated"],
+          "non_substantive": "exclude_and_trace",
+          "missing_input": "unavailable"
+        },
+        "contribution_mapping": [
+          {
+            "source_semantic": "satisfied",
+            "numeric_value": "1",
+            "contribution_unit": "unit_interval",
+            "explanation": "A satisfied structured-output contract contributes one."
+          },
+          {
+            "source_semantic": "violated",
+            "numeric_value": "0",
+            "contribution_unit": "unit_interval",
+            "explanation": "A violated structured-output contract contributes zero."
+          }
+        ],
+        "aggregation_unit": "per_target",
+        "unit_reduction": {"mode": "mean"},
+        "weighting": {"mode": "equal_per_unit"},
+        "aggregation": {"mode": "mean"},
+        "completeness": {
+          "mode": "strict",
+          "empty_denominator": "unavailable",
+          "transparency_requirements": ["Report the single contributing target."]
+        }
+      },
+      "result_semantics": {
+        "interpretation": "Share of structured-output contract applications satisfied.",
+        "direction": "Higher is better.",
+        "scale": "Unit interval.",
+        "denominator_meaning": "Eligible structured-output contract applications."
+      }
+    }
+  ],
+  "gate_specifications": [
+    {
+      "gate_id": "GATE001",
+      "name": "Perfect structured output required",
+      "scope": "whole benchmark",
+      "condition": {
+        "condition_type": "metric_threshold",
+        "metric_id": "M001",
+        "comparator": "lt",
+        "threshold_value": "1"
+      },
+      "unavailable_handling": "indeterminate",
+      "result_semantics": {
+        "open_meaning": "The structured-output metric is perfect.",
+        "triggered_meaning": "The structured-output metric is below one.",
+        "indeterminate_meaning": "The structured-output metric is unavailable.",
+        "blocking_effect": "A triggered Gate blocks acceptance."
+      },
+      "explanation_requirements": ["Report the compared canonical metric value."]
+    }
+  ],
+  "overall_score_policy": {
+    "mode": "weighted_normalized_mean",
+    "metric_contributions": [
+      {
+        "metric_id": "M001",
+        "weight": "1",
+        "normalization": {"type": "identity_unit_interval"},
+        "unavailable_result_handling": "overall_unavailable",
+        "missing_result_handling": "overall_unavailable"
+      }
+    ],
+    "minimum_available_weight_fraction": "1",
+    "canonical_scale": "unit_interval",
+    "canonical_precision": 2
+  },
+  "acceptance_policy": {
+    "mode": "gate_based",
+    "participating_gates": [
+      {
+        "gate_id": "GATE001",
+        "indeterminate_handling": "overall_indeterminate",
+        "missing_result_handling": "overall_blocked"
+      }
+    ]
+  },
+  "semantic_resource_bindings": []
+}

@@ -1,0 +1,6 @@
+Structured Task Summary Skill v1
+
+Given one task description, return one JSON object with exactly these keys:
+summary, priority, next_action.
+
+priority must be one of low, medium, or high. next_action must be a concrete action.
