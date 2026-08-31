@@ -7,8 +7,8 @@ digest, Runtime, and evaluation APIs. It supports explicit executable
 `BenchmarkDefinitionV03` inputs only. It is not a subject executor, grader
 platform, registry, or reporting application.
 
-This document describes the repository-local development installation. Formal
-release packaging is intentionally out of scope.
+This document describes the repository-local installation and the supported
+v0.1 CLI contract.
 
 ## Development installation
 
@@ -25,21 +25,21 @@ This installs the `skill-eval` console entry point into `.venv\Scripts`.
 Validate the structure and cross-object graph of an executable v0.3 Definition:
 
 ```powershell
-.venv\Scripts\skill-eval.exe validate tests\fixtures\e2e\controlled\definition.json
+.venv\Scripts\skill-eval.exe validate assets\examples\minimal\definition.json
 ```
 
 Compute its canonical v1 digest:
 
 ```powershell
-.venv\Scripts\skill-eval.exe digest tests\fixtures\e2e\controlled\definition.json
+.venv\Scripts\skill-eval.exe digest assets\examples\minimal\definition.json
 ```
 
 Run the deterministic evaluation pipeline and write a complete JSON bundle:
 
 ```powershell
 .venv\Scripts\skill-eval.exe evaluate `
-  --definition tests\fixtures\e2e\controlled\definition.json `
-  --run-input tests\fixtures\e2e\controlled\run-input.json `
+  --definition assets\examples\minimal\definition.json `
+  --run-input assets\examples\minimal\run-input.json `
   --output evaluation.json
 ```
 
@@ -131,7 +131,7 @@ The CLI does not prove semantic recomputation for arbitrary caller-constructed
 derived Results. Callers that bypass this supported path remain outside the
 supported trust boundary.
 
-AUDIT-006 also remains open and non-blocking for this internal CLI. The CLI
-avoids the public v0.2/v0.3 ambiguity by selecting `BenchmarkDefinitionV03`
-and the v1 closure profile explicitly. Public API cleanup remains a packaging
-readiness concern.
+`AUDIT-006` is closed. The aggregate unsuffixed public schema API now selects
+the current executable v0.3 models; historical v0.2 compatibility uses explicit
+`*V02` names. The CLI continues to select `BenchmarkDefinitionV03` and closure
+profile v1 explicitly. See `docs/public-api-version-policy-v0.1.md`.

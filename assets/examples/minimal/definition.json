@@ -1,0 +1,166 @@
+{
+  "benchmark_id": "example.task-summary",
+  "name": "Minimal task summary evaluation",
+  "version": "0.1.0",
+  "description": "Public BenchmarkDefinitionV03 CLI example",
+  "status": "frozen",
+  "requirements": [
+    {
+      "requirement_id": "R001",
+      "statement": "The subject returns the requested summary.",
+      "source": "skill",
+      "source_ref": "example://task-summary/skill",
+      "evaluation_type": "outcome"
+    }
+  ],
+  "contracts": [
+    {
+      "contract_id": "C001",
+      "requirement_ids": ["R001"],
+      "statement": "The requested summary is observable.",
+      "evaluation_type": "outcome",
+      "criticality": "critical",
+      "success_criteria": ["A summary exists."],
+      "failure_criteria": ["The summary is absent."],
+      "failure_modes": ["The subject omits the summary."]
+    }
+  ],
+  "test_cases": [
+    {
+      "test_case_id": "TC001",
+      "task": "Produce the requested summary.",
+      "preconditions": [],
+      "fixtures": [],
+      "initial_state": [],
+      "interaction_steps": [
+        {"trigger": "Request a summary.", "response": "Subject responds."}
+      ],
+      "expected_assertions": [
+        {"contract_id": "C001", "expectation": "A summary is present."}
+      ]
+    }
+  ],
+  "evidence_specifications": [
+    {
+      "evidence_spec_id": "ES001",
+      "targets": [{"test_case_id": "TC001", "contract_id": "C001"}],
+      "observation_requirements": ["Observe the subject response."],
+      "provenance_requirements": ["Retain the response trace reference."],
+      "context_requirements": [],
+      "qualification_requirements": ["The response is attributable to the subject."]
+    }
+  ],
+  "grader_specifications": [
+    {
+      "grader_id": "G001",
+      "targets": [
+        {
+          "test_case_id": "TC001",
+          "contract_id": "C001",
+          "evidence_spec_ids": ["ES001"]
+        }
+      ],
+      "judgment_criteria": ["Compare the observed response with the contract."],
+      "result_semantics": {
+        "satisfied": "The contract is supported.",
+        "violated": "The contract is contradicted.",
+        "insufficient_evidence": "The evidence cannot decide.",
+        "not_exercised": "The condition was not exercised."
+      },
+      "insufficiency_handling": ["List missing observations."],
+      "explanation_requirements": ["Cite evidence contributions."],
+      "rubric": null
+    }
+  ],
+  "metric_specifications": [
+    {
+      "metric_id": "M001",
+      "name": "Contract satisfaction rate",
+      "inputs": [{"test_case_id": "TC001", "contract_id": "C001"}],
+      "execution_policy": {
+        "selection": {"mode": "all_distinct", "order": null},
+        "eligibility": {
+          "eligible_semantics": ["satisfied", "violated"],
+          "non_substantive": "exclude_and_trace",
+          "missing_input": "unavailable"
+        },
+        "contribution_mapping": [
+          {
+            "source_semantic": "satisfied",
+            "numeric_value": "1",
+            "contribution_unit": "unit_interval",
+            "explanation": "Satisfied contributes one."
+          },
+          {
+            "source_semantic": "violated",
+            "numeric_value": "0",
+            "contribution_unit": "unit_interval",
+            "explanation": "Violated contributes zero."
+          }
+        ],
+        "aggregation_unit": "per_target",
+        "unit_reduction": {"mode": "mean"},
+        "weighting": {"mode": "equal_per_unit"},
+        "aggregation": {"mode": "mean"},
+        "completeness": {
+          "mode": "strict",
+          "empty_denominator": "unavailable",
+          "transparency_requirements": []
+        }
+      },
+      "result_semantics": {
+        "interpretation": "Share of satisfied applications.",
+        "direction": "Higher is better.",
+        "scale": "Unit interval.",
+        "denominator_meaning": "Eligible contract applications."
+      }
+    }
+  ],
+  "gate_specifications": [
+    {
+      "gate_id": "GATE001",
+      "name": "Minimum satisfaction",
+      "scope": "whole benchmark",
+      "condition": {
+        "condition_type": "metric_threshold",
+        "metric_id": "M001",
+        "comparator": "lt",
+        "threshold_value": "0.8"
+      },
+      "unavailable_handling": "indeterminate",
+      "result_semantics": {
+        "open_meaning": "Threshold is met.",
+        "triggered_meaning": "Threshold is missed.",
+        "indeterminate_meaning": "Metric is unavailable.",
+        "blocking_effect": "Blocks acceptance when participating."
+      },
+      "explanation_requirements": ["Report the compared canonical value."]
+    }
+  ],
+  "overall_score_policy": {
+    "mode": "weighted_normalized_mean",
+    "metric_contributions": [
+      {
+        "metric_id": "M001",
+        "weight": "1",
+        "normalization": {"type": "identity_unit_interval"},
+        "unavailable_result_handling": "overall_unavailable",
+        "missing_result_handling": "overall_unavailable"
+      }
+    ],
+    "minimum_available_weight_fraction": "1",
+    "canonical_scale": "unit_interval",
+    "canonical_precision": 2
+  },
+  "acceptance_policy": {
+    "mode": "gate_based",
+    "participating_gates": [
+      {
+        "gate_id": "GATE001",
+        "indeterminate_handling": "overall_indeterminate",
+        "missing_result_handling": "overall_blocked"
+      }
+    ]
+  },
+  "semantic_resource_bindings": []
+}

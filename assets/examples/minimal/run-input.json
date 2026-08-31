@@ -1,0 +1,155 @@
+{
+  "input_version": "skill-eval-evaluation-input/v0.1",
+  "definition_ref": {
+    "benchmark_id": "example.task-summary",
+    "benchmark_version": "0.1.0",
+    "definition_closure_profile": "skill-eval-frozen-definition-closure-v1",
+    "definition_digest": "sha256:51469ca8e5639afb34bcadb7a6ddd27db711ad4b99c1fcbadc3f2d0f35a54c1d",
+    "definition_snapshot_ref": "definition.json"
+  },
+  "run_id": "RUN001",
+  "subject_ref": {
+    "subject_ref": "example://task-summary/revision-1",
+    "subject_kind": "example_revision",
+    "version_ref": "revision-1",
+    "content_digest": null,
+    "identity_metadata": {"platform": "portable", "revision_number": 1}
+  },
+  "execution_context": {
+    "execution_context_id": "CTX001",
+    "orchestrator": "public-example",
+    "environment_ref": null,
+    "configuration_ref": null,
+    "configuration_digest": null,
+    "context_metadata": {"profile": "minimal"}
+  },
+  "execution_plan": {
+    "test_cases": [
+      {
+        "test_case_id": "TC001",
+        "disposition": "scheduled",
+        "attempt_slots": [{"attempt_index": 1}],
+        "reason": null
+      }
+    ]
+  },
+  "run_created_at": "2026-08-31T00:00:00",
+  "run_started_at": "2026-08-31T00:00:00",
+  "run_ended_at": "2026-08-31T00:00:00",
+  "run_diagnostic_ids": [],
+  "episodes": [
+    {
+      "episode_id": "E001",
+      "run_id": "RUN001",
+      "test_case_id": "TC001",
+      "attempt_index": 1,
+      "execution_status": "completed",
+      "created_at": "2026-08-31T00:00:00",
+      "started_at": "2026-08-31T00:00:00",
+      "ended_at": "2026-08-31T00:00:00",
+      "trace_events": [
+        {
+          "trace_event_id": "TE001",
+          "event_index": 1,
+          "actor": "subject",
+          "event_type": "message",
+          "semantic_summary": "The subject returned the requested summary.",
+          "content_ref": null,
+          "tool_ref": null,
+          "operation": null,
+          "result_ref": null,
+          "occurred_at": null
+        }
+      ],
+      "artifact_ids": ["A001"],
+      "evidence_ids": ["EV001"],
+      "diagnostic_ids": []
+    }
+  ],
+  "artifacts": [
+    {
+      "artifact_id": "A001",
+      "run_id": "RUN001",
+      "artifact_kind": "subject_response",
+      "locator": "artifact://A001",
+      "media_type": null,
+      "content_digest": null,
+      "producer": "subject",
+      "relations": [
+        {
+          "relation": "produced",
+          "episode_id": "E001",
+          "trace_event_id": "TE001",
+          "source": "subject response"
+        }
+      ],
+      "metadata": null
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV001",
+      "run_id": "RUN001",
+      "episode_id": "E001",
+      "evidence_spec_id": "ES001",
+      "qualified_targets": [{"test_case_id": "TC001", "contract_id": "C001"}],
+      "observation": {"summary": "The requested summary exists.", "content_ref": null},
+      "provenance": {
+        "source_refs": [
+          {"source_type": "artifact", "source_id": "A001", "locator": null, "portion_ref": null}
+        ],
+        "collector": "public example",
+        "observed_from": "subject response"
+      },
+      "context": {
+        "context_summary": "Completed TC001 attempt.",
+        "related_trace_event_ids": ["TE001"]
+      },
+      "qualification": {
+        "status": "qualified",
+        "checks": [
+          {
+            "requirement": "Observation is attributable.",
+            "outcome": "passed",
+            "detail": "Artifact relation resolves to the Episode trace."
+          }
+        ],
+        "qualified_by": "public example",
+        "qualified_at": "2026-08-31T00:00:00"
+      }
+    }
+  ],
+  "grader_results": [
+    {
+      "grader_result_id": "GR001",
+      "run_id": "RUN001",
+      "episode_id": "E001",
+      "grader_id": "G001",
+      "test_case_id": "TC001",
+      "contract_id": "C001",
+      "evidence_ids": ["EV001"],
+      "judgment": "satisfied",
+      "explanation": {
+        "evidence_contributions": [
+          {"evidence_id": "EV001", "contribution": "Shows the requested summary."}
+        ],
+        "observed_facts": ["A summary exists."],
+        "semantic_basis": "The observed output satisfies C001.",
+        "supported_failure_criterion": null,
+        "supported_failure_mode": null,
+        "insufficiency_gaps": [],
+        "inference_notes": []
+      },
+      "rubric_result": null,
+      "created_at": "2026-08-31T00:00:00"
+    }
+  ],
+  "diagnostics": [],
+  "result_ids": {
+    "metric_result_ids": {"M001": "MR001"},
+    "gate_result_ids": {"GATE001": "GATER001"},
+    "scorecard_id": "SC001"
+  },
+  "result_created_at": "2026-08-31T00:00:00",
+  "finalized_at": "2026-08-31T00:00:00"
+}

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "skill-eval-framework"
 version = "0.1.0"
-description = "Executable schemas for frozen skill evaluation definitions and results"
+description = "Deterministic Agent Skill benchmark validation, digest, evaluation, and Scorecards"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.13,<3",
