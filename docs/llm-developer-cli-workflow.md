@@ -6,40 +6,40 @@
 flowchart TB
     subgraph LLM["1. LLM 阶段：设计 Benchmark"]
         direction TB
-        L0["Target Skill"]
+        L0["目标 Skill"]
         L1["理解 Skill"]
-        L2["Requirement Extraction"]
+        L2["提取 Requirement"]
         L3["Requirement"]
-        L4["Contract Design"]
+        L4["设计 Contract"]
         L5["Contract"]
-        L6["Test Case Design"]
+        L6["设计 Test Case"]
         L7["Test Case"]
         L8["Evidence Specification"]
         L9["Grader Specification"]
         L10["Metric Specification"]
         L11["Gate Specification"]
         L12["组装 BenchmarkDefinitionV03"]
-        LN["LLM 只设计评测规则<br/>不正式执行 Target Skill<br/>不生成最终派生 Results<br/>不绕过 CLI 自行计算最终结果"]
+        LN["LLM 只设计评测规则<br/>不正式执行目标 Skill<br/>不生成最终派生 Results<br/>不绕过 CLI 自行计算最终结果"]
 
         L0 --> L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> L7
         L7 --> L8 --> L9 --> L10 --> L11 --> L12
         L12 -.职责边界.-> LN
     end
 
-    H1["LLM → Developer 交接物<br/><b>BenchmarkDefinitionV03</b>"]
+    H1["LLM → 开发者交接物<br/><b>BenchmarkDefinitionV03</b>"]
     L12 --> H1
 
-    subgraph DEV["2. Developer 阶段：Review / Freeze + 外部执行"]
+    subgraph DEV["2. 开发者阶段：审核 / 冻结 + 外部执行"]
         direction TB
-        D0["Developer Review / Freeze<br/>检查定义并修正必要问题"]
-        D1["skill-eval validate<br/>Pydantic schema + cross-object validation"]
-        D2{"Definition valid?"}
+        D0["开发者审核 / 冻结<br/>检查 Definition 并修正必要问题"]
+        D1["skill-eval validate<br/>Pydantic Schema 校验 + 跨对象校验"]
+        D2{"Definition 是否有效？"}
         D3["skill-eval digest"]
-        D4["Frozen BenchmarkDefinitionV03<br/>+ definition_digest<br/>+ definition_closure_profile<br/>skill-eval-frozen-definition-closure-v1"]
+        D4["冻结的 BenchmarkDefinitionV03<br/>+ definition_digest<br/>+ definition_closure_profile<br/>skill-eval-frozen-definition-closure-v1"]
         D5["根据冻结的 Test Cases<br/>准备 Subject 与执行环境"]
-        D6["Subject Execution<br/><b>External to skill-eval CLI</b>"]
-        D7["收集 upstream Runtime products<br/>Run context / Episode / Artifact<br/>Evidence / GraderResult<br/>RuntimeDiagnostic（如果有）"]
-        D8["组装 run-input.json<br/>包含稳定 Result IDs 与 timestamps<br/><b>不包含</b> MetricResults / GateResults<br/>OverallScoreOutcome / AcceptanceEvaluation"]
+        D6["执行 Subject<br/><b>位于 skill-eval CLI 外部</b>"]
+        D7["收集上游 Runtime 产物<br/>Run 上下文 / Episode / Artifact<br/>Evidence / GraderResult<br/>RuntimeDiagnostic（如果有）"]
+        D8["组装 run-input.json<br/>包含稳定的 Result ID 与时间戳<br/><b>不包含</b> MetricResults / GateResults<br/>OverallScoreOutcome / AcceptanceEvaluation"]
 
         D0 --> D1 --> D2
         D2 -- "否：修正后重验" --> D0
@@ -47,29 +47,29 @@ flowchart TB
     end
 
     H1 --> D0
-    H2["Developer → CLI 交接物<br/><b>Frozen BenchmarkDefinitionV03</b><br/>+ definition digest / profile<br/>+ run-input.json"]
+    H2["开发者 → CLI 交接物<br/><b>冻结的 BenchmarkDefinitionV03</b><br/>+ definition_digest<br/>+ definition_closure_profile<br/>+ run-input.json"]
     D4 --> H2
     D8 --> H2
 
-    subgraph CLI["3. CLI 阶段：验证 + Deterministic Evaluation + Finalization"]
+    subgraph CLI["3. CLI 阶段：验证 + 确定性评估 + 最终确认"]
         direction TB
         C0["skill-eval evaluate"]
         C1["读取 Definition + run-input.json"]
-        C2["Definition Pydantic Schema Validation<br/>+ Cross-object Definition Validation"]
-        C3["run-input Pydantic Schema Validation<br/>+ Result ID completeness"]
-        C4["Definition Identity / Digest Binding"]
-        C5["Run prevalidation<br/>+ materialize completed Episodes"]
-        C6["Upstream Runtime Graph Validation<br/>Episode / Artifact / Evidence<br/>GraderResult / Diagnostic"]
+        C2["Definition 的 Pydantic Schema 校验<br/>+ Definition 跨对象校验"]
+        C3["run-input 的 Pydantic Schema 校验<br/>+ Result ID 完整性检查"]
+        C4["Definition 标识 / Digest 绑定"]
+        C5["Run 预校验<br/>+ 重建已完成的 Episodes"]
+        C6["上游 Runtime 图校验<br/>Episode / Artifact / Evidence<br/>GraderResult / RuntimeDiagnostic"]
         C7["GraderResults"]
-        C8["Metric Evaluation<br/>→ MetricResults"]
-        C9["Gate Evaluation<br/>→ GateResults"]
-        C10["Interim Overall / Acceptance<br/>+ Scorecard inventory closure"]
-        C11["Run final integrity / validity finalization"]
-        C12["Final OverallScoreOutcome<br/>由 MetricResults + policy 派生<br/>可为 available / unavailable / disabled"]
-        C13["Final AcceptanceEvaluation<br/>由 GateResults + policy 派生"]
-        C14["Scorecard finalization<br/>finalized_evaluation"]
-        C15["evaluation-output.json<br/>finalized Run + Runtime bundle<br/>MetricResults + GateResults<br/>Overall + Acceptance + Scorecard"]
-        CN["CLI DOES NOT：<br/>执行 Target Skill<br/>托管 LLM / semantic grader<br/>进行 browser / tool orchestration<br/>自动设计 Benchmark<br/>接受调用方提供的<br/>Metric / Gate / Overall / Acceptance results"]
+        C8["Metric 评估<br/>→ MetricResults"]
+        C9["Gate 评估<br/>→ GateResults"]
+        C10["临时 Overall / Acceptance<br/>+ Scorecard 清单闭包"]
+        C11["Run 最终完整性 / 有效性确认"]
+        C12["最终 OverallScoreOutcome<br/>由 MetricResults + 策略派生<br/>可为 available / unavailable / disabled"]
+        C13["最终 AcceptanceEvaluation<br/>由 GateResults + 策略派生"]
+        C14["Scorecard 最终确认<br/>finalized_evaluation"]
+        C15["evaluation-output.json<br/>已最终确认的 Run + Runtime 包<br/>MetricResults + GateResults<br/>Overall + Acceptance + Scorecard"]
+        CN["CLI 不负责：<br/>执行目标 Skill<br/>托管 LLM / 语义 Grader<br/>浏览器 / 工具编排<br/>自动设计 Benchmark<br/>接受调用方提供的<br/>Metric / Gate / Overall / Acceptance 派生 Results"]
 
         C0 --> C1 --> C2 --> C3 --> C4 --> C5 --> C6 --> C7
         C7 --> C8 --> C9 --> C10 --> C11
