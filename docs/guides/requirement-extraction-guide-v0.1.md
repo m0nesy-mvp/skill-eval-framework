@@ -4,6 +4,9 @@ Status: Design Guide
 Version: v0.1
 Date: 2026-08-24
 
+> [!IMPORTANT]
+> **文档角色：Definition authoring 方法。** 本文的 Pass 状态、冻结步骤和下游限制只描述 Requirement authoring 方法与当时的设计顺序，不表示当前仓库尚未实现后续 Schema、Runtime 或 CLI。当前可执行边界见根 `README.md`、`references/design-workflow.md`、`references/runtime-evaluation.md` 和 `references/cli.md`。
+
 ## 1. 目的
 
 本 Guide 定义 Part 1 Agent 如何理解 Target Skill，并从规范性来源中提取完整、可审查、可追溯的 Final Requirement Set。

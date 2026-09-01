@@ -2,6 +2,9 @@
 
 Status: Design Guide
 
+> [!IMPORTANT]
+> **文档角色：Definition authoring 方法。** 本文对下游阶段的“不实现”“不开始”或“不修改”声明只限定本 Guide 的设计职责和 authoring 顺序，不表示当前仓库尚未实现对应 Schema、Runtime 或 CLI。当前可执行边界见根 `README.md`、`references/design-workflow.md`、`references/runtime-evaluation.md` 和 `references/cli.md`。
+
 本文定义从已经冻结的Grader Specification / Metric Specification到Definition-time Gate Specification与future Runtime Gate Result的通用设计方法。它适用于tool-use、coding、browser、conversational、research、structured-output、qualitative与workflow evaluation，不绑定特定Skill、平台、业务领域、Runtime engine、Scorecard layout或Overall Score implementation。
 
 本文提出最小GateSpecification Schema Proposal，但不修改已经冻结的Requirement、Contract、Test Case、Evidence Specification、Grader Specification、Metric Specification、Concept Model或其他upstream Schema；不实现Gate Evaluator、Runtime Result、CLI、Pydantic、Scorecard或Overall Score。

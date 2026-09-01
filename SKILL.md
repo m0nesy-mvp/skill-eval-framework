@@ -7,9 +7,9 @@ description: 设计 Skill 基准，并以确定性方式验证、计算 digest �
 
 ## 目的
 
-使用本 Skill，可以把已经设计完成的 Skill 基准转换为确定、可追溯的评估。Framework 负责验证冻结的 Benchmark Definition、计算内容 identity、接收已经完成的 Runtime 事实和 GraderResults、派生 Metric/Gate/Overall/Acceptance 结果，并生成 Scorecard。
+使用本 Skill，可以把已经设计完成的 Skill 基准转换为确定、可追溯的评估。Framework 负责验证冻结的 Benchmark Definition、计算内容 identity、接收已经完成的 Runtime 事实和 GraderResults、派生 `MetricResults`、`GateResults`、`OverallScoreOutcome` 与 `AcceptanceEvaluation`，并生成 Scorecard。
 
-仓库同时提供从 Skill requirements 走向 Contracts、Test Cases、Evidence、Graders、Metrics 和 Gates 的设计参考。
+仓库同时提供从 Skill requirements 走向 Contracts、Test Cases、Evidence Specifications、Grader Specifications、Metric Specifications 和 Gate Specifications 的设计参考。
 
 ## 适用场景
 
@@ -40,12 +40,14 @@ Target Skill
 -> BenchmarkDefinitionV03
 -> validation
 -> digest v1
--> Runtime
--> GraderResults
--> Metric
--> Gate
--> Overall / Acceptance
--> Scorecard
+-> CLI 外执行 Subject
+-> Runtime facts + GraderResults
+
+GraderResults -> MetricResults
+GraderResults / MetricResults -> GateResults
+MetricResults -> OverallScoreOutcome
+GateResults -> AcceptanceEvaluation
+OverallScoreOutcome + AcceptanceEvaluation -> Scorecard
 ```
 
 benchmark 尚未完成设计时，阅读 [references/design-workflow.md](references/design-workflow.md)。构造 evaluation input 前，阅读 [references/runtime-evaluation.md](references/runtime-evaluation.md)。
@@ -88,7 +90,7 @@ skill-eval evaluate `
 
 ## 已知限制
 
-`AUDIT-001` 仍为 `ACCEPTED_RISK`。受支持的 CLI 只接受上游 Runtime products 和 GraderResults；Framework 自行派生 Metric、Gate、Overall 和 Acceptance 结果。直接使用 Python 的调用方可以绕过这条路径，向最终完整性检查提交结构合法但语义错误的派生 Results。该残余风险只是被记录，并未修复。
+`AUDIT-001` 仍为 `ACCEPTED_RISK`。受支持的 CLI 只接受上游 Runtime products 和 GraderResults；Framework 自行派生 `MetricResults`、`GateResults`、`OverallScoreOutcome` 与 `AcceptanceEvaluation`。直接使用 Python 的调用方可以绕过这条路径，向最终完整性检查提交结构合法但语义错误的派生 Results。该残余风险只是被记录，并未修复。
 
 `AUDIT-001`～`AUDIT-006` 的当前状态与验证入口见 [docs/audit-status-v0.1.md](docs/audit-status-v0.1.md)。历史设计文档中的阶段状态不得覆盖该当前状态表。
 

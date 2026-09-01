@@ -1,6 +1,6 @@
 # Skill Eval Framework
 
-`skill-eval-framework` 是一个确定性框架，用于验证、绑定和评估已经冻结的 Agent Skill 基准。它接收设计完成的可执行基准定义（Benchmark Definition）、已经完成的 Runtime 事实和 GraderResults，生成可追溯的 Metric、Gate、Overall、Acceptance 与 Scorecard 结果。
+`skill-eval-framework` 是一个确定性框架，用于验证、绑定和评估已经冻结的 Agent Skill 基准。它接收设计完成的可执行基准定义（Benchmark Definition）、已经完成的 Runtime 事实和 GraderResults，生成可追溯的 `MetricResults`、`GateResults`、`OverallScoreOutcome`、`AcceptanceEvaluation` 与 `Scorecard`。
 
 仓库同时收录从 Target Skill 需求走向可执行基准所需的设计指南。Agent 需要了解操作入口时，应先阅读 [SKILL.md](SKILL.md)。
 
@@ -18,24 +18,42 @@ Skill 评估容易漂移，因为需求、测试用例、证据、评分、聚�
 
 ```mermaid
 flowchart TD
-    S[Target Skill] --> R[Requirements / Contracts]
-    R --> T[Test Cases]
-    T --> E[Evidence / Grader]
-    E --> M[Metrics]
-    M --> G[Gates]
-    G --> C[Scorecard]
+    S[Target Skill] --> R[Requirement]
+    R --> C[Contract]
+    C --> T[Test Case]
+    T --> ES[Evidence Specification]
+    ES --> GS[Grader Specification]
+    GS --> MS[Metric Specification]
+    MS --> GSP[Gate Specification]
+    GSP --> D[BenchmarkDefinitionV03]
+    D --> RT[CLI 外执行 Subject<br/>并收集 Runtime facts]
+    RT --> GR[GraderResults]
+    GR --> MR[MetricResults]
+    GR --> GAR[GateResults]
+    MR --> GAR
+    MR --> O[OverallScoreOutcome]
+    GAR --> A[AcceptanceEvaluation]
+    O --> SC[Scorecard]
+    A --> SC
 ```
 
-```mermaid
-flowchart LR
-    D[Definition] --> RT[Runtime] --> RS[Result]
-```
-
-核心对象链为：
+三层对象边界为：
 
 ```text
-Requirement -> Contract -> Test Case -> Episode -> Evidence
--> GraderResult -> MetricResult -> GateResult -> Scorecard
+Definition:
+Requirement -> Contract -> Test Case
+-> Evidence Specification -> Grader Specification
+-> Metric Specification -> Gate Specification
+
+Runtime:
+Run -> Episode -> Artifact / Evidence / GraderResult / RuntimeDiagnostic
+
+Derived Results:
+GraderResults -> MetricResults
+GraderResults / MetricResults -> GateResults
+MetricResults -> OverallScoreOutcome
+GateResults -> AcceptanceEvaluation
+OverallScoreOutcome + AcceptanceEvaluation -> Scorecard
 ```
 
 ## 当前可执行版本
@@ -110,7 +128,7 @@ assert report.is_valid
 ## 评估生命周期
 
 1. 理解 Target Skill，并冻结权威 Requirements。
-2. 设计 Contracts、Test Cases、Evidence、Graders、Metrics 和 Gates。
+2. 设计 Contracts、Test Cases、Evidence Specifications、Grader Specifications、Metric Specifications 和 Gate Specifications。
 3. 验证并冻结一个 `BenchmarkDefinitionV03`。
 4. 计算 closure-v1 digest。
 5. 在 Framework 外执行 Subject，并保留 Runtime evidence。
@@ -153,7 +171,7 @@ v0.1 提交打包基线共收集 339 个测试；最终提交检查要求 339 �
 
 ## 已知限制
 
-`AUDIT-001` 仍为 `ACCEPTED_RISK`。受支持的 CLI 只接受上游 Runtime products 和 GraderResults，然后由框架自行派生 Metric/Gate/Overall/Acceptance 结果。直接使用 Python 的调用方可以绕过这条受支持路径，把结构合法但语义错误的派生 Results 提交给最终完整性检查。该残余风险已记录在 [docs/known-risks-v0.1.md](docs/known-risks-v0.1.md) 中，不能声称已经修复。
+`AUDIT-001` 仍为 `ACCEPTED_RISK`。受支持的 CLI 只接受上游 Runtime products 和 GraderResults，然后由框架自行派生 `MetricResults`、`GateResults`、`OverallScoreOutcome` 与 `AcceptanceEvaluation`。直接使用 Python 的调用方可以绕过这条受支持路径，把结构合法但语义错误的派生 Results 提交给最终完整性检查。该残余风险已记录在 [docs/known-risks-v0.1.md](docs/known-risks-v0.1.md) 中，不能声称已经修复。
 
 `AUDIT-001`～`AUDIT-006` 的当前状态、实现证据和回归入口统一记录在 [docs/audit-status-v0.1.md](docs/audit-status-v0.1.md)。历史设计文档中的 `OPEN`、`BLOCKED` 或“未开始实现”只表示当时阶段，不能覆盖该当前状态表。
 

@@ -1,5 +1,8 @@
 # 技术主题：《Benchmark Definition → Requirement → Contract Schema Design v0》
 
+> [!IMPORTANT]
+> **文档角色：历史初始 Schema 设计基线。** 本文的“本轮不设计”与实现阶段限制只描述当时的设计范围，不是当前仓库能力状态。当前可执行 root 是 `BenchmarkDefinitionV03`；当前版本、Runtime 与 CLI 边界见 `docs/public-api-version-policy-v0.1.md`、`references/runtime-evaluation.md` 和 `references/cli.md`。
+
 ## 1. 文档范围
 
 本设计只处理以下三个 Concept Object：

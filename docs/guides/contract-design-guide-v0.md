@@ -2,6 +2,9 @@
 
 Status: Design Guide
 
+> [!IMPORTANT]
+> **文档角色：Definition authoring 方法。** 本文对下游阶段的“不实现”或“不修改”声明只限定本 Guide 的设计职责，不表示当前仓库尚未实现对应 Schema、Runtime 或 CLI。当前可执行边界见根 `README.md`、`references/design-workflow.md`、`references/runtime-evaluation.md` 和 `references/cli.md`。
+
 本文定义从 authoritative `Frozen Requirement Set` 到 validated `Contract Set` 的通用设计方法。它适用于通用 Agent Skill Eval，不绑定特定 Skill、平台、工具、接口、Artifact 类型或业务领域。
 
 本文细化《通用 Skill Eval Design Process v1.1（Scope-Frozen）》中的 Contract Design 阶段，并遵守《Agent Skill Benchmark Concept Model v0.1》和《Benchmark Definition → Requirement → Contract Schema Design v0》的冻结边界。本文不修改 Frozen Requirement Schema 或 Frozen Contract Schema。

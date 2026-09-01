@@ -2,6 +2,9 @@
 
 Status: Design Guide
 
+> [!IMPORTANT]
+> **文档角色：Definition authoring 方法。** 本文对下游阶段的“不实现”“不开始”或“不修改”声明只限定本 Guide 的设计职责和 authoring 顺序，不表示当前仓库尚未实现对应 Schema、Runtime 或 CLI。当前可执行边界见根 `README.md`、`references/design-workflow.md`、`references/runtime-evaluation.md` 和 `references/cli.md`。
+
 本文定义从 authoritative Frozen Requirements、validated Contracts、validated Test Cases 与 validated Evidence Specifications 到 Grader Specification 的通用设计方法。它适用于通用 Agent Skill Eval，不绑定特定 Skill、平台、工具、Artifact 格式、执行器或判断实现。
 
 本文提出最小 GraderSpecification Schema Proposal，但不修改已经冻结的 Requirement、Contract、Test Case、Evidence Specification、Concept Model 或其他 Schema，不实现 Runtime，不开始 Metric 或 Gate Design，也不编写 concrete checker。

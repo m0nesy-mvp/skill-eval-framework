@@ -88,7 +88,7 @@ Output root 是 `skill-eval-evaluation-output/v0.1`，包含：
 
 ## 可信边界限制
 
-`AUDIT-001` 仍是可信内部运行环境中的 accepted risk。受支持的 CLI path 会执行缓解措施：调用方提供的 GraderResults 是最后一类外部语义产物；随后 CLI 在 Runtime 与 Scorecard finalization 前调用 Framework 的确定性 Metric、Gate、Overall 与 Acceptance authority。
+`AUDIT-001` 仍是可信内部运行环境中的 accepted risk。受支持的 CLI path 会执行缓解措施：调用方提供的 GraderResults 是最后一类外部语义产物。CLI 先调用 Framework 的确定性 Metric 与 Gate authority，形成临时 Scorecard 与完整 inventory；完成 Run integrity / validity finalization 后，只对有效 Run 分别调用 Overall 与 Acceptance authority，最后完成 Scorecard finalization。
 
 CLI 不证明任意调用方构造的派生 Results 已经过语义重算；绕过受支持路径的调用方不在受支持的 trust boundary 内。
 

@@ -19,13 +19,12 @@ CLI input 可以包含确定性的 identity/timestamp 字段、Run plan、已完
 确定性流程为：
 
 ```text
-GraderResults
--> MetricResults
--> GateResults
--> OverallScoreOutcome
--> AcceptanceEvaluation
--> Scorecard
+GraderResults -> MetricResults -> OverallScoreOutcome
+GraderResults / MetricResults -> GateResults -> AcceptanceEvaluation
+OverallScoreOutcome + AcceptanceEvaluation -> Scorecard
 ```
+
+Metric-threshold Gate 可以消费 `MetricResults`，direct-Grader Gate 可以消费 `GraderResults`；无论 Gate 的输入类型如何，Overall 与 Acceptance 始终彼此独立。Overall 只从 `MetricResults` 与 `overall_score_policy` 派生，Acceptance 只从 `GateResults` 与 `acceptance_policy` 派生。
 
 Scorecard inventory 区分 expected、actual 与 missing applications。GraderResult 缺失可以使 Metric unavailable、Gate indeterminate，但不会因此让 Runtime graph 在结构上无效。
 

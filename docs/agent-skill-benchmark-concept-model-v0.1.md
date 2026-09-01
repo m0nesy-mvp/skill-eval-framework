@@ -6,6 +6,9 @@ Date: 2026-08-21
 
 > v0.1 是进入第一批 Schema 设计前的当前 Concept Model Baseline。
 
+> [!IMPORTANT]
+> **文档角色：基础概念模型与历史设计基线。** 本文冻结核心对象的概念边界，但不是当前 `skill-eval` CLI 的 capability contract，也不覆盖后续 `BenchmarkDefinitionV03`、Runtime/Result 实现或当前 Audit 状态。当前操作入口见根 `README.md`、`SKILL.md` 与 `references/`；当前状态权威见 `docs/audit-status-v0.1.md`。
+
 ## 1. 一句话定义 Benchmark
 
 > Agent Skill Benchmark 是一套在执行前冻结的“任务要求、测试样本、证据要求和评分规则”，以及使用这些规则对一个被测对象（通常为 Skill）进行实际运行、收集证据、计算多维结果的完整评估单位。

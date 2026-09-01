@@ -25,13 +25,14 @@
 内部 v0.1 release 接受 `AUDIT-001`，因为受支持的内部执行工作流只通过确定性 evaluation services 派生全部语义 Results：
 
 ```text
-GraderResults
--> deterministic Metric evaluator
--> deterministic Gate evaluator
--> Overall evaluator
--> Acceptance evaluator
--> finalization
+GraderResults -> deterministic Metric evaluator -> MetricResults
+MetricResults -> Overall evaluator
+GraderResults / MetricResults -> deterministic Gate evaluator -> GateResults
+GateResults -> Acceptance evaluator
+Overall evaluator + Acceptance evaluator -> finalization
 ```
+
+Metric-threshold Gate 可以消费确定性 `MetricResults`，但 Acceptance evaluator 只消费 `GateResults`，不消费 Overall evaluator 的输出。Overall 与 Acceptance 彼此独立，并共同进入 finalization。
 
 直接向 finalization 提供业务代码构造的派生语义 Result 对象，不属于受支持的执行工作流。
 
