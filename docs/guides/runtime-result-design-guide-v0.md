@@ -2,6 +2,11 @@
 
 状态：RUNTIME_RESULT_DESIGN_V0_FREEZE_READY — 聚焦复验已通过
 
+> [!IMPORTANT]
+> **文档角色：历史 Runtime/Result 设计与验证方法。** 正文中的“本轮不实现 Pydantic / CLI / engine”“implementation conformance 仍 OPEN”和类似 readiness 结论只记录本文冻结时的阶段边界，不是当前仓库实现状态。
+>
+> **当前状态（2026-09-01）：** Runtime/Result Pydantic schemas、definition binding、digest conformance、lifecycle/validation、Metric/Gate/Overall/Acceptance evaluation、Scorecard finalization 和 CLI 已实现并由当前测试覆盖。受支持的 CLI 仍不执行 Subject 或 semantic Grader；它消费已经完成的 Runtime facts 与 `GraderResults`。当前操作入口见根 `README.md`、`references/runtime-evaluation.md` 和 `references/cli.md`；当前 Audit 状态见 `docs/audit-status-v0.1.md`。本文的 pseudo-schema、历史 blocker 和“不得开始实现”措辞必须按当时阶段理解。
+
 本文定义从已经冻结的 Benchmark Definition 到 Runtime / Result objects 的通用设计方法，并提出以下八个 Core Objects 的最小 pseudo-schema：
 
 - Runtime：Run、Episode、Artifact、Evidence；

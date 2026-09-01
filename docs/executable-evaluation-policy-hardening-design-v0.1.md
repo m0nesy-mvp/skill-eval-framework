@@ -2,6 +2,11 @@
 
 状态：`EXECUTABLE_EVALUATION_POLICY_DESIGN_V0_FREEZE_READY: YES`
 
+> [!IMPORTANT]
+> **文档角色：历史可执行策略设计权威。** 正文中的“本文不实现 Python services”“只在设计层关闭”“后继 migrations 未实现”记录本文冻结时的阶段状态，不是当前仓库状态。
+>
+> **当前状态（2026-09-01）：** 本文冻结的类型化 Metric 与 direct-Grader Gate policies 已进入 `BenchmarkDefinitionV03`、closure-v1、validators、digest、Runtime binding 和 Evaluation Services；当前 CLI 只执行 v0.3 路径。`tests/test_definition_v03_schema.py`、`tests/test_digest_v1.py`、`tests/test_evaluation_services.py` 和 `tests/test_public_api.py` 提供回归证据。当前边界见 `references/executable-policy-v03.md` 和 `docs/public-api-version-policy-v0.1.md`，当前 Audit 状态见 `docs/audit-status-v0.1.md`。
+
 范围：针对实现阶段发现的 Metric 与 direct-Grader Gate 执行阻断项，提供后继设计。
 
 本文不实现 Python services，只定义后续实现可消费的最小机器可读策略表面。历史 v0.2 Definition 设计及其证据保持不变。

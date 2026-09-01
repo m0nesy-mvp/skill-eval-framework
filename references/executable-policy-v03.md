@@ -35,8 +35,11 @@ Metric-threshold 与 availability conditions 保持类型化。Direct-Grader Gat
 
 CLI 禁止把 v0.2 自由文本策略作为可执行 input。高级 formula DSL、自定义 weighting、statistical estimators、嵌套 boolean/count Gates 和自动 v0.2 migration 均不属于 v0.3。
 
-详细权威文档：
+## 文档角色与当前状态
 
-- `docs/executable-evaluation-policy-hardening-design-v0.1.md`；
-- `docs/final-eligible-aggregation-hardening-v0.1.md`；
-- `docs/public-api-version-policy-v0.1.md`。
+| 文档 | 角色 / 当前状态 |
+|---|---|
+| `docs/executable-evaluation-policy-hardening-design-v0.1.md` | 历史设计权威；正文中的“未实现”是冻结时状态，typed policies 当前已进入 v0.3 实现 |
+| `docs/final-eligible-aggregation-hardening-v0.1.md` | 历史 `AUDIT-002` 设计加固记录；当前 `AUDIT-002 = CLOSED` |
+| `docs/public-api-version-policy-v0.1.md` | 当前 v0.3/v0.2 Public API 与 closure-profile 边界 |
+| `docs/audit-status-v0.1.md` | 当前 `AUDIT-001`～`AUDIT-006` 状态权威 |

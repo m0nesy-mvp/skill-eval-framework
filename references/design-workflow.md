@@ -26,15 +26,15 @@ Target Skill
 
 ## 详细设计参考
 
-| 设计阶段 | 仓库权威文档 |
-|---|---|
-| 端到端流程 | `docs/universal-skill-eval-design-process-v1.1-scope-frozen.md` |
-| 需求（Requirement） | `docs/guides/requirement-extraction-guide-v0.1.md` |
-| 契约（Contract） | `docs/guides/contract-design-guide-v0.md` |
-| 测试用例（Test Case） | `docs/guides/test-case-design-guide-v0.md` |
-| 证据（Evidence） | `docs/guides/evidence-specification-guide-v0.md` |
-| 评分器（Grader） | `docs/guides/grader-specification-guide-v0.md` |
-| 指标（Metric） | `docs/guides/metric-specification-guide-v0.md` |
-| 门禁（Gate） | `docs/guides/gate-specification-guide-v0.md` |
+| 设计阶段 | 仓库文档 | 角色 / 当前状态 |
+|---|---|---|
+| 端到端流程 | `docs/universal-skill-eval-design-process-v1.1-scope-frozen.md` | 历史 Scope-Frozen 完整系统设计；不是当前 CLI capability contract |
+| 需求（Requirement） | `docs/guides/requirement-extraction-guide-v0.1.md` | Requirement 采集与冻结方法；文内阶段性 Trace 状态不得当作当前仓库状态 |
+| 契约（Contract） | `docs/guides/contract-design-guide-v0.md` | Contract 设计方法与成功/失败边界 |
+| 测试用例（Test Case） | `docs/guides/test-case-design-guide-v0.md` | Test Case 设计与 coverage 方法；不是 Runtime executor |
+| 证据（Evidence） | `docs/guides/evidence-specification-guide-v0.md` | Evidence specification 与 qualification 方法；当前 CLI 不负责外部 Evidence collection |
+| 评分器（Grader） | `docs/guides/grader-specification-guide-v0.md` | Grader specification 方法；当前 CLI 不托管 semantic Grader |
+| 指标（Metric） | `docs/guides/metric-specification-guide-v0.md` | Metric 设计权威；当前可执行策略以 v0.3 typed schema 为准 |
+| 门禁（Gate） | `docs/guides/gate-specification-guide-v0.md` | Gate 设计权威；当前可执行策略以 v0.3 typed schema 为准 |
 
-这些详细文档保留设计历史与冻结决定。其历史 readiness 标签不能覆盖当前可执行 v0.3 Public API 或当前仓库测试结果。
+这些详细文档保留设计历史与冻结决定。其历史 readiness 标签不能覆盖当前可执行 v0.3 Public API、`docs/audit-status-v0.1.md` 或当前仓库测试结果。当前 Subject/CLI 分界见 `references/runtime-evaluation.md`。

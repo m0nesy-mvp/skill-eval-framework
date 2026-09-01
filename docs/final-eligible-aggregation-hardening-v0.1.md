@@ -2,6 +2,11 @@
 
 状态：`AUDIT_002_DESIGN_HARDENING_FREEZE_READY`
 
+> [!IMPORTANT]
+> **文档角色：历史设计加固快照。** 上述状态以及正文中的 “当前接受非法组合”“IMPLEMENTATION_STATUS: OPEN”“BLOCKING_BEFORE_CLI: YES” 记录的是本文冻结时的历史状态，不是当前仓库状态。
+>
+> **当前状态（2026-09-01）：`AUDIT-002 = CLOSED`。** `MetricSpecificationV03` 已在 Definition-time 拒绝同一派生 aggregation unit 包含多个 `MetricInputs` 的 `final_eligible` 组合；`tests/test_definition_v03_schema.py` 覆盖合法与非法的三种 aggregation-unit modes，`tests/test_evaluation_services.py` 覆盖 selection、eligibility、trace、coverage 与确定性顺序。当前 CLI blocker 已移除。当前统一状态见 `docs/audit-status-v0.1.md`。
+
 目标：Benchmark Definition schema v0.3
 
 范围：当显式 Metric inputs 派生到 aggregation units 时，`final_eligible` unit reduction 在 Definition-time 的合法性。
@@ -382,6 +387,8 @@ final_eligible cannot merge multiple MetricInputs into one aggregation unit
 
 ## 15. 发现项状态
 
+### 15.1 本文冻结时的历史状态
+
 冻结本附录后：
 
 ```text
@@ -395,7 +402,7 @@ AUDIT-002:
   BLOCKING_BEFORE_CLI: YES
 ```
 
-本文不会修复或完全关闭 `AUDIT-002`。只有实现并独立验证该 Definition-time 合法性不变量及其回归后，才能移除 CLI blocker。
+本文在冻结时只提供设计，不会修复或完全关闭 `AUDIT-002`。当时只有实现并独立验证该 Definition-time 合法性不变量及其回归后，才能移除 CLI blocker。
 
 历史发现项状态：
 
@@ -405,7 +412,25 @@ IMP-EVAL-METRIC-POLICY-001:
   IMPLEMENTATION_LAYER: OPEN_PENDING_SCHEMA_VALIDATION_AND_TESTS
 ```
 
-关闭未定义组合后，原始类型化策略设计仍然有效。完整 implementation closure 仍需要 Schema/validator migration 与 regression evidence。
+在本文冻结时，关闭未定义组合后，原始类型化策略设计仍然有效；完整 implementation closure 仍需要 Schema/validator migration 与 regression evidence。
+
+### 15.2 当前 resolution
+
+后续实现已经完成本文要求的最小不变量：
+
+- `src/skill_eval_framework/schemas/definition_v03.py` 在 Definition-time 执行每个派生 aggregation unit 恰好一个 `MetricInput` 的校验；
+- `src/skill_eval_framework/evaluation/metric.py` 保留防御性拒绝，不把实现顺序伪造成跨 input authority；
+- `tests/test_definition_v03_schema.py` 验证合法单 input、非法同 unit 多 input，以及 `single` / `mean` 不受影响；
+- `tests/test_evaluation_services.py` 验证 `final_eligible`、coverage、trace ordering 和 set-like input determinism。
+
+因此当前状态为：
+
+```text
+AUDIT-002:
+  CURRENT_STATUS: CLOSED
+  CLI_BLOCKER: REMOVED
+  HISTORICAL_DESIGN_STATUS: AUDIT_002_DESIGN_HARDENING_FREEZE_READY
+```
 
 ## 16. 冻结决定
 

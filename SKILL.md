@@ -90,4 +90,6 @@ skill-eval evaluate `
 
 `AUDIT-001` 仍为 `ACCEPTED_RISK`。受支持的 CLI 只接受上游 Runtime products 和 GraderResults；Framework 自行派生 Metric、Gate、Overall 和 Acceptance 结果。直接使用 Python 的调用方可以绕过这条路径，向最终完整性检查提交结构合法但语义错误的派生 Results。该残余风险只是被记录，并未修复。
 
+`AUDIT-001`～`AUDIT-006` 的当前状态与验证入口见 [docs/audit-status-v0.1.md](docs/audit-status-v0.1.md)。历史设计文档中的阶段状态不得覆盖该当前状态表。
+
 禁止根据一个通过的 Case 声称整个 Skill 正确；也禁止把结构检查通过当作 Evidence 或 Grader judgment 在语义上正确的证明。

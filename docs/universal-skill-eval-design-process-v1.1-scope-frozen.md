@@ -4,11 +4,16 @@ Status: Scope-Frozen
 Version: v1.1
 Date: 2026-08-20
 
+> [!IMPORTANT]
+> **文档角色：历史 Scope-Frozen 端到端设计。** 本文保留 v1.1 当时设想的完整评估系统流程，不是当前 `skill-eval` CLI 的能力说明。当前 CLI 不执行 Subject、不准备外部环境、不收集 Evidence、不托管 semantic Grader，也不提供 Baseline/Candidate comparison engine；这些工作由 Framework 外部完成。当前 CLI 从已完成的 Runtime facts 与 `GraderResults` 开始，只负责 validation、digest，以及确定性派生 `MetricResults`、`GateResults`、`OverallScoreOutcome`、`AcceptanceEvaluation` 和 `Scorecard`。当前操作边界以根 `README.md`、`SKILL.md`、`references/runtime-evaluation.md` 和 `references/cli.md` 为准。
+>
+> **术语说明：** 本文中的 “Workflow Requirement / Contract / Case / Grader / Metric” 是按 workflow 评价方向使用的角色标签，不是另一套独立 Core Object 或 Schema。当前正式表达仍是同一套 `Requirement`、`Contract`、`TestCase`、`GraderSpecification` 和 `MetricSpecification`；其中 Requirement/Contract 使用 `evaluation_type: workflow` 表达工作流评价方向。
+
 ## 1. v1.1 项目边界
 
 ### 1.1 本版本要解决什么
 
-v1.1 定义一条覆盖约 80%～90% 常规 Skill Eval 场景的通用主路径：
+v1.1 当时定义了一条覆盖约 80%～90% 常规 Skill Eval 场景的完整系统主路径。映射到当前实现时，外部 execution/grading 与 Framework CLI 必须分开：
 
 ```text
 输入 Target Skill
@@ -21,9 +26,9 @@ Agent 设计可验证的 Benchmark / Eval Definition
 ↓
 冻结 Benchmark Definition
 ↓
-开发者通过 CLI 执行
+外部系统执行 Subject、收集 Evidence 并形成 GraderResults
 ↓
-生成多维 Metric、Overall Score、Gate Result 和完整证据链
+当前 CLI 校验输入并派生 Metric、Gate、Overall、Acceptance 和 Scorecard
 ```
 
 本版本解决以下问题：
@@ -1147,7 +1152,7 @@ INVALID
 Frozen Benchmark / Eval Definition
 ```
 
-它是 Part 2 CLI Execution 的权威输入。
+它是历史 Part 2 端到端执行方法的设计输入；在当前实现中，`BenchmarkDefinitionV03` 及其 closure-v1 digest 是外部执行记录与 `skill-eval evaluate` 共同绑定的权威 Definition identity。
 
 ### 下游依赖
 
@@ -1157,9 +1162,9 @@ Frozen Benchmark / Eval Definition
 - Result Traceability
 - Version Comparison
 
-# 第 2 部分：CLI Execution
+# 第 2 部分：历史端到端执行方法（不是当前 CLI 能力边界）
 
-Part 2 在本版本中只定义执行方法，不设计 CLI 命令、参数、文件结构或 Runtime 架构。
+Part 2 在本版本中只定义当时设想的完整系统执行方法，不设计 CLI 命令、参数、文件结构或 Runtime 架构。当前仓库没有把本部分全部实现为 CLI：环境准备、Subject/Case execution、Evidence collection、semantic grading 和 Baseline/Candidate comparison 均位于 Framework 外部；当前 CLI 只消费已经完成的 Runtime facts 与 `GraderResults`，再进行确定性派生。
 
 ## 步骤 11：Create Run & Prepare Environment
 
@@ -2255,18 +2260,25 @@ Skill Understanding
 ```
 
 ```text
-Part 2：CLI Execution
+Part 2：Historical Full-System Execution
 
-Create Run
+External execution / grading boundary
+Create Run plan
 → Prepare Environment
 → Execute Cases
 → Produce Episodes
 → Collect Evidence / Trace
-→ Run Graders
+→ Run semantic Graders
+→ completed Runtime facts + GraderResults
+
+Current skill-eval CLI boundary
+Validate Definition / Run binding
 → Aggregate Metrics
-→ Apply Rubric / Weight / Gates
-→ Compare Baseline
-→ Generate Scorecard / Overall Score
+→ Apply typed Gate / Overall / Acceptance policies
+→ Generate Scorecard
+
+External or future capability
+→ Compare Baseline / Candidate
 ```
 
 本版到此停止。

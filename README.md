@@ -155,6 +155,8 @@ v0.1 提交打包基线共收集 339 个测试；最终提交检查要求 339 �
 
 `AUDIT-001` 仍为 `ACCEPTED_RISK`。受支持的 CLI 只接受上游 Runtime products 和 GraderResults，然后由框架自行派生 Metric/Gate/Overall/Acceptance 结果。直接使用 Python 的调用方可以绕过这条受支持路径，把结构合法但语义错误的派生 Results 提交给最终完整性检查。该残余风险已记录在 [docs/known-risks-v0.1.md](docs/known-risks-v0.1.md) 中，不能声称已经修复。
 
+`AUDIT-001`～`AUDIT-006` 的当前状态、实现证据和回归入口统一记录在 [docs/audit-status-v0.1.md](docs/audit-status-v0.1.md)。历史设计文档中的 `OPEN`、`BLOCKED` 或“未开始实现”只表示当时阶段，不能覆盖该当前状态表。
+
 ## 范围与非目标
 
 本项目是 Agent Skill Evaluation / Benchmark Framework，不是：
@@ -176,3 +178,4 @@ PyPI 发布、GitHub Releases、dashboard、frontend 工作和新的 evaluator �
 - [references/executable-policy-v03.md](references/executable-policy-v03.md)
 - [references/cli.md](references/cli.md)
 - [docs/cli-usage-v0.1.md](docs/cli-usage-v0.1.md)
+- [docs/audit-status-v0.1.md](docs/audit-status-v0.1.md)

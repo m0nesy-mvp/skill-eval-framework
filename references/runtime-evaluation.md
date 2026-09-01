@@ -38,4 +38,8 @@ Scorecard inventory 区分 expected、actual 与 missing applications。GraderRe
 - digest/profile 不匹配属于 identity error，不是 warning。
 - 保留原始 Run。Definition 改变后生成新的 digest 和 Run，禁止覆盖 Evidence。
 
-完整 Runtime/Result 模型见 `docs/guides/runtime-result-design-guide-v0.md`。
+## 文档角色
+
+- 当前操作边界：本文与 `references/cli.md`。
+- 历史设计与 pseudo-schema：`docs/guides/runtime-result-design-guide-v0.md`。该 Guide 保留设计阶段的“未实现”与 readiness 结论，不能覆盖当前代码和测试状态。
+- 当前 Audit 状态：`docs/audit-status-v0.1.md`。

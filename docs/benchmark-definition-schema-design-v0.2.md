@@ -4,6 +4,11 @@ Version: v0.2
 状态：架构权威已定义并完成验证（Architecture Authority Defined and Validated）
 Date: 2026-08-27
 
+> [!IMPORTANT]
+> **文档角色：历史 v0.2 compatibility design snapshot。** 正文中的 “Not CLOSED”“Pydantic / implementation started: NO”“不得开始 Pydantic” 等表述记录 2026-08-27 的设计阶段，不是当前仓库状态。
+>
+> **当前状态（2026-09-01）：** `BenchmarkDefinitionV03` 是当前可执行 root，使用 `skill-eval-frozen-definition-closure-v1`；`BenchmarkDefinitionV02` 与 closure-v0 只保留显式历史兼容。v0.2 schema、digest v0 和 version-aware Run binding 已实现，但当前 CLI 只接受 v0.3。当前版本边界见 `docs/public-api-version-policy-v0.1.md`，当前 Audit 状态见 `docs/audit-status-v0.1.md`。
+
 ## 1. 范围 and predecessor
 
 本文是`docs/benchmark-definition-requirement-contract-schema-design-v0.md`的versioned hardening successor。
